@@ -1,0 +1,933 @@
+<title>Đợt 1 — 15 yêu cầu · Gia phả Nguyễn Quang</title>
+<style>
+  :root {
+    --paper:    #F2F3F0;
+    --surface:  #FBFBF9;
+    --ink:      #16191C;
+    --ink-soft: #5A625F;
+    --ink-faint:#8B928F;
+    --rule:     #D6D9D4;
+    --rule-soft:#E6E8E4;
+    --accent:   #1F4E5F;
+    --accent-bg:#E4EBEC;
+    --brass:    #8A6D2F;
+    --flag:     #7A3B2E;
+
+    --serif: "Iowan Old Style", Charter, "Bitstream Charter", "Palatino Linotype", Palatino, Georgia, serif;
+    --sans: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    --mono: ui-monospace, "SF Mono", SFMono-Regular, "Cascadia Mono", Menlo, Consolas, monospace;
+
+    --measure: 34rem;
+    --rail: 7.5rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:    #121517;
+      --surface:  #191D20;
+      --ink:      #E7E9E5;
+      --ink-soft: #9BA4A2;
+      --ink-faint:#6C7573;
+      --rule:     #2A3034;
+      --rule-soft:#21262A;
+      --accent:   #6FB0BF;
+      --accent-bg:#17272B;
+      --brass:    #C7A55E;
+      --flag:     #D08A78;
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --paper:    #121517;
+    --surface:  #191D20;
+    --ink:      #E7E9E5;
+    --ink-soft: #9BA4A2;
+    --ink-faint:#6C7573;
+    --rule:     #2A3034;
+    --rule-soft:#21262A;
+    --accent:   #6FB0BF;
+    --accent-bg:#17272B;
+    --brass:    #C7A55E;
+    --flag:     #D08A78;
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--serif);
+    font-size: 17px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: calc(var(--rail) + var(--measure) + 4rem);
+    margin: 0 auto;
+    padding: 0 1.5rem 7rem;
+  }
+
+  /* ── Masthead ─────────────────────────────── */
+
+  header.masthead {
+    display: grid;
+    gap: 1.75rem;
+    padding: 4.5rem 0 2.5rem;
+    border-bottom: 2px solid var(--ink);
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .19em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+
+  .masthead h1 {
+    font-family: var(--sans);
+    font-size: clamp(2rem, 6vw, 3.1rem);
+    font-weight: 700;
+    letter-spacing: -.035em;
+    line-height: 1.02;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .masthead h1 span {
+    display: block;
+    color: var(--ink-soft);
+    font-weight: 400;
+    letter-spacing: -.02em;
+  }
+
+  .han {
+    font-size: 1.35rem;
+    letter-spacing: .5em;
+    color: var(--brass);
+    margin: 0;
+  }
+
+  .standfirst {
+    max-width: var(--measure);
+    color: var(--ink-soft);
+    margin: 0;
+  }
+
+  /* ── Decision strip ───────────────────────── */
+
+  .decisions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 0;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .decisions li {
+    padding: 1.4rem 1.5rem 1.5rem 0;
+    border-right: 1px solid var(--rule-soft);
+  }
+
+  .decisions li:last-child { border-right: 0; }
+
+  .decisions dt {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin-bottom: .5rem;
+  }
+
+  .decisions dd {
+    margin: 0;
+    font-family: var(--sans);
+    font-size: .95rem;
+    line-height: 1.4;
+    font-weight: 500;
+  }
+
+  /* ── Index ────────────────────────────────── */
+
+  .index { padding: 2.5rem 0 1rem; }
+
+  .index h2,
+  .appendix h2,
+  .gate h2 {
+    font-family: var(--sans);
+    font-size: .78rem;
+    font-weight: 700;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 1.2rem;
+  }
+
+  .index ol {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+    gap: .1rem 2rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .index li { border-bottom: 1px solid var(--rule-soft); }
+
+  .index a {
+    display: flex;
+    gap: .8rem;
+    align-items: baseline;
+    padding: .5rem 0;
+    text-decoration: none;
+    color: var(--ink);
+  }
+
+  .index a:hover { color: var(--accent); }
+  .index a:hover .ix-title { text-decoration: underline; text-underline-offset: 3px; }
+
+  .index code {
+    font-family: var(--mono);
+    font-size: .74rem;
+    color: var(--accent);
+    letter-spacing: .02em;
+    font-variant-numeric: tabular-nums;
+    min-width: 3.4rem;
+  }
+
+  .ix-title { font-size: .93rem; }
+
+  /* ── Clusters ─────────────────────────────── */
+
+  .cluster { padding-top: 3.5rem; }
+
+  .cluster-head {
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    padding-bottom: .7rem;
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--ink);
+  }
+
+  .cluster-head h2 {
+    font-family: var(--sans);
+    font-size: 1.28rem;
+    font-weight: 700;
+    letter-spacing: -.02em;
+    margin: 0;
+  }
+
+  .cluster-head .count {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+    color: var(--ink-faint);
+    margin-left: auto;
+    white-space: nowrap;
+  }
+
+  .cluster-note {
+    max-width: var(--measure);
+    margin: .9rem 0 0;
+    color: var(--ink-soft);
+    font-size: .93rem;
+  }
+
+  /* ── Requirement entries ──────────────────── */
+
+  .req {
+    display: grid;
+    gap: .3rem 2rem;
+    padding: 2.2rem 0;
+    border-bottom: 1px solid var(--rule-soft);
+    scroll-margin-top: 1.5rem;
+  }
+
+  @media (min-width: 56rem) {
+    .req {
+      grid-template-columns: var(--rail) minmax(0, var(--measure));
+    }
+    .req > .req-rail { grid-row: 1 / span 3; }
+  }
+
+  .req-rail {
+    display: flex;
+    flex-direction: column;
+    gap: .45rem;
+    align-items: flex-start;
+    padding-top: .28rem;
+  }
+
+  .req-id {
+    font-family: var(--mono);
+    font-size: .82rem;
+    font-weight: 600;
+    letter-spacing: .02em;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    text-decoration: none;
+  }
+
+  .req-id:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  .tag {
+    font-family: var(--mono);
+    font-size: .6rem;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+    padding: .18rem .45rem;
+    border: 1px solid var(--rule);
+    color: var(--ink-faint);
+    border-radius: 2px;
+  }
+
+  .tag.merged { border-color: var(--rule); }
+  .tag.first  { border-color: var(--accent); color: var(--accent); }
+
+  .req h3 {
+    font-family: var(--sans);
+    font-size: 1.14rem;
+    font-weight: 650;
+    letter-spacing: -.015em;
+    line-height: 1.28;
+    text-wrap: balance;
+    margin: 0;
+  }
+
+  .req-body { max-width: var(--measure); }
+  .req-body > p { margin: .7rem 0 0; }
+  .req-body > p:first-child { margin-top: .55rem; }
+
+  .req-body ul {
+    margin: .75rem 0 0;
+    padding-left: 1.15rem;
+  }
+
+  .req-body li { margin-bottom: .4rem; }
+  .req-body li::marker { color: var(--ink-faint); }
+
+  strong { font-weight: 650; }
+
+  /* ── Callouts ─────────────────────────────── */
+
+  .why {
+    margin: 1.1rem 0 0;
+    padding: .85rem 0 .85rem 1.1rem;
+    border-left: 2px solid var(--accent);
+    font-size: .92rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+
+  .why b { color: var(--ink); font-weight: 650; }
+
+  .depends {
+    margin: 1.1rem 0 0;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .05em;
+    color: var(--ink-faint);
+  }
+
+  .depends a {
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .depends a:hover { border-bottom-color: var(--accent); }
+
+  .blocked {
+    display: inline-block;
+    margin-top: .9rem;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .08em;
+    color: var(--flag);
+    border: 1px dashed var(--flag);
+    padding: .25rem .55rem;
+    border-radius: 2px;
+  }
+
+  /* ── Gate + appendix ──────────────────────── */
+
+  .gate {
+    margin-top: 4rem;
+    padding: 2rem;
+    background: var(--accent-bg);
+    border-radius: 3px;
+  }
+
+  .gate p {
+    margin: 0;
+    max-width: var(--measure);
+    font-size: 1.06rem;
+  }
+
+  .gate .fine {
+    margin-top: .9rem;
+    font-size: .9rem;
+    color: var(--ink-soft);
+  }
+
+  .appendix { margin-top: 4rem; }
+
+  .nfr {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 0 2.5rem;
+    margin: 0;
+    padding: 0;
+  }
+
+  .nfr div {
+    padding: 1.1rem 0;
+    border-top: 1px solid var(--rule-soft);
+  }
+
+  .nfr dt {
+    font-family: var(--sans);
+    font-weight: 650;
+    font-size: .96rem;
+    margin-bottom: .3rem;
+  }
+
+  .nfr dd {
+    margin: 0;
+    font-size: .9rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+  }
+
+  footer {
+    margin-top: 4rem;
+    padding-top: 1.6rem;
+    border-top: 1px solid var(--rule);
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .1em;
+    color: var(--ink-faint);
+    line-height: 2.1;
+  }
+
+  a:focus-visible,
+  .req-id:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { scroll-behavior: auto !important; }
+  }
+
+  html { scroll-behavior: smooth; }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <p class="eyebrow">Đợt 1 · Nền · Bản chốt 10.08.2026</p>
+    <h1>Mười lăm yêu cầu<span>để dữ liệu bắt đầu chảy vào</span></h1>
+    <p class="han">光前裕後</p>
+    <p class="standfirst">
+      Nền tảng gia phả dòng họ Nguyễn Quang. Đây là tập nhỏ nhất khiến dữ liệu
+      bắt đầu xuất hiện — không phải tập ấn tượng nhất. Mọi thứ khác nằm ở mục
+      <em>Sau này</em> của PRD.
+    </p>
+  </header>
+
+  <dl class="decisions">
+    <li>
+      <dt>Quy mô</dt>
+      <dd>Dưới 300 người · 5–7 đời</dd>
+    </li>
+    <li>
+      <dt>Xác thực</dt>
+      <dd>Google · Facebook · tài khoản riêng</dd>
+    </li>
+    <li>
+      <dt>Gốc cây</dt>
+      <dd>Không khai báo — hệ thống tự suy ra</dd>
+    </li>
+    <li>
+      <dt>Nền tảng</dt>
+      <dd>Web-only, không app</dd>
+    </li>
+  </dl>
+
+  <nav class="index" aria-label="Mục lục">
+    <h2>Mục lục</h2>
+    <ol>
+      <li><a href="#fr-51"><code>FR-51</code><span class="ix-title">Nhập khung dòng họ</span></a></li>
+      <li><a href="#fr-63"><code>FR-63</code><span class="ix-title">Gốc cây là dẫn xuất</span></a></li>
+      <li><a href="#fr-11"><code>FR-11</code><span class="ix-title">Tự khai 4 bước</span></a></li>
+      <li><a href="#fr-13"><code>FR-13</code><span class="ix-title">Trả công tức thì</span></a></li>
+      <li><a href="#fr-15"><code>FR-15</code><span class="ix-title">Cây gia tộc</span></a></li>
+      <li><a href="#fr-47"><code>FR-47</code><span class="ix-title">Thu và lưu lời kể</span></a></li>
+      <li><a href="#fr-49"><code>FR-49</code><span class="ix-title">Đồng thuận cho lời kể</span></a></li>
+      <li><a href="#fr-1"><code>FR-1</code><span class="ix-title">Khẳng định mang theo nguồn</span></a></li>
+      <li><a href="#fr-2"><code>FR-2</code><span class="ix-title">Ba mức tin cậy</span></a></li>
+      <li><a href="#fr-3"><code>FR-3</code><span class="ix-title">Hai tầng dữ liệu</span></a></li>
+      <li><a href="#fr-64"><code>FR-64</code><span class="ix-title">Đăng nhập và quản lý người dùng</span></a></li>
+      <li><a href="#fr-48"><code>FR-48</code><span class="ix-title">Hợp nhất mảnh</span></a></li>
+      <li><a href="#fr-37"><code>FR-37</code><span class="ix-title">Riêng tư theo bán kính</span></a></li>
+      <li><a href="#fr-55"><code>FR-55</code><span class="ix-title">Quyền của người sống</span></a></li>
+      <li><a href="#fr-39"><code>FR-39</code><span class="ix-title">Nhật ký sửa</span></a></li>
+    </ol>
+  </nav>
+
+  <!-- ══ Gieo mồi ══ -->
+  <section class="cluster">
+    <div class="cluster-head">
+      <h2>Gieo mồi</h2>
+      <span class="count">2 yêu cầu</span>
+    </div>
+    <p class="cluster-note">
+      Ngày ra mắt, cây gia phả trống rỗng và chưa ai biết chắc cụ Thủy tổ là ai.
+      Hai yêu cầu này cắt chuỗi tự siết đó.
+    </p>
+
+    <article class="req" id="fr-51">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-51">FR-51</a>
+        <span class="tag first">Làm trước tiên</span>
+      </div>
+      <h3>Nhập khung dòng họ</h3>
+      <div class="req-body">
+        <p>
+          Nạp bộ khung dựng ngoài hệ thống: các chi hiện có, người đứng đầu mỗi chi,
+          những cụ đã biết tên. Vào thẳng mức <em>tồn nghi</em>, sửa được toàn bộ về sau.
+        </p>
+        <p>
+          Không cần chỉ định ai là Thủy tổ — cứ nạp các node rời, hệ thống tự suy ra
+          gốc và loang ra. Khung này chỉ để cây không trống trong ngày đầu.
+        </p>
+        <p class="depends">Vật phẩm đầu vào dựng ngoài hệ thống · giấy hoặc Excel</p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-63">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-63">FR-63</a>
+      </div>
+      <h3>Gốc cây là dẫn xuất</h3>
+      <div class="req-body">
+        <p>
+          Hệ thống tự xác định người xa nhất truy được trong mỗi mảnh làm gốc tạm,
+          và tính lại khi có dữ liệu mới. Kéo theo ba ràng buộc cứng:
+        </p>
+        <ul>
+          <li>
+            <strong>Số đời và mã chi tính lúc hiển thị</strong>, không lưu cứng —
+            chèn thêm một đời phía trên không được làm sai mọi bản ghi bên dưới.
+          </li>
+          <li>Định danh trong máy phải <strong>không đổi khi gốc dịch</strong>.</li>
+          <li>
+            Giao diện nói rõ đây là <strong>gốc tạm</strong>
+            <em>(“cụ xa nhất hiện biết”)</em>, không phải khẳng định đã là Thủy tổ.
+          </li>
+        </ul>
+        <p class="why">
+          <b>Vì sao là ràng buộc, không phải tùy chọn.</b> Nếu lưu “đời 5” vào bản ghi,
+          hôm sau tìm thêm được một cụ phía trên thì con số đó sai toàn bộ.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══ Vòng lặp người dùng ══ -->
+  <section class="cluster">
+    <div class="cluster-head">
+      <h2>Vòng lặp người dùng</h2>
+      <span class="count">3 yêu cầu</span>
+    </div>
+    <p class="cluster-note">
+      Người đóng góp đông nhất là con cháu 25–55 tuổi, ở xa quê, bận. Cả ba yêu cầu
+      phục vụ một vòng: tìm thấy mình → thêm gia đình mình → nhận phần thưởng.
+    </p>
+
+    <article class="req" id="fr-11">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-11">FR-11</a>
+      </div>
+      <h3>Tự khai 4 bước</h3>
+      <div class="req-body">
+        <p>
+          <em>“Bạn là ai trong họ?”</em> → tìm người thân đã có → xác nhận → thêm mình
+          và gia đình. Mỗi màn hình <strong>một câu hỏi</strong>.
+        </p>
+        <p>
+          Xem cây không cần đăng ký; ghi thì cần xác thực.
+        </p>
+        <p class="depends">Cần: <a href="#fr-64">FR-64</a></p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-13">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-13">FR-13</a>
+      </div>
+      <h3>Trả công tức thì</h3>
+      <div class="req-body">
+        <p>
+          Vừa thêm mình xong là thấy ngay <strong>đường ngược lên cụ xa nhất hiện biết</strong>
+          của riêng mình, tô sáng — kèm số đời và mã chi tính tại chỗ.
+        </p>
+        <p class="why">
+          <b>Phần thưởng lặp lại, không phải một lần.</b> Đường này dài ra mỗi khi dòng họ
+          tìm thêm được một đời.
+        </p>
+        <p class="depends">Cần: <a href="#fr-51">FR-51</a> · <a href="#fr-63">FR-63</a></p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-15">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-15">FR-15</a>
+        <span class="tag merged">Gộp FR-16</span>
+      </div>
+      <h3>Cây gia tộc</h3>
+      <div class="req-body">
+        <p>
+          Zoom theo chi, collapse theo đời, chạy mượt trên điện thoại.
+        </p>
+        <p>
+          <strong>Mở lên thấy chính mình trước</strong>, rồi đi ngược lên — không phải
+          mở ra thấy gốc rồi tự mò xuống.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══ Thu lời kể ══ -->
+  <section class="cluster">
+    <div class="cluster-head">
+      <h2>Thu lời kể</h2>
+      <span class="count">2 yêu cầu</span>
+    </div>
+    <p class="cluster-note">
+      Các cụ cao niên là kho dữ liệu duy nhất không sao chép được. Thu là việc bây giờ;
+      bóc tách là việc sau.
+    </p>
+
+    <article class="req" id="fr-47">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-47">FR-47</a>
+        <span class="tag first">Rẻ nhất, cấp nhất</span>
+      </div>
+      <h3>Thu và lưu lời kể</h3>
+      <div class="req-body">
+        <p>Hai đường vào, cùng một kho:</p>
+        <ul>
+          <li>
+            <strong>Ghi âm thẳng trên web</strong> — mở trang, bấm nút, nói.
+            Trình duyệt di động làm được, không cần app.
+          </li>
+          <li>
+            <strong>Tải lên file thu sẵn</strong> — cho những đoạn đã thu trước khi
+            có phần mềm, hoặc thu bằng máy ghi âm.
+          </li>
+        </ul>
+        <p>
+          Cả hai kèm metadata tối thiểu: <strong>ai kể, ai thu, ngày nào, nói về ai</strong>.
+          Chưa cần bóc tách gì.
+        </p>
+        <p class="why">
+          <b>Thứ đang mất là băng chưa thu, không phải tính năng chưa xây.</b>
+          Phần thu nhận bảo toàn 100% giá trị của lời kể với chi phí gần như bằng không.
+        </p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-49">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-49">FR-49</a>
+      </div>
+      <h3>Đồng thuận cho lời kể</h3>
+      <div class="req-body">
+        <p>
+          Dữ liệu quý nhất cũng là dữ liệu dễ nổ nhất: vợ lẽ, con ngoài giá thú,
+          tranh chấp hương hỏa. Mỗi bản ghi phải có:
+        </p>
+        <ul>
+          <li>
+            <strong>Mức tiếp cận do người kể chọn</strong> — công khai / chỉ người quản trị /
+            niêm phong tới một mốc.
+          </li>
+          <li>
+            <strong>Quyền rút lại</strong>, còn hiệu lực sau khi họ mất.
+          </li>
+          <li>
+            <strong>Đường ẩn khẩn</strong> cho khẳng định bị báo cáo là xúc phạm.
+          </li>
+        </ul>
+        <p class="why">
+          <b>Điều kiện bắt buộc của FR-47.</b> Vì <a href="#fr-3" style="color:inherit">FR-3</a>
+          cho hiển thị trước khi duyệt, phải có phanh.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══ Nền dữ liệu ══ -->
+  <section class="cluster">
+    <div class="cluster-head">
+      <h2>Nền dữ liệu</h2>
+      <span class="count">5 yêu cầu</span>
+    </div>
+    <p class="cluster-note">
+      Thêm sau đồng nghĩa đập bảng làm lại. Đây là lý do cụm này nằm trong Đợt 1
+      chứ không nằm ở backlog.
+    </p>
+
+    <article class="req" id="fr-1">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-1">FR-1</a>
+      </div>
+      <h3>Mọi khẳng định mang theo nguồn</h3>
+      <div class="req-body">
+        <p>
+          Đơn vị dữ liệu không phải “người” mà là <strong>khẳng định về người</strong>:
+          ai khai, khi nào, dựa vào đâu.
+        </p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-2">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-2">FR-2</a>
+      </div>
+      <h3>Ba mức tin cậy</h3>
+      <div class="req-body">
+        <p>
+          <code style="font-family:var(--mono);font-size:.88em">chắc chắn</code> /
+          <code style="font-family:var(--mono);font-size:.88em">theo lời kể</code> /
+          <code style="font-family:var(--mono);font-size:.88em">tồn nghi</code> —
+          hiện trên cây bằng màu.
+        </p>
+        <p>Người xem luôn biết mình đang nhìn cái gì.</p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-3">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-3">FR-3</a>
+      </div>
+      <h3>Hai tầng dữ liệu</h3>
+      <div class="req-body">
+        <p>
+          Người đã xác thực ghi được vào <strong>Tầng tồn nghi</strong> ngay, không chờ
+          duyệt (hiện mờ). Người có vai duyệt nâng lên <strong>Tầng chính thức</strong> —
+          hiện là Hiệp, sau này là đầu mối từng chi.
+        </p>
+        <p class="depends">Cần: <a href="#fr-64">FR-64</a> · Có phanh: <a href="#fr-49">FR-49</a></p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-64">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-64">FR-64</a>
+      </div>
+      <h3>Đăng nhập và quản lý người dùng</h3>
+      <div class="req-body">
+        <p>
+          Ba đường vào: <strong>Google</strong>, <strong>Facebook</strong>, và
+          <strong>tài khoản riêng</strong> (tên đăng nhập + mật khẩu). Có phần quản lý
+          người dùng riêng, không phụ thuộc hoàn toàn vào nhà cung cấp bên ngoài.
+        </p>
+        <p>Một tài khoản <strong>chưa phải</strong> là một người trong phả. Hai lớp tách rời:</p>
+        <ul>
+          <li>
+            <strong>Tài khoản</strong> — chứng minh anh là chủ email/số này. Ai cũng tạo được.
+          </li>
+          <li>
+            <strong>Gắn vào node</strong> — chứng minh anh là <em>người này trong dòng họ</em>.
+            Do một người trong họ bảo lãnh, hoặc người quản trị xác nhận.
+          </li>
+        </ul>
+        <p>
+          Quyền ghi và bán kính riêng tư tính theo <strong>node</strong>, không theo tài khoản.
+          Người có tài khoản nhưng chưa gắn node chỉ xem được phần công khai.
+        </p>
+        <p>
+          Kèm <strong>vai trò tối thiểu</strong> để FR-3 có nghĩa:
+          <code style="font-family:var(--mono);font-size:.88em">quản trị</code> /
+          <code style="font-family:var(--mono);font-size:.88em">đầu mối chi</code> /
+          <code style="font-family:var(--mono);font-size:.88em">thành viên</code> /
+          <code style="font-family:var(--mono);font-size:.88em">khách</code>.
+          Màn hình quản lý vai trò đầy đủ là FR-36, để sau.
+        </p>
+        <p class="blocked">Facebook login cần Meta duyệt app — Google thì không</p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-48">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-48">FR-48</a>
+      </div>
+      <h3>Hợp nhất mảnh</h3>
+      <div class="req-body">
+        <p>
+          Phát hiện ứng viên trùng, <strong>gợi ý chứ không tự gộp</strong>, gộp nhầm thì
+          tách lại được, và hiển thị trung thực số <strong>mảnh chưa nối</strong> thay vì
+          vẽ như một cây liền.
+        </p>
+        <p class="why">
+          <b>Trái tim hệ thống, không phải việc dọn dẹp.</b> Khi mỗi người tự khai từ dưới
+          lên, kết quả là nhiều mảnh rời. Đây là cơ chế biến chúng thành một dòng họ — và
+          mỗi lần hợp nhất là một lần gốc chung lùi sâu thêm về quá khứ.
+        </p>
+        <p class="depends">Gắn với: <a href="#fr-63">FR-63</a></p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══ Không làm hại ai ══ -->
+  <section class="cluster">
+    <div class="cluster-head">
+      <h2>Không làm hại ai</h2>
+      <span class="count">3 yêu cầu</span>
+    </div>
+    <p class="cluster-note">
+      Dữ liệu là “của chung” và người khác khai hộ được. Ba yêu cầu này là ranh giới
+      bảo vệ người đang sống.
+    </p>
+
+    <article class="req" id="fr-37">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-37">FR-37</a>
+        <span class="tag merged">Gộp FR-38</span>
+      </div>
+      <h3>Riêng tư theo bán kính họ hàng</h3>
+      <div class="req-body">
+        <p>
+          Trong 3 bậc thấy đầy đủ; ngoài bán kính chỉ thấy tên và vị trí trên cây.
+          Người dùng <strong>không phải chỉnh cấu hình nào</strong>.
+        </p>
+        <p>
+          Mặc định với người còn sống: <strong>chỉ năm sinh, không ngày tháng; ẩn địa chỉ
+          và số điện thoại</strong>. Trẻ vị thành niên ẩn chặt hơn.
+        </p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-55">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-55">FR-55</a>
+      </div>
+      <h3>Quyền của người sống</h3>
+      <div class="req-body">
+        <p>Người bị khai phải:</p>
+        <ul>
+          <li><strong>Được biết</strong> khi mình được thêm vào.</li>
+          <li><strong>Được sửa</strong> thông tin về chính mình.</li>
+          <li>
+            <strong>Được ẩn</strong> khỏi phần công khai mà vẫn giữ liên kết phả hệ.
+          </li>
+          <li><strong>Được từ chối</strong> xuất hiện trong bản in.</li>
+        </ul>
+        <p class="why">
+          <b>Ranh giới:</b> được ẩn, <b>không được xóa</b> sự kiện phả hệ — xóa nó là làm
+          hỏng phả của người khác.
+        </p>
+      </div>
+    </article>
+
+    <article class="req" id="fr-39">
+      <div class="req-rail">
+        <a class="req-id" href="#fr-39">FR-39</a>
+        <span class="tag merged">Gộp FR-5</span>
+      </div>
+      <h3>Nhật ký sửa</h3>
+      <div class="req-body">
+        <p>
+          Ai sửa, khi nào, từ giá trị nào sang giá trị nào. Xem lại được cây tại một
+          thời điểm bất kỳ trong quá khứ.
+        </p>
+      </div>
+    </article>
+  </section>
+
+  <!-- ══ Gate ══ -->
+  <section class="gate">
+    <h2>Điều kiện ra mắt</h2>
+    <p>
+      Mỗi chi có <strong>ít nhất một người đã tự khai và nối được vào khung</strong>,
+      và số <strong>mảnh chưa nối bằng 0</strong>.
+    </p>
+    <p class="fine">
+      Câu “ai mở lên cũng tìm thấy chính mình” là mục tiêu sau 12 tháng, không phải
+      cổng ra mắt — lấy mục tiêu cuối làm điều kiện vào cửa chính là một trong bốn
+      vòng tròn logic mà Đợt 1 sinh ra để cắt.
+    </p>
+  </section>
+
+  <!-- ══ NFR ══ -->
+  <section class="appendix">
+    <h2>Ràng buộc phi chức năng bao trùm cả 15 yêu cầu</h2>
+    <dl class="nfr">
+      <div>
+        <dt>Không được mất dữ liệu</dt>
+        <dd>
+          Băng ghi âm và ảnh tư liệu là không tái tạo được. Sao lưu hằng ngày, giữ ≥ 90 ngày,
+          bản sao ở ≥ 2 nơi, và diễn tập khôi phục thật ít nhất 1 lần/năm.
+        </dd>
+      </div>
+      <div>
+        <dt>Một người vận hành được</dt>
+        <dd>
+          Khởi động lại bằng một lệnh, cấu hình nằm trong repo, tài liệu đủ để người khác
+          tiếp quản trong 1 ngày.
+        </dd>
+      </div>
+      <div>
+        <dt>Đơn giản là ràng buộc</dt>
+        <dd>
+          Thêm một người vào phả: ≤ 4 màn hình, ≤ 3 phút, điện thoại tầm trung, 4G ở quê.
+          Tính năng nào làm luồng này dài thêm phải nhường đường.
+        </dd>
+      </div>
+      <div>
+        <dt>Đa dòng họ: thiết kế sẵn, chưa mở</dt>
+        <dd>
+          Khóa phân vùng trên mọi bảng từ ngày đầu; lọc ở tầng dữ liệu; không hard-code
+          gì riêng của họ Nguyễn Quang.
+        </dd>
+      </div>
+      <div>
+        <dt>Web đủ năng lực</dt>
+        <dd>
+          Trình duyệt di động ghi âm, chụp ảnh, quét QR, tải tệp đều được. Không yêu cầu
+          nào được viện lý do “vì là web nên không làm được X”.
+        </dd>
+      </div>
+      <div>
+        <dt>Tiếng Việt là mặc định</dt>
+        <dd>
+          Tìm kiếm không dấu, sắp xếp theo alphabet tiếng Việt, Hán-Nôm hiển thị kèm phiên âm.
+        </dd>
+      </div>
+      <div>
+        <dt>AI không được bịa</dt>
+        <dd>
+          Chưa bị chạm tới trong Đợt 1 vì chưa có tính năng sinh văn bản — nhưng ràng buộc
+          đã có hiệu lực từ dòng code đầu tiên có AI.
+        </dd>
+      </div>
+    </dl>
+  </section>
+
+  <footer>
+    <div>Nguồn: prd.md §5 · Đợt 1 — nền</div>
+    <div>Mã hiệu giữ nguyên, không tái sử dụng · FR-5 → FR-39 · FR-16 → FR-15 · FR-38 → FR-37</div>
+    <div>Dòng họ Nguyễn Quang · 10.08.2026</div>
+  </footer>
+
+</div>

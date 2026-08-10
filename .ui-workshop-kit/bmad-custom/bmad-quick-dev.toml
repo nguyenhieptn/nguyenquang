@@ -1,0 +1,13 @@
+# Override team cho skill bmad-quick-dev — <PROJECT>.
+# Copy vào {project-root}/_bmad/custom/bmad-quick-dev.toml (bỏ tiền tố kit).
+# Mọi đường dev (kể cả quick-dev) đều THAM CHIẾU view UI Workshop rồi PROMOTE.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/specs/frontend-stack.md",
+  "file:{project-root}/app/uiworkshop/README.md",
+  "<PROJECT>: bất kỳ thay đổi giao diện nào — TRƯỚC HẾT tra UI Workshop (app/uiworkshop/_registry/outline.ts) tìm View khớp việc đang làm. CÓ → PROMOTE (di chuyển page ra route thật, _mock/seed → dữ liệu/auth thật, giữ nguyên JSX/layout/class/token, xoá bản xưởng + entry outline.ts; nếu màn nằm trong một luồng thì sửa bước tương ứng ở _registry/flows.ts để bản đồ không trỏ vào slug đã xoá). KHÔNG có → viết mới theo specs/frontend-stack.md. Đừng dựng lại giao diện đã có trong xưởng.",
+]
+
+on_complete = ""

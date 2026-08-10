@@ -1,0 +1,69 @@
+{
+  "$comment": "SINH TỰ ĐỘNG bởi `kit.mjs pack` — đừng sửa tay. sha = 16 ký tự đầu của sha256.",
+  "version": "1.2.1",
+  "plumbing": {
+    "app-uiworkshop/layout.tsx": "1e1d716598912389",
+    "app-uiworkshop/(shell)/layout.tsx": "d86ca07a3353ac7f",
+    "app-uiworkshop/(shell)/page.tsx": "aa69727acbfc5f49",
+    "app-uiworkshop/(shell)/view/[slug]/page.tsx": "fae68fde09ccd15b",
+    "app-uiworkshop/(shell)/flow/[id]/page.tsx": "3731f18023f9dd00",
+    "app-uiworkshop/_components/sidebar.tsx": "4ca57f000440cc32",
+    "app-uiworkshop/_components/viewport.tsx": "2c1fb23cbc63d7f8",
+    "app-uiworkshop/_components/device-frame.tsx": "1ab1853f7951107f",
+    "app-uiworkshop/_components/flow-map.tsx": "72011659e264fe20"
+  },
+  "skeleton": {
+    "app-uiworkshop/tokens.css": {
+      "sha": "5c7bb7d748156652",
+      "shapeRev": 1
+    },
+    "app-uiworkshop/_registry/sprint.ts": {
+      "sha": "4f640a7bd464f084",
+      "shapeRev": 1
+    },
+    "app-uiworkshop/_registry/outline.ts": {
+      "sha": "cc827b01d25de394",
+      "shapeRev": 1
+    },
+    "app-uiworkshop/_registry/flows.ts": {
+      "sha": "c6eb4713810878f6",
+      "shapeRev": 1
+    },
+    "app-uiworkshop/_mock/seed.ts": {
+      "sha": "1149300eeea8238a",
+      "shapeRev": 1
+    },
+    "app-uiworkshop/design-system/page.tsx": {
+      "sha": "aa45f0aa2d974d5b",
+      "shapeRev": 1
+    },
+    "app-uiworkshop/README.md": {
+      "sha": "19428a603c85b949",
+      "shapeRev": 1
+    },
+    "bmad-custom/bmad-ux.toml": {
+      "sha": "1c704f993d17e9de",
+      "shapeRev": 1
+    },
+    "bmad-custom/bmad-dev-story.toml": {
+      "sha": "309d979cafd0b0bc",
+      "shapeRev": 1
+    },
+    "bmad-custom/bmad-dev-auto.toml": {
+      "sha": "fa3332e28ac35f47",
+      "shapeRev": 1
+    },
+    "bmad-custom/bmad-quick-dev.toml": {
+      "sha": "ceb67f0e7417b3db",
+      "shapeRev": 1
+    },
+    "bmad-custom/ux-assets/react-key-screens.md": {
+      "sha": "020d6b4e783d2b76",
+      "shapeRev": 1
+    },
+    "frontend-stack.template.md": {
+      "sha": "e9dc0521c6f63905",
+      "shapeRev": 1
+    }
+  }
+}

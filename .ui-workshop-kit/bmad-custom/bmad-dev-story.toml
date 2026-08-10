@@ -1,0 +1,17 @@
+# Override team cho skill bmad-dev-story — <PROJECT>.
+# Copy vào {project-root}/_bmad/custom/bmad-dev-story.toml (bỏ tiền tố kit).
+# Luật merge của BMAD: scalar override, ARRAY APPEND.
+# Mục tiêu: dev THAM CHIẾU view đã dựng ở UI Workshop rồi PROMOTE ra route thật — không dựng lại
+# giao diện từ đầu. bmad-ux dựng mock vào xưởng; dev biến mock thành production.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/specs/frontend-stack.md",
+  "file:{project-root}/app/uiworkshop/README.md",
+  # LUẬT PROMOTE (áp cho MỌI story có phần giao diện):
+  "<PROJECT>: story có phần giao diện thì TRƯỚC HẾT tra UI Workshop (app/uiworkshop/_registry/outline.ts) tìm View khớp storySlug. CÓ → PROMOTE (di chuyển page ra route thật, _mock/seed → dữ liệu/auth thật, giữ nguyên JSX/layout/class, xoá bản xưởng + entry outline.ts; nếu màn nằm trong một luồng thì sửa bước tương ứng ở _registry/flows.ts để bản đồ không trỏ vào slug đã xoá). KHÔNG có → viết mới theo specs/frontend-stack.md. Đừng dựng lại giao diện đã có trong xưởng.",
+]
+
+# Guardrail dọn xưởng: promote xong phải không còn bản trùng. Override wins.
+on_complete = "Nếu story này promote một màn từ UI Workshop: xác nhận đã (a) xoá thư mục app/uiworkshop/<slug>/, (b) gỡ entry View khỏi app/uiworkshop/_registry/outline.ts, (b2) sửa bước tương ứng ở app/uiworkshop/_registry/flows.ts nếu màn đó nằm trong một luồng, và (c) /uiworkshop không còn link gãy. Nếu story KHÔNG đụng giao diện, bỏ qua."

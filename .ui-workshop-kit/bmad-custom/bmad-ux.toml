@@ -1,0 +1,28 @@
+# Override team cho skill bmad-ux — <PROJECT>.
+# Copy file này vào {project-root}/_bmad/custom/bmad-ux.toml (bỏ tiền tố kit).
+# Luật merge của BMAD: scalar override, ARRAY APPEND.
+# Mục tiêu: prototype UX render bằng React trong stack thật (dev tái dùng thẳng) — đổ vào xưởng
+# app/uiworkshop/ và ĐĂNG KÝ theo trục FR. Xem specs/frontend-stack.md.
+
+[workflow]
+
+# Nạp làm ngữ cảnh nền suốt phiên. APPEND vào default (chỉ có project-context.md).
+persistent_facts = [
+  # Hợp đồng viết giao diện của project — đọc trước khi render bất kỳ prototype nào.
+  "file:{project-root}/specs/frontend-stack.md",
+  # Cách xưởng tổ chức + đăng ký màn (trục REQUIREMENT/FR, REQ_GROUPS trong outline.ts).
+  "file:{project-root}/app/uiworkshop/README.md",
+  # Bản sắc thị giác + kiến trúc trải nghiệm (thắng khi xung đột với mọi mock). CHỈNH ĐƯỜNG DẪN.
+  "file:{project-root}/<path-to>/DESIGN.md",
+  "file:{project-root}/<path-to>/EXPERIENCE.md",
+  # LUẬT PROTOTYPE (ghi đè hành vi mặc định của Finalize 'Key-screen mocks rendered'):
+  "<PROJECT>: prototype/key-screen PHẢI là React trong stack dự án (app/uiworkshop/<slug>/page.tsx, primitive @/components/ui/*, token có tên, mock từ app/uiworkshop/_mock/seed.ts) và ĐĂNG KÝ vào REQ_GROUPS ở app/uiworkshop/_registry/outline.ts theo đúng FR — dùng file:{project-root}/_bmad/custom/ux-assets/react-key-screens.md, KHÔNG dùng assets/key-screens.md hay HTML tĩnh. Chi tiết: specs/frontend-stack.md, app/uiworkshop/README.md.",
+  # LUẬT LUỒNG: EXPERIENCE.md § Key Flows là NGUỒN SỰ THẬT của hành trình, nhưng ở dạng văn xuôi
+  # thì không kiểm được và sẽ trôi khỏi mã nguồn. flows.ts là bản sao máy đọc được → bản đồ luồng.
+  "<PROJECT>: sau khi viết/sửa EXPERIENCE.md § Key Flows, cập nhật app/uiworkshop/_registry/flows.ts cho khớp (mỗi bước = {slug, label, trigger}; slug=null cho bước chưa có màn; source trỏ về đúng luồng trong spine). Luồng nào chưa có trong § Key Flows thì ĐỪNG tự bịa nhân vật — hỏi người duyệt rồi distill, và ghi nợ vào sổ nợ của project.",
+]
+
+# Renderer bổ sung. APPEND — chỉ định dùng bản React ở persistent_facts trên.
+creative_tools = [
+  "file:{project-root}/_bmad/custom/ux-assets/react-key-screens.md",
+]

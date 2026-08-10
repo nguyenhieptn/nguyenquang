@@ -1,0 +1,115 @@
+{
+  "$comment": [
+    "Manifest của UI Workshop Kit — MỘT nguồn sự thật cho cả ba việc: pack (đóng), install (cắm),",
+    "upgrade (nâng). Trước đây danh sách file nằm hardcode trong pack.sh còn điều kiện tiền đề chỉ",
+    "nằm trong văn xuôi SETUP.md, nên ba nơi hiểu khác nhau về 'cái gì là plumbing'.",
+    "",
+    "Hai lớp, hai luật:",
+    "  • plumbing — generic, đồng bộ sống→kit bằng `pack`, có sha256, `upgrade` cập nhật được.",
+    "  • skeleton — CỐ Ý là khung rỗng; `install` chép MỘT LẦN rồi project sở hữu, `upgrade` KHÔNG",
+    "    bao giờ đè. Đổi KHUNG (thêm field vào View/FlowStep, đổi parser sprint) thì `pack` tự tăng",
+    "    `shapeRev` — đó là tín hiệu duy nhất báo cho project đã cắm biết phải soát tay.",
+    "",
+    "sha256 do `pack` sinh, đừng sửa tay."
+  ],
+
+  "name": "ui-workshop-kit",
+  "version": "1.2.1",
+
+  "publish": {
+    "$comment": [
+      "Repo phát hành. `kit.mjs publish` đẩy ĐÚNG cây thư mục này lên đó (một commit mỗi lần, tag",
+      "theo version) để project khác `npx degit` về. Bản trong iSMART vẫn là NGUỒN: sửa ở đây, chạy",
+      "`pack` rồi `publish` — đừng sửa thẳng trên repo phát hành, lần publish sau sẽ đè.",
+      "Không mang theo: tsconfig.kit.json trỏ ra tsconfig của repo nguồn nên chỉ có nghĩa ở iSMART."
+    ],
+    "remote": "https://github.com/nguyenhieptn/ui-workshop-kit.git",
+    "branch": "main",
+    "exclude": ["tsconfig.kit.json", "tsconfig.kit.tsbuildinfo", ".publish"]
+  },
+
+  "requires": {
+    "$comment": [
+      "doctor KIỂM đúng danh sách này — không kiểm theo trí nhớ của SETUP.md.",
+      "Token thì kit TỰ MANG (app-uiworkshop/tokens.css), project đích không cần có sẵn gì; doctor",
+      "chỉ soi bản đã cắm còn đủ 16 token `ws-*` và file CSS gốc có nạp nó chưa."
+    ],
+    "appRouterRoot": "app",
+    "alias": "@/*",
+    "uiPrimitives": ["card"],
+    "tokenBridge": "app/uiworkshop/tokens.css",
+    "tokens": [
+      "--color-ws-n-05",
+      "--color-ws-n-10",
+      "--color-ws-n-20",
+      "--color-ws-n-40",
+      "--color-ws-n-60",
+      "--color-ws-accent",
+      "--color-ws-warm",
+      "--color-ws-ink",
+      "--color-ws-ink-strong",
+      "--color-ws-body",
+      "--color-ws-caution",
+      "--color-ws-caution-bg",
+      "--color-ws-success",
+      "--ease-ws",
+      "--transition-duration-ws-fast",
+      "--transition-duration-ws-base"
+    ],
+    "sprintStatus": "docs/bmad/implementation-artifacts/sprint-status.yaml"
+  },
+
+  "guard": {
+    "$comment": [
+      "Luật giữ plumbing THẬT SỰ generic. Vi phạm = pack fail, vì một cái tên riêng lọt vào plumbing",
+      "sẽ theo `upgrade` đi khắp mọi project đã cắm.",
+      "forbiddenPatterns là regex — chặn token của project lọt vào plumbing (plumbing chỉ dùng ws-*)."
+    ],
+    "forbiddenLiterals": ["iSMART", "ICTU", "ictu.edu"],
+    "forbiddenPatterns": [
+      "ictu",
+      "(?<!ws)-n-\\d\\d",
+      "\\b(blue|body)-ink\\b",
+      "\\bduration-(fast|base)\\b"
+    ],
+    "importAllowlist": ["react", "next/", "@/components/ui/", "./", "../"]
+  },
+
+  "layers": {
+    "plumbing": [
+      { "kit": "app-uiworkshop/layout.tsx", "note": "cổng chặn ship + nền; màn trần render ở đây" },
+      { "kit": "app-uiworkshop/(shell)/layout.tsx", "note": "vỏ: sidebar + thanh trên + ViewportProvider" },
+      { "kit": "app-uiworkshop/(shell)/page.tsx", "note": "tổng quan (thống kê sống)" },
+      { "kit": "app-uiworkshop/(shell)/view/[slug]/page.tsx", "note": "trình xem một màn" },
+      { "kit": "app-uiworkshop/(shell)/flow/[id]/page.tsx", "note": "trang một luồng (bản đồ hành trình)" },
+      { "kit": "app-uiworkshop/_components/sidebar.tsx", "note": "outline + trục luồng" },
+      { "kit": "app-uiworkshop/_components/viewport.tsx", "note": "khung Mobile/Web, nhớ theo từng view" },
+      { "kit": "app-uiworkshop/_components/device-frame.tsx", "note": "nhúng màn trần qua iframe" },
+      { "kit": "app-uiworkshop/_components/flow-map.tsx", "note": "bản đồ luồng: zoom/pan, chip trigger, toàn màn hình" }
+    ],
+
+    "skeleton": [
+      { "kit": "app-uiworkshop/tokens.css", "note": "⚙️ cầu nối token ws-* → brand của bạn (16 dòng)" },
+      { "kit": "app-uiworkshop/_registry/sprint.ts", "note": "⚙️ điểm cấu hình: đường dẫn sprint-status.yaml" },
+      { "kit": "app-uiworkshop/_registry/outline.ts", "note": "⚙️ điểm cấu hình: SECTIONS + REQ_GROUPS theo FR" },
+      { "kit": "app-uiworkshop/_registry/flows.ts", "note": "luồng, chép từ EXPERIENCE.md § Key Flows" },
+      { "kit": "app-uiworkshop/_mock/seed.ts", "note": "dữ liệu mock dùng chung" },
+      { "kit": "app-uiworkshop/design-system/page.tsx", "note": "bảng token + component của brand" },
+      { "kit": "app-uiworkshop/README.md", "note": "cách xưởng tổ chức — bmad-ux đọc file này" },
+      { "kit": "bmad-custom/bmad-ux.toml", "target": "_bmad/custom/bmad-ux.toml", "note": "wiring bmad-ux → xưởng" },
+      { "kit": "bmad-custom/bmad-dev-story.toml", "target": "_bmad/custom/bmad-dev-story.toml" },
+      { "kit": "bmad-custom/bmad-dev-auto.toml", "target": "_bmad/custom/bmad-dev-auto.toml" },
+      { "kit": "bmad-custom/bmad-quick-dev.toml", "target": "_bmad/custom/bmad-quick-dev.toml" },
+      {
+        "kit": "bmad-custom/ux-assets/react-key-screens.md",
+        "target": "_bmad/custom/ux-assets/react-key-screens.md",
+        "note": "renderer prototype React thay HTML tĩnh"
+      },
+      {
+        "kit": "frontend-stack.template.md",
+        "target": "specs/frontend-stack.md",
+        "note": "hợp đồng viết giao diện — viết lại theo stack của bạn"
+      }
+    ]
+  }
+}
