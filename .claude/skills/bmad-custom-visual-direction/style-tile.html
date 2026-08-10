@@ -1,0 +1,194 @@
+<!--
+  STYLE TILE TEMPLATE — bmad-custom-visual-direction, Step 8.
+
+  Fill every {{PLACEHOLDER}}. Delete blocks that do not apply.
+  Rules:
+    - Self-contained. Inline CSS only. No external fonts, scripts, or images.
+    - If a chosen webfont cannot be embedded, render with the fallback stack
+      and label it "substitute — real face not embedded".
+    - Specimen text MUST contain Vietnamese diacritics (and Han/Nôm if in scope)
+      so broken glyphs are visible at a glance.
+    - Every swatch shows its hex AND its measured contrast ratio vs the surface
+      it sits on. Do not print a ratio you have not computed.
+    - If the system is light+dark, define the full light palette on :root and
+      redefine only what changes under the dark blocks below.
+-->
+<style>
+  :root {
+    /* Surfaces */
+    --surface-page:    {{HEX}};
+    --surface-raised:  {{HEX}};
+    --surface-sunken:  {{HEX}};
+    /* Content */
+    --text-primary:    {{HEX}};
+    --text-secondary:  {{HEX}};
+    --text-disabled:   {{HEX}};
+    /* Structure */
+    --border:          {{HEX}};
+    --divider:         {{HEX}};
+    /* Accent */
+    --accent:          {{HEX}};
+    --accent-contrast: {{HEX}};
+    /* Semantic */
+    --success: {{HEX}};
+    --warning: {{HEX}};
+    --danger:  {{HEX}};
+    --info:    {{HEX}};
+    /* State encodings — one per state named in Step 2 */
+    --state-{{NAME}}: {{HEX}};
+    --state-{{NAME}}: {{HEX}};
+
+    /* Type */
+    --font-display: {{FAMILY}}, {{FALLBACK_STACK}};
+    --font-body:    {{FAMILY}}, {{FALLBACK_STACK}};
+    --font-mono:    {{FAMILY}}, ui-monospace, monospace;
+
+    /* Space & shape */
+    --space-unit: {{PX}};
+    --radius:     {{PX}};
+    --border-w:   {{PX}};
+  }
+
+  /* Dark theme — only if the system supports it. Redefine ONLY what changes.
+     Both blocks are required so an explicit toggle wins in either direction. */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --surface-page: {{HEX}};
+      --text-primary: {{HEX}};
+      /* … */
+    }
+  }
+  :root[data-theme="dark"] {
+    --surface-page: {{HEX}};
+    --text-primary: {{HEX}};
+    /* … */
+  }
+
+  body {
+    margin: 0;
+    background: var(--surface-page);
+    color: var(--text-primary);
+    font-family: var(--font-body);
+    line-height: 1.6;
+  }
+  .tile { max-width: 960px; margin: 0 auto; padding: calc(var(--space-unit) * 4); }
+  .tile section { margin-block-end: calc(var(--space-unit) * 6); }
+  .tile h2.label {
+    font: 500 0.75rem/1 var(--font-mono);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    border-block-end: var(--border-w) solid var(--divider);
+    padding-block-end: calc(var(--space-unit) * 1);
+    margin-block-end: calc(var(--space-unit) * 3);
+  }
+  .swatches { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: calc(var(--space-unit) * 2); }
+  .swatch { border: var(--border-w) solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .swatch .chip { height: 64px; }
+  .swatch .meta { padding: calc(var(--space-unit) * 1.5); font: 400 0.75rem/1.4 var(--font-mono); background: var(--surface-raised); }
+  .swatch .meta .role { color: var(--text-primary); }
+  .swatch .meta .ratio { color: var(--text-secondary); }
+  .swatch .meta .fail { color: var(--danger); font-weight: 700; }
+  .specimen { max-width: 68ch; }
+  .btn-row { display: flex; flex-wrap: wrap; gap: calc(var(--space-unit) * 2); align-items: center; }
+  .btn {
+    font: 500 1rem/1 var(--font-body);
+    padding: calc(var(--space-unit) * 1.5) calc(var(--space-unit) * 3);
+    border-radius: var(--radius);
+    border: var(--border-w) solid transparent;
+    cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: var(--accent-contrast); }
+  .btn-secondary { background: transparent; color: var(--text-primary); border-color: var(--border); }
+  .chips { display: flex; flex-wrap: wrap; gap: calc(var(--space-unit) * 1.5); }
+  .chip-state {
+    font: 500 0.8125rem/1 var(--font-body);
+    padding: calc(var(--space-unit)) calc(var(--space-unit) * 2);
+    border-radius: 999px;
+    border: var(--border-w) solid currentColor;
+  }
+  table.scale { width: 100%; border-collapse: collapse; }
+  table.scale td { padding: calc(var(--space-unit) * 1.5) 0; border-block-end: var(--border-w) solid var(--divider); vertical-align: baseline; }
+  table.scale td.spec { font: 400 0.75rem/1.4 var(--font-mono); color: var(--text-secondary); white-space: nowrap; padding-inline-end: calc(var(--space-unit) * 3); }
+  .texture-sample { height: 120px; border-radius: var(--radius); border: var(--border-w) solid var(--border); /* {{TEXTURE_CSS}} */ }
+  .note { font: 400 0.8125rem/1.5 var(--font-body); color: var(--text-secondary); }
+</style>
+
+<div class="tile">
+
+  <section>
+    <h2 class="label">Direction</h2>
+    <p style="font-family: var(--font-display); font-size: 2rem; line-height: 1.15; margin: 0 0 0.5em;">{{DIRECTION_NAME}}</p>
+    <p class="specimen">{{DIRECTION_THESIS}}</p>
+    <p class="note">Reference world: {{REFERENCE_WORLD}} · Emotional target: {{EMOTIONAL_TARGET}} · Explicitly not: {{ANTI_TARGET}}</p>
+  </section>
+
+  <section>
+    <h2 class="label">Palette</h2>
+    <div class="swatches">
+      <!-- Repeat per token. ratio = measured contrast vs the surface it is used on. -->
+      <div class="swatch">
+        <div class="chip" style="background: {{HEX}};"></div>
+        <div class="meta">
+          <div class="role">{{ROLE_NAME}}</div>
+          <div>{{HEX}}</div>
+          <div class="ratio">{{RATIO}}:1 on {{AGAINST}} — {{PASS_OR_FAIL}}</div>
+        </div>
+      </div>
+    </div>
+    <p class="note">{{COLOURBLIND_NOTE}} · {{HOSTILE_CONTEXT_NOTE}}</p>
+  </section>
+
+  <section>
+    <h2 class="label">Typography</h2>
+    <table class="scale">
+      <!-- Specimen strings MUST exercise every script in scope. -->
+      <tr>
+        <td class="spec">Display · {{SIZE}}/{{LH}} · {{WEIGHT}}</td>
+        <td style="font-family: var(--font-display); font-size: {{SIZE}}; line-height: {{LH}};">Quang Tiền Dụ Hậu — 光前裕後</td>
+      </tr>
+      <tr>
+        <td class="spec">H1 · {{SIZE}}/{{LH}}</td>
+        <td style="font-family: var(--font-display); font-size: {{SIZE}};">Đời thứ mười ba, chi Nguyễn Quang Ất</td>
+      </tr>
+      <tr>
+        <td class="spec">Body · {{SIZE}}/{{LH}} · {{MEASURE}}ch</td>
+        <td class="specimen">Cụ tổ đời thứ nhất huý là Nguyễn Quang Ẩn, sinh năm Mậu Ngọ, mất ngày mười bảy tháng chạp. Mộ táng tại gò Bãi Dứa, xã Đại Đồng. Ngữ liệu Hán-Nôm: 阮光隱.</td>
+      </tr>
+      <tr>
+        <td class="spec">Metadata · mono · tabular</td>
+        <td style="font-family: var(--font-mono); font-variant-numeric: tabular-nums;">1868–1931 · đời 4 · chi 1.3.2 · ngày giỗ 17/12 ÂL</td>
+      </tr>
+    </table>
+    <p class="note">{{FONT_LICENSING_AND_FALLBACK_NOTE}} · Script coverage: {{SCRIPT_COVERAGE_VERDICT}}</p>
+  </section>
+
+  <section>
+    <h2 class="label">Controls &amp; states</h2>
+    <div class="btn-row">
+      <button class="btn btn-primary">{{PRIMARY_ACTION_LABEL}}</button>
+      <button class="btn btn-secondary">{{SECONDARY_ACTION_LABEL}}</button>
+    </div>
+    <div class="chips" style="margin-block-start: calc(var(--space-unit) * 3);">
+      <!-- One chip per state named in Step 2. Colour alone must never be the only cue. -->
+      <span class="chip-state" style="color: var(--state-{{NAME}});">{{STATE_LABEL}}</span>
+    </div>
+  </section>
+
+  <section>
+    <h2 class="label">Texture &amp; motion</h2>
+    <div class="texture-sample"></div>
+    <p class="note">{{TEXTURE_DESCRIPTION}} — absent behind: {{TEXTURE_EXCLUSIONS}}</p>
+    <p class="note">Motion: {{DURATIONS}} · {{EASING}} · never animates: {{NEVER_ANIMATES}} · honours prefers-reduced-motion.</p>
+  </section>
+
+  <section>
+    <h2 class="label">Non-negotiables</h2>
+    <ol class="specimen">
+      <li>{{RULE_1}}</li>
+      <li>{{RULE_2}}</li>
+      <li>{{RULE_3}}</li>
+    </ol>
+  </section>
+
+</div>

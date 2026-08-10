@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>103 Ý — Tính năng WOW cho Phả Nguyễn Quang</title>
+<style>
+:root{
+  --paper:#f2e9db; --paper2:#e9dcc8; --ink:#241a12; --ink-soft:#5c4a38;
+  --son:#a8322a; --kim:#b0812f; --luc:#3d6b57; --lam:#2f4a6b;
+  --line:#c9b697; --shadow:rgba(60,40,20,.14);
+  --mono:ui-monospace,"SF Mono",Menlo,monospace;
+  --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,"Times New Roman",serif;
+  --sans:-apple-system,BlinkMacSystemFont,"Segoe UI","Helvetica Neue",sans-serif;
+}
+@media (prefers-color-scheme:dark){
+  :root{--paper:#15110c; --paper2:#1e1811; --ink:#e8dcc8; --ink-soft:#b2a189;
+        --son:#e0685c; --kim:#d9a94f; --luc:#6fae91; --lam:#7ba3cf;
+        --line:#3d3226; --shadow:rgba(0,0,0,.5);}
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{
+  margin:0; background:var(--paper); color:var(--ink);
+  font-family:var(--serif); line-height:1.62;
+  background-image:
+    radial-gradient(circle at 12% 8%, rgba(176,129,47,.07), transparent 45%),
+    radial-gradient(circle at 88% 72%, rgba(168,50,42,.05), transparent 42%);
+}
+.wrap{max-width:1120px;margin:0 auto;padding:0 22px 120px}
+
+/* ── BÌA ────────────────────────────────────────── */
+.cover{
+  position:relative; min-height:78vh; display:grid;
+  grid-template-columns:1fr auto; gap:32px; align-items:center;
+  padding:72px 0 56px; border-bottom:3px double var(--line);
+}
+.cover h1{
+  font-size:clamp(2.3rem,6vw,4.1rem); line-height:1.06; margin:0 0 .5em;
+  letter-spacing:-.02em; font-weight:600;
+}
+.cover h1 em{font-style:normal;color:var(--son)}
+.kicker{
+  font-family:var(--mono); font-size:.72rem; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--ink-soft); margin-bottom:20px;
+}
+.cover p{max-width:52ch;color:var(--ink-soft);font-size:1.06rem;margin:.2em 0 1.4em}
+.vertical{
+  writing-mode:vertical-rl; font-size:clamp(1.6rem,4vw,2.6rem); letter-spacing:.28em;
+  color:var(--kim); opacity:.85; align-self:stretch;
+  display:flex; align-items:center; padding-left:10px;
+  border-left:1px solid var(--line);
+}
+.seal{
+  display:inline-grid; place-items:center; width:104px; height:104px;
+  border:3px solid var(--son); border-radius:5px; color:var(--son);
+  font-size:1.5rem; line-height:1.15; text-align:center; letter-spacing:.1em;
+  transform:rotate(-4deg); opacity:.9;
+}
+.tally{display:flex;flex-wrap:wrap;gap:26px;margin-top:8px}
+.tally div{font-family:var(--mono);font-size:.74rem;letter-spacing:.12em;color:var(--ink-soft)}
+.tally b{display:block;font-family:var(--serif);font-size:2.3rem;color:var(--ink);letter-spacing:0;line-height:1}
+
+/* ── KHUNG CHUNG ────────────────────────────────── */
+section{padding:64px 0;border-bottom:1px solid var(--line)}
+.tech-head{display:flex;align-items:baseline;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+.tech-num{
+  font-family:var(--mono);font-size:.7rem;letter-spacing:.2em;color:var(--son);
+  border:1px solid var(--son);padding:3px 8px;border-radius:2px;
+}
+.tech-head h2{font-size:clamp(1.5rem,3.4vw,2.15rem);margin:0;font-weight:600;letter-spacing:-.01em}
+.tech-sub{color:var(--ink-soft);font-size:.95rem;margin:0 0 32px;max-width:66ch;font-style:italic}
+.t{font-weight:600;color:var(--ink)}
+ul{padding-left:0;list-style:none;margin:0}
+
+/* 1 — bài vị */
+.bai-vi{display:grid;grid-template-columns:repeat(auto-fill,minmax(228px,1fr));gap:16px}
+.bai-vi li{
+  background:var(--paper2);border:1px solid var(--line);border-top:5px solid var(--son);
+  border-radius:3px 3px 0 0;padding:18px 16px;font-size:.9rem;box-shadow:0 2px 0 var(--shadow);
+}
+.bai-vi .t{display:block;margin-bottom:6px;color:var(--son)}
+
+/* 2 — hội đồng tiền nhân */
+.council{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:22px;margin-bottom:26px}
+.elder{border-left:3px solid var(--kim);padding-left:16px}
+.elder h3{margin:0 0 4px;font-size:1rem;letter-spacing:.02em}
+.elder q{display:block;color:var(--son);font-size:1.05rem;font-style:italic}
+.verdicts li{padding:13px 0;border-bottom:1px dotted var(--line);font-size:.94rem}
+.verdicts li:last-child{border-bottom:0}
+
+/* 3 — lật ngược */
+.flip{display:grid;gap:12px}
+.flip li{display:grid;grid-template-columns:minmax(120px,.8fr) 34px 1.6fr;gap:0;align-items:stretch;font-size:.92rem}
+.flip .old{background:var(--paper2);border:1px solid var(--line);padding:12px 14px;color:var(--ink-soft);text-decoration:line-through;text-decoration-color:var(--son)}
+.flip .arw{display:grid;place-items:center;color:var(--son);font-size:1.1rem}
+.flip .new{border:1px solid var(--son);padding:12px 14px;background:color-mix(in srgb,var(--son) 5%,transparent)}
+
+/* 4 — trẻ con */
+.child{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:18px}
+.child li{
+  font-family:var(--sans);font-size:.9rem;padding:18px;border:2px dashed var(--luc);border-radius:14px;
+  background:var(--paper2);
+}
+.child li:nth-child(odd){transform:rotate(-.7deg)}
+.child li:nth-child(even){transform:rotate(.6deg)}
+.child .t{color:var(--luc)}
+
+/* 5 — nhãn bảo tàng */
+.museum{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:0;border-top:1px solid var(--line);border-left:1px solid var(--line)}
+.museum li{border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:20px;font-size:.9rem}
+.museum .tag{font-family:var(--mono);font-size:.63rem;letter-spacing:.18em;color:var(--kim);display:block;margin-bottom:8px;text-transform:uppercase}
+
+/* 6 — trickster */
+.trick li{position:relative;padding:16px 18px 16px 54px;border-bottom:1px solid var(--line);font-size:.94rem}
+.trick li::before{
+  content:"✕";position:absolute;left:16px;top:14px;color:var(--son);font-size:1.3rem;
+}
+.trick .rule{display:block;font-family:var(--mono);font-size:.68rem;letter-spacing:.14em;
+  color:var(--ink-soft);text-decoration:line-through;margin-bottom:6px;text-transform:uppercase}
+
+/* 7 — vặn núm */
+.dial{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:20px}
+.dial li{border:1px solid var(--line);border-radius:3px;padding:0;overflow:hidden;background:var(--paper2)}
+.dial .bar{height:5px;background:linear-gradient(90deg,var(--line) 0%,var(--kim) 55%,var(--son) 100%)}
+.dial .body{padding:16px 18px;font-size:.9rem}
+.dial .axis{font-family:var(--mono);font-size:.64rem;letter-spacing:.18em;color:var(--son);text-transform:uppercase;display:block;margin-bottom:6px}
+
+/* 8 — hóa đơn */
+.receipt{max-width:520px;margin:0;background:var(--paper2);border:1px dashed var(--line);padding:26px 24px;font-family:var(--mono);font-size:.82rem}
+.receipt li{display:flex;justify-content:space-between;gap:18px;padding:11px 0;border-bottom:1px dotted var(--line);line-height:1.5}
+.receipt li span:last-child{color:var(--luc);white-space:nowrap}
+.receipt .total{border-bottom:0;border-top:2px solid var(--ink);margin-top:8px;padding-top:12px;font-weight:700}
+
+/* 9 — ma trận */
+.matrix{width:100%;border-collapse:collapse;font-size:.88rem}
+.matrix th{font-family:var(--mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);text-align:left;padding:10px 12px;border-bottom:2px solid var(--line);white-space:nowrap}
+.matrix td{padding:14px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+.matrix td:first-child{font-family:var(--mono);font-size:.72rem;color:var(--kim);white-space:nowrap}
+.scroll{overflow-x:auto}
+
+/* 10 — sổ điền dã */
+.field{border:1px solid var(--lam);background:color-mix(in srgb,var(--lam) 5%,transparent);padding:6px 26px 6px}
+.field li{padding:16px 0;border-bottom:1px dashed var(--line);font-size:.94rem}
+.field li:last-child{border-bottom:0}
+.field .obs{display:block;color:var(--lam);font-style:italic;margin-bottom:6px}
+
+/* 11 — TRIZ */
+.triz{display:grid;gap:16px}
+.triz li{display:grid;grid-template-columns:1fr;border:1px solid var(--line);border-radius:3px;overflow:hidden}
+.triz .clash{display:grid;grid-template-columns:1fr auto 1fr;background:var(--paper2);font-family:var(--mono);font-size:.7rem;letter-spacing:.08em}
+.triz .clash span{padding:10px 14px}
+.triz .clash .vs{color:var(--son);border-left:1px solid var(--line);border-right:1px solid var(--line);display:grid;place-items:center}
+.triz .win{padding:16px 18px;font-size:.93rem;border-top:1px solid var(--line)}
+
+/* 12 — mộ chí */
+.grave{display:grid;grid-template-columns:repeat(auto-fill,minmax(258px,1fr));gap:18px}
+.grave li{border:1px solid var(--line);border-radius:80px 80px 4px 4px;padding:30px 22px 22px;text-align:center;font-size:.88rem;background:var(--paper2)}
+.grave .t{display:block;margin-bottom:8px;color:var(--ink-soft);font-family:var(--mono);font-size:.66rem;letter-spacing:.16em;text-transform:uppercase}
+
+/* 13 — va chạm */
+.collide{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:18px}
+.collide li{padding:18px;border:1px solid var(--line);font-size:.9rem;background:var(--paper2)}
+.collide .x{font-family:var(--mono);font-size:.7rem;letter-spacing:.1em;color:var(--son);display:block;margin-bottom:8px}
+
+/* 14 — giếng sâu */
+.well{max-width:760px}
+.well li{position:relative;padding:18px 0 18px 34px;border-left:2px solid var(--kim);font-size:.95rem}
+.well li::before{content:"";position:absolute;left:-6px;top:26px;width:10px;height:10px;border-radius:50%;background:var(--kim)}
+.well li:nth-child(1){margin-left:0}
+.well li:nth-child(2){margin-left:22px}
+.well li:nth-child(3){margin-left:44px}
+.well li:nth-child(4){margin-left:66px}
+
+/* 15 — khuếch đại */
+.amp{display:grid;gap:12px}
+.amp li{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:center;padding:14px 18px;border:1px solid var(--luc);border-radius:3px;font-size:.93rem;background:color-mix(in srgb,var(--luc) 5%,transparent)}
+.amp .up{font-family:var(--mono);color:var(--luc);font-size:.85rem;letter-spacing:.08em}
+
+/* ── CAO TRÀO: 7 MỐI NỐI ───────────────────────── */
+.climax{background:var(--paper2);margin:0 -22px;padding:80px 22px;border-top:3px double var(--line);border-bottom:3px double var(--line)}
+.climax .inner{max-width:1076px;margin:0 auto}
+.knot{display:grid;gap:0;counter-reset:k}
+.knot li{
+  counter-increment:k; position:relative; padding:30px 0 30px 78px; border-bottom:1px solid var(--line);
+}
+.knot li:last-child{border-bottom:0}
+.knot li::before{
+  content:counter(k); position:absolute; left:0; top:28px;
+  width:50px;height:50px;border-radius:50%;display:grid;place-items:center;
+  border:2px solid var(--son);color:var(--son);font-family:var(--mono);font-size:1.1rem;
+}
+.knot h3{margin:0 0 8px;font-size:1.16rem;letter-spacing:-.01em}
+.knot p{margin:0;color:var(--ink-soft);font-size:.97rem;max-width:78ch}
+.knot .flag{display:inline-block;margin-top:10px;font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;
+  color:var(--son);border:1px solid var(--son);padding:3px 8px;text-transform:uppercase}
+
+/* cờ đỏ */
+.redflag{border:2px solid var(--son);padding:26px 28px;margin-top:44px;background:color-mix(in srgb,var(--son) 6%,transparent)}
+.redflag h3{margin:0 0 14px;color:var(--son);font-size:1.05rem}
+.redflag li{padding:9px 0;font-size:.93rem;border-bottom:1px dotted var(--line)}
+.redflag li:last-child{border-bottom:0}
+
+footer{padding:56px 0 0;color:var(--ink-soft);font-family:var(--mono);font-size:.72rem;letter-spacing:.1em;line-height:2}
+a{color:var(--son)}
+@media(max-width:720px){
+  .cover{grid-template-columns:1fr}
+  .vertical{writing-mode:horizontal-tb;border-left:0;border-top:1px solid var(--line);padding:14px 0 0;letter-spacing:.3em}
+  .flip li{grid-template-columns:1fr}
+  .flip .arw{padding:6px 0}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="cover">
+  <div>
+    <div class="kicker">Phiên brainstorm · 09.08.2026 · chế độ tự chạy</div>
+    <h1>103 ý tưởng cho<br>cuốn phả <em>biết sống</em></h1>
+    <p>Sinh thêm tính năng WOW cho nền tảng gia phả dòng họ Nguyễn Quang — vượt khỏi 7 mục backlog đã có. Ràng buộc giữ suốt phiên: <strong>web-only</strong>, và tôn trọng danh sách đã loại.</p>
+    <div class="tally">
+      <div><b>103</b>ý tưởng</div>
+      <div><b>13</b>kỹ thuật</div>
+      <div><b>7</b>mối nối</div>
+      <div><b>3</b>cần anh quyết</div>
+    </div>
+  </div>
+  <div class="vertical">光前裕後</div>
+</header>
+
+<!-- 1 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 01</span><h2>Ritual Innovation</h2></div>
+  <p class="tech-sub">Thiết kế mỗi tính năng như một nghi lễ: có ngưỡng bước qua, có cử chỉ, có sự biến đổi mà người tham dự trải qua.</p>
+  <ul class="bai-vi">
+    <li><span class="t">Lễ Nhập Phả số</span>Trưởng chi bấm nút “khai sinh vào phả” trước bàn thờ → hệ thống phát chứng thư có ấn triện dòng họ, in ra kẹp vào phả giấy. Nhập liệu có ngày giờ, có người chứng.</li>
+    <li><span class="t">Sổ Chúc Văn tập thể</span>Trước giỗ Tổ mở sổ khấn online; đến giờ hành lễ in ra, chủ tế đọc trích đoạn rồi hóa vàng. Web lưu thành biên niên tâm nguyện hàng năm.</li>
+    <li><span class="t">Thứ tự thắp hương chiêu mục</span>Web tính đúng thứ tự theo vai vế và chi, hiện hàng đợi trên TV nhà thờ họ; đến lượt ai, tên người đó sáng lên.</li>
+    <li><span class="t">Lễ Khai Phả đầu năm</span>Mùng 4 Tết, web tổng kết năm cũ (sinh, mất, cưới, đỗ đạt) chiếu như bản tấu trình trước bàn thờ, rồi “đóng sổ năm” — snapshot bất biến của cây năm đó.</li>
+    <li><span class="t">Lễ trao Đèn Chi</span>Mỗi chi một ngọn đèn ảo trên trang chủ: sáng khi chi cập nhật trong 90 ngày, mờ dần khi im lặng. Giỗ Tổ, chi đèn sáng nhất được rước đèn thật.</li>
+    <li><span class="t">Nghi thức tiễn biệt 49 ngày</span>Một cụ mất → trang tưởng niệm mở 49 ngày cho con cháu để lại ký ức và ảnh; hết hạn LLM biên tiểu truyện đưa vào Tộc Sử. Thu ký ức đúng lúc còn tươi.</li>
+    <li><span class="t">Lễ Đặt Tên có chứng</span>LLM tra phạm húy toàn phả 5 đời, gợi ý tên hợp nếp “Nguyễn Quang”, trưởng họ duyệt trực tiếp, in thiếp danh chữ Hán-Nôm tặng bố mẹ.</li>
+    <li><span class="t">Chạp họ điểm danh QR</span>Quét ở cổng nhà thờ, node sáng realtime trên màn hình lớn; cuối buổi xuất “ảnh cây có mặt hôm nay”.</li>
+    <li><span class="t">Lễ Rước Phả về chi</span>Mỗi chi nhận bản phả chi PDF đóng dấu, rước về treo tại nhà trưởng chi; QR trên bản in trỏ về nhánh chi đó, luôn cập nhật.</li>
+    <li><span class="t">Tạ ơn người dâng tư liệu</span>Mỗi tư liệu được duyệt ghi tên người dâng vào chân trang Tộc Sử; giỗ Tổ xướng tên. Công đức hữu hình.</li>
+    <li><span class="t">Lễ Khánh Thọ tự động</span>Cụ tròn 70–80–90 âm lịch: hệ thống nhắc cả họ, sinh sẵn bài chúc thọ và trang mừng thọ cho con cháu ký tên online, in tặng.</li>
+  </ul>
+</section>
+
+<!-- 2 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 02</span><h2>Ancestor Council</h2></div>
+  <p class="tech-sub">Triệu ba tiền nhân từ ba truyền thống khác nhau, để mỗi người phán một câu — rồi hòa giải chỗ họ bất đồng.</p>
+  <div class="council">
+    <div class="elder"><h3>Cụ Thủy tổ</h3><q>“Phả nào cũng phải có tựa và bạt.”</q></div>
+    <div class="elder"><h3>Nhà nho chép sử</h3><q>“Chỗ chưa chắc thì ghi là khuyết nghi.”</q></div>
+    <div class="elder"><h3>Bà cụ truyền miệng</h3><q>“Tao không đọc được chữ.”</q></div>
+  </div>
+  <ul class="verdicts">
+    <li><span class="t">Tự sinh Tựa &amp; Bạt.</span> Mỗi ấn bản Tộc Sử, LLM viết lời tựa nêu ai đã đóng góp và đổi gì so với bản trước — cuốn phả tự kể lịch sử của chính nó.</li>
+    <li><span class="t">Trang Phàm lệ số công khai.</span> Quy ước nhập phả hiển thị công khai, mọi tranh chấp trỏ về đó; LLM tự kiểm mỗi bản ghi có tuân phàm lệ không.</li>
+    <li><span class="t">Hệ độ tin cậy 3 mức.</span> Chắc chắn / theo lời kể / tồn nghi — hiện màu ngay trên cây, mỗi khẳng định gắn nguồn. Thứ gần như mọi nền tảng gia phả bỏ qua.</li>
+    <li><span class="t">Phả nghe được.</span> Toàn bộ Tộc Sử và tiểu sử từng cụ có bản đọc TTS tiếng Việt giọng địa phương, nghe trên web hoặc qua điện thoại.</li>
+    <li><span class="t">Mỗi ngày một mẩu chuyện họ.</span> Zalo OA đẩy đoạn 100 chữ trích Tộc Sử kèm ảnh và “hôm nay là ngày gì với họ ta”.</li>
+    <li><span class="t">Chế độ xem phả theo phàm lệ.</span> Một nút chuyển giữa <em>phả cổ</em> (chỉ nam đinh) và <em>phả mới</em> (đủ nam nữ, dâu rể, con nuôi) — hai cách đọc trên cùng một dữ liệu, không bắt ai nhượng bộ.</li>
+    <li><span class="t">Dấu vết tu chỉnh.</span> Như chữ chèn bên lề phả cổ: mỗi node hiện ai sửa, năm nào, dựa vào đâu — và xem lại cây “như năm 1997”.</li>
+    <li><span class="t">Mục Ngoại phả.</span> Kho những người không đủ điều kiện vào chính phả nhưng liên quan: dâu rể ngoại tộc, người ở, ân nhân, thầy dạy. Giữ nhân tình mà không phá phàm lệ.</li>
+  </ul>
+</section>
+
+<!-- 3 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 03</span><h2>Assumption Reversal</h2></div>
+  <p class="tech-sub">Liệt kê mọi giả định nằm sẵn trong dự án, lật ngược từng cái, rồi dựng lại giải pháp trên nền đã đảo.</p>
+  <ul class="flip">
+    <li><span class="old">Gia phả là về người đã chết</span><span class="arw">→</span><span class="new"><span class="t">Trang “Họ ta hôm nay”.</span> Bảng người sống: ai ở đâu, làm nghề gì, ai vừa có tin vui. Cây tổ tiên là gốc, đây là tán lá.</span></li>
+    <li><span class="old">Phả chỉ để tra cứu</span><span class="arw">→</span><span class="new"><span class="t">Danh bạ tông thân có phân quyền.</span> Tìm người cùng họ theo tỉnh và nghề — “tôi sắp đi Đà Nẵng, họ mình có ai ở đó?”</span></li>
+    <li><span class="old">Phả không mang lại lợi ích thực tế</span><span class="arw">→</span><span class="new"><span class="t">Chợ giúp nhau trong họ.</span> Bảng “cần &amp; có”: xin việc, chỗ trọ cho cháu đi học, bác sĩ trong họ. Đây mới là lý do người trẻ quay lại hàng tuần.</span></li>
+    <li><span class="old">Chỉ trưởng chi được nhập liệu</span><span class="arw">→</span><span class="new"><span class="t">Chế độ khách dâng tư liệu.</span> Họ thông gia, làng xã, nhà nghiên cứu gửi ảnh và thông tin vào hàng chờ thẩm định.</span></li>
+    <li><span class="old">Một cuốn phả một dòng họ</span><span class="arw">→</span><span class="new"><span class="t">Liên phả thông gia.</span> Nối sang cây họ khác qua hôn nhân theo mô hình liên bang nhẹ — chỉ trao đổi node biên giới, mỗi họ tự chủ dữ liệu. Con dâu có “đường về Tổ” của chính họ mình.</span></li>
+    <li><span class="old">Cây vẽ từ Tổ xuống</span><span class="arw">→</span><span class="new"><span class="t">“Từ tôi ngược về Tổ” làm điều hướng mặc định.</span> Mở lên là chính mình; mỗi lần cuộn lên một đời kèm một câu chuyện. Như đi bộ ngược dòng.</span></li>
+    <li><span class="old">Web hiển thị dữ liệu</span><span class="arw">→</span><span class="new"><span class="t">Web đặt câu hỏi.</span> Hệ thống biết thiếu gì → sinh bộ 5 câu hỏi riêng cho từng cụ, in A4 chữ to để con cháu cầm về hỏi ông bà, chụp lại trả lời rồi OCR vào kho.</span></li>
+    <li><span class="old">Mỗi người một cái tên</span><span class="arw">→</span><span class="new"><span class="t">Hồ sơ đa danh xưng.</span> Húy, tự, hiệu, tên thánh, tên ở nhà, bí danh kháng chiến, tên sai chính tả trên giấy tờ — tìm kiếm hiểu hết. Một cụ Việt thường 4–5 tên.</span></li>
+    <li><span class="old">Chỉ cần âm lịch và dương lịch</span><span class="arw">→</span><span class="new"><span class="t">Đối chiếu ba lịch.</span> Âm, dương, can chi kèm niên hiệu Lê–Nguyễn: nhập “Tự Đức năm thứ 12” ra dương lịch ngay. Cần khi đọc sắc phong, văn bia.</span></li>
+  </ul>
+</section>
+
+<!-- 4 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 04</span><h2>Inner Child Conference</h2></div>
+  <p class="tech-sub">Trả lời như đứa trẻ 7 tuổi: hỏi “tại sao” đến cùng, đuổi theo sự kỳ diệu, cấm mọi ý nghĩ người lớn nhàm chán.</p>
+  <ul class="child">
+    <li><span class="t">“Sao cây này không có mặt người?”</span><br>Cây bằng ảnh chân dung — node là khuôn mặt chứ không phải ô chữ. Ai chưa có ảnh là bóng xám: áp lực xã hội đi tìm ảnh, miễn phí.</li>
+    <li><span class="t">“Cháu giống ai nhất?”</span><br>Bình chọn “giống cụ nào” + gắn thẻ đặc điểm truyền đời (mắt một mí, tật nói lắp, chiều cao) → bản đồ đặc điểm di truyền theo lời kể. Không dùng AI morph.</li>
+    <li><span class="t">“Nhà mình có ai làm vua không?”</span><br>Bộ thẻ nhân vật kiểu bài Top Trumps: mỗi cụ một lá bài (đời, nghề, tuổi thọ, số con, thành tựu). In thật, trẻ con sưu tầm trao đổi.</li>
+    <li><span class="t">“Cháu là người thứ bao nhiêu?”</span><br>Mã gia phả cá nhân dạng <code>1.3.2.7</code> kèm số thứ tự đời — in lên thẻ, khắc lên quà cưới. Ai cũng có một con số riêng.</li>
+    <li><span class="t">“Hồi cụ bằng tuổi cháu?”</span><br>Nhập tuổi bạn → hiện cụ đời thứ N lúc bằng tuổi đó đang làm gì, năm nào, sự kiện lịch sử gì đang diễn ra.</li>
+    <li><span class="t">“Cây nhà mình to bao nhiêu?”</span><br>Chỉ số dòng họ vui: tổng số năm tuổi thọ cộng dồn (“họ ta đã sống 14.328 năm”), người xa quê nhất, khoảng cách xa nhất giữa hai con cháu đang sống.</li>
+    <li><span class="t">“Sao phải chờ đến giỗ?”</span><br>Cây có tiếng: mỗi node mới, trang chủ hiện hiệu ứng lộc nảy kèm tiếng chuông nhỏ. Sự sống thấy được hàng ngày.</li>
+    <li><span class="t">“Cháu vẽ được không?”</span><br>Góc tranh cháu vẽ tổ tiên: trẻ con vẽ, upload, gắn vào node; Tộc Sử in kèm tranh trẻ con.</li>
+  </ul>
+</section>
+
+<!-- 5 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 05</span><h2>Sci-Fi Artifact From the Future</h2></div>
+  <p class="tech-sub">Mô tả một hiện vật từ thế giới nơi dự án này đã thắng — rồi lần ngược về hiện tại xem phải xây gì.</p>
+  <ul class="museum">
+    <li><span class="tag">Hiện vật · Thiệp cưới 2035</span><span class="t">Phả đồ hai họ.</span> Nhập hai người → in tờ giới thiệu hai dòng họ gặp nhau, tặng đám cưới. Đồng thời là lúc thu dữ liệu họ thông gia.</li>
+    <li><span class="tag">Hiện vật · Bảng đồng cổng làng</span><span class="t">Trang “Đất tổ”.</span> Mỗi địa danh — làng, nhà thờ họ, khu mộ, đất hương hỏa — là một thực thể có trang riêng, ảnh xưa-nay, ai đã sống ở đó.</li>
+    <li><span class="tag">Hiện vật · Tin “khánh thành bảo tàng số”</span><span class="t">Bảo tàng hiện vật họ.</span> Sắc phong, gia huấn, ấn triện, đồ thờ, ảnh cũ — mỗi hiện vật có trang, có người đang giữ, có lịch sử truyền tay. Chống thất tán đồ thờ.</li>
+    <li><span class="tag">Hiện vật · Hộ chiếu gia tộc</span><span class="t">Thẻ tông thân.</span> Thẻ số và thẻ nhựa in thật: tên, đời, chi, mã, QR — điểm danh giỗ họ, nhận quà, xác thực thành viên.</li>
+    <li><span class="tag">Hiện vật · Cáo phó chuẩn hóa</span><span class="t">Sinh cáo phó &amp; điếu văn.</span> Đúng thể thức, đủ vai vế con cháu theo thứ tự trưởng-thứ chuẩn từ phả (chỗ hay sai nhất), gửi thẳng Zalo OA.</li>
+    <li><span class="tag">Hiện vật · Bia đá mới dựng</span><span class="t">Sinh văn bia, hoành phi, câu đối.</span> LLM soạn câu đối Hán-Nôm kèm phiên âm, nghĩa và điển tích để hội đồng duyệt.</li>
+    <li><span class="tag">Hiện vật · “Gia huấn, tái bản lần 12”</span><span class="t">Gia huấn sống.</span> Kho lời răn và nếp nhà, mỗi lời gắn với cụ đã nói và câu chuyện minh họa; hội đồng bỏ phiếu bổ sung điều mới mỗi năm.</li>
+    <li><span class="tag">Hiện vật · Poster treo tường</span><span class="t">Poster tự sinh khổ A0.</span> Một trang in toàn bộ cây, đẹp đủ để treo nhà thờ họ, tự cập nhật mỗi năm.</li>
+  </ul>
+</section>
+
+<!-- 6 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 06</span><h2>Trickster’s Gambit</h2></div>
+  <p class="tech-sub">Nhập vai kẻ tinh quái: giải bài toán bằng cách gian lận, đảo ngược, hoặc phá đúng cái luật thiêng nhất.</p>
+  <ul class="trick">
+    <li><span class="rule">Luật thiêng: phả là thiêng, không được sửa</span><span class="t">Phả nháp công khai.</span> Ai cũng thấy phiên bản đang tranh cãi song song bản chính. Tranh luận có nơi tồn tại mà bản chính vẫn sạch.</li>
+    <li><span class="rule">Luật thiêng: không nói xấu tổ tiên</span><span class="t">Mục “Chuyện thật”.</span> Ghi cả nghịch cảnh: ai sa ngã, ai bỏ làng, chi nào từng bị xóa tên. Có kiểm duyệt hội đồng nhưng không né — thứ khiến người trẻ tin cuốn phả không phải tuyên truyền.</li>
+    <li><span class="rule">Luật thiêng: chỉ ghi nam đinh</span><span class="t">Lớp phủ đường mẫu hệ.</span> Tô riêng mẹ, bà ngoại, ngoại tổ. Nửa số người trong họ tự nhiên thấy mình có chỗ.</li>
+    <li><span class="rule">Luật thiêng: trưởng họ quyết tất</span><span class="t">Bỏ phiếu tông thân trên web.</span> Mẫu bìa Tộc Sử, ngày giỗ Tổ, mức quỹ họ — có trọng số theo chi.</li>
+    <li><span class="rule">Gian lận: dữ liệu khó thu</span><span class="t">Sổ tang &amp; sổ mừng.</span> Mọi đám cưới đám ma trong họ đều có sổ ghi tên người đến: chụp, OCR, gợi ý node và quan hệ. Mỏ vàng ai cũng sẵn có.</li>
+    <li><span class="rule">Gian lận: người già không dùng web</span><span class="t">Số điện thoại hỏi phả.</span> Gọi vào một số, nói “tôi muốn biết ngày giỗ cụ Cả” — hệ thống trả lời bằng giọng nói.</li>
+    <li><span class="rule">Gian lận: không ai chịu điền form</span><span class="t">Nhập liệu bằng kể chuyện.</span> Ghi âm 3 phút kể về một người → LLM bóc tách thành trường dữ liệu, trình trưởng chi duyệt. Người ta thích kể hơn thích điền.</li>
+    <li><span class="rule">Đảo ngược: bảng vàng công đức</span><span class="t">Bảng “nợ dữ liệu” theo chi.</span> Hiện chi nào còn thiếu bao nhiêu phần trăm, thay vì chi nào giỏi. Xấu hổ mạnh hơn khen thưởng trong văn hóa họ.</li>
+    <li><span class="rule">Lách ranh giới: persona tổ tiên đã bị loại</span><span class="t">“Cụ tổ hỏi thăm”.</span> Mỗi tháng một nhiệm vụ nhắc: “Cụ Thủy tổ vẫn chưa biết mặt cháu — hãy tải ảnh của bạn lên.” Giữ được cảm giác mà không giả giọng người đã khuất.</li>
+  </ul>
+</section>
+
+<!-- 7 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 07</span><h2>Crank the Dial to 11</h2></div>
+  <p class="tech-sub">Chọn một chiều và vặn tới mức lố bịch — nhanh nhất, to nhất, nhỏ nhất, xa nhất — xem cái gì vỡ ra.</p>
+  <ul class="dial">
+    <li><div class="bar"></div><div class="body"><span class="axis">Chiều thời gian → 500 năm</span>Thanh trượt kéo qua các thế kỷ, cây co giãn, kèm mốc sử Việt: Lê–Trịnh, Tây Sơn, Pháp thuộc, 1945, 1954, 1975, Đổi Mới. Thấy tổ tiên sống qua cái gì.</div></li>
+    <li><div class="bar"></div><div class="body"><span class="axis">Chiều số người → một triệu</span>Ước tính hậu duệ tiềm năng theo mô hình sinh sản: “nếu tìm đủ, họ ta có bao nhiêu người”. Động lực đi tìm chi thất lạc.</div></li>
+    <li><div class="bar"></div><div class="body"><span class="axis">Chiều chi tiết → một ngày</span>Với cụ có tư liệu dày, LLM dựng lại một ngày: giá gạo năm đó, thời tiết, việc đồng áng — từ sử liệu có trích dẫn, gắn nhãn “phục dựng bối cảnh”, cấm bịa lời cụ.</div></li>
+    <li><div class="bar"></div><div class="body"><span class="axis">Chiều tốc độ → trực chiến</span>Chế độ giỗ Tổ live trên màn hình lớn: điểm danh realtime, ảnh vừa chụp lên ngay, quiz đang chạy, đèn chi. Một sự kiện trực tiếp thay vì một website.</div></li>
+    <li><div class="bar"></div><div class="body"><span class="axis">Vặn xuống → nhỏ nhất</span>Widget một dòng nhúng Zalo hoặc site khác: “Hôm nay 12/7 âm — giỗ cụ Nguyễn Quang X, đời 6, chi 2.”</div></li>
+    <li><div class="bar"></div><div class="body"><span class="axis">Chiều khoảng cách → toàn cầu</span>Bản đồ con cháu khắp thế giới, pin theo mức riêng tư tự khai, kèm khoảng cách từ bạn về nhà thờ họ.</div></li>
+  </ul>
+</section>
+
+<!-- 8 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 08</span><h2>The $0 Mandate</h2></div>
+  <p class="tech-sub">Đạt mục tiêu mà không tiêu một đồng — không công cụ, không thuê, không quảng cáo. Chỉ có con người và những gì đã sẵn.</p>
+  <ul class="receipt">
+    <li><span>Cây phả in trên bạt treo giỗ họ, chừa ô trống bút dạ để mọi người tự điền người thiếu, rồi chụp lại nhập vào</span><span>0 ₫</span></li>
+    <li><span>Sticker dán ảnh: phát ảnh cũ in sẵn, ai nhận ra ai thì dán tên — giải bài toán ảnh cũ không biết ai</span><span>0 ₫</span></li>
+    <li><span>Nhiệm vụ “hỏi ông bà 3 câu” phát cho trẻ con dịp Tết, đổi lì xì lấy dữ liệu</span><span>0 ₫</span></li>
+    <li><span>Bản in phả bỏ túi khổ A5 cho mỗi chi: người già cầm được, sửa bằng bút, trả lại để nhập</span><span>0 ₫</span></li>
+    <li><span>Bot nhắc giỗ ngay trong nhóm Zalo của họ — không cần ai vào web</span><span>0 ₫</span></li>
+    <li class="total"><span>TỔNG — và có thể vượt mọi form nhập liệu anh xây</span><span>0 ₫</span></li>
+  </ul>
+</section>
+
+<!-- 9 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 09</span><h2>Morphological Analysis</h2></div>
+  <p class="tech-sub">Tách bài toán thành các tham số độc lập, liệt kê lựa chọn cho từng cái, rồi tổ hợp chéo để lộ ra cấu hình chưa ai thử.</p>
+  <div class="scroll">
+  <table class="matrix">
+    <thead><tr><th>Tổ hợp</th><th>Ý tưởng bật ra</th></tr></thead>
+    <tbody>
+      <tr><td>hiện vật × nghe × nhà thờ họ</td><td><span class="t">Audio guide nhà thờ họ.</span> Quét QR từng hiện vật, nghe lai lịch — biến nhà thờ họ thành bảo tàng có thuyết minh.</td></tr>
+      <tr><td>sự kiện × chơi × giấy</td><td><span class="t">Lịch bloc dòng họ.</span> Mỗi tờ một ngày, in giỗ ai kèm một câu chuyện. Sản phẩm gây quỹ họ.</td></tr>
+      <tr><td>địa điểm × đóng góp × mộ phần</td><td><span class="t">Chiến dịch chụp bia mộ.</span> Hướng dẫn chụp đúng cách, OCR chữ Hán, đối chiếu phả để phát hiện sai lệch tên húy và ngày mất.</td></tr>
+      <tr><td>người sống × được nhắc × Zalo</td><td><span class="t">Nhắc sinh nhật &amp; ngày cưới trong họ</span> kèm gợi ý xưng hô đúng khi nhắn chúc.</td></tr>
+      <tr><td>cụ đã mất × in × giấy</td><td><span class="t">Sổ tay tế lễ cho trưởng chi.</span> In đủ văn khấn, thứ tự lễ, danh sách cụ được giỗ trong năm của chi mình.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<!-- 10 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 10</span><h2>Alien Anthropologist</h2></div>
+  <p class="tech-sub">Trở thành người ngoài hành tinh bối rối đang nghiên cứu bài toán, và nói to ra cái gì ở đây là kỳ quặc, tùy tiện, hoặc điên rồ.</p>
+  <ul class="field">
+    <li><span class="obs">“Sao chúng vẽ được người mà không vẽ được của cải?”</span><span class="t">Dòng chảy hương hỏa.</span> Theo dấu ruộng hương hỏa, nhà thờ họ, đồ thờ qua các đời — ai đang giữ cái gì, trách nhiệm gì. Ngăn tranh chấp trước khi nó nổ.</li>
+    <li><span class="obs">“Sao mỗi năm họp một lần rồi quên hết?”</span><span class="t">Biên bản họ tự động.</span> Ghi âm cuộc họp → transcript → LLM ra biên bản kèm danh sách việc giao có hạn và nhắc lại. Hội đồng gia tộc có công cụ quản trị thật.</li>
+    <li><span class="obs">“Sao con dâu vào họ mà không có gốc?”</span><span class="t">Trang “Về nhà chồng / nhà vợ”.</span> Hồ sơ dâu rể có cả gốc gác của họ, để con cháu biết ngoại tổ mình là ai.</li>
+    <li><span class="obs">“Sao người chết có ngày mà người sống thì không?”</span><span class="t">Niên biểu đời người.</span> Sinh, học, quân ngũ, nghề, cưới, con, mất — ai cũng có một dòng thời gian, kể cả người đang sống.</li>
+    <li><span class="obs">“Sao dữ liệu chỉ đi vào mà không đi ra?”</span><span class="t">Tự xuất dữ liệu cá nhân.</span> Mỗi thành viên tải về phần của mình dạng GEDCOM kèm ảnh. Quyền sở hữu rõ ràng làm tăng tin cậy.</li>
+    <li><span class="obs">“Sao lại một cuốn sách khi có 500 người?”</span><span class="t">Tộc Sử cá nhân hóa.</span> Mỗi người xuất một bản lấy mình làm tâm — chỉ gồm các cụ trên đường về Tổ của riêng họ và chi mình. 500 cuốn khác nhau từ một kho dữ liệu.</li>
+  </ul>
+</section>
+
+<!-- 11 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 11</span><h2>TRIZ Contradiction</h2></div>
+  <p class="tech-sub">Gọi tên mâu thuẫn cốt lõi — thứ chỉ tốt lên khi thứ khác tệ đi — rồi tìm cách thắng cả hai thay vì đánh đổi.</p>
+  <ul class="triz">
+    <li><div class="clash"><span>Dữ liệu phải chính xác → duyệt chặt</span><span class="vs">✕</span><span>Dữ liệu phải nhiều → mở cho mọi người</span></div><div class="win"><span class="t">Hai tầng: Chính phả &amp; Kho tồn nghi.</span> Ai cũng ghi vào kho tồn nghi ngay, không chờ duyệt (hiện mờ trên cây); trưởng chi “nâng cấp” lên chính phả.</div></li>
+    <li><div class="clash"><span>Trưởng họ phải duyệt</span><span class="vs">✕</span><span>Trưởng họ là nút thắt cổ chai</span></div><div class="win"><span class="t">Duyệt bằng đồng thuận nhẹ.</span> Một thông tin được 3 người thuộc 2 chi khác nhau xác nhận thì tự lên chính phả.</div></li>
+    <li><div class="clash"><span>Riêng tư của người sống</span><span class="vs">✕</span><span>Muốn khoe và kết nối</span></div><div class="win"><span class="t">Riêng tư theo bán kính họ hàng.</span> Mức hiển thị tự tính theo bậc quan hệ — trong 3 đời thấy đủ, ngoài ra thấy ít. Không ai phải chỉnh setting.</div></li>
+    <li><div class="clash"><span>Người già cần giấy</span><span class="vs">✕</span><span>Dữ liệu phải luôn sống</span></div><div class="win"><span class="t">Giấy có QR phiên bản.</span> Mọi bản in đóng QR và số hiệu; quét ra bản mới nhất kèm diff so với bản đang cầm.</div></li>
+    <li><div class="clash"><span>LLM viết hay, viết nhiều</span><span class="vs">✕</span><span>LLM bịa là giết uy tín cuốn phả</span></div><div class="win"><span class="t">Chế độ “chỉ nói điều có nguồn”.</span> Mọi câu sinh ra đều chú thích trỏ về bản ghi hoặc tư liệu; câu không nguồn tự in nghiêng và gắn nhãn <em>suy đoán</em>. Mỗi chương Tộc Sử hiện tỷ lệ có nguồn.</div></li>
+    <li><div class="clash"><span>Muốn người trẻ dùng</span><span class="vs">✕</span><span>Nội dung là chuyện người già</span></div><div class="win"><span class="t">Chế độ “phả 60 giây”.</span> Mỗi cụ một thẻ dọc dạng story, vuốt như mạng xã hội — nhưng dữ liệu lấy thẳng từ phả.</div></li>
+  </ul>
+</section>
+
+<!-- 12 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 12</span><h2>Failure Analysis</h2></div>
+  <p class="tech-sub">Mổ xẻ các thất bại kinh điển: phả mất thời chiến, dự án chết sau 3 tháng, con cháu tranh chấp mộ. Cái gì vỡ, vì sao, và bài học đặt vào đâu.</p>
+  <ul class="grave">
+    <li><span class="t">Chết vì mất người phụ trách</span><span class="t" style="text-transform:none;font-family:var(--serif);font-size:.95rem;letter-spacing:0;color:var(--ink)">Người kế nhiệm dữ liệu</span><br>Mỗi node và mỗi chi có người phụ trách kèm người kế nhiệm được chỉ định; hệ thống nhắc bàn giao.</li>
+    <li><span class="t">Chết vì phả cháy, phả mất</span><span class="t" style="text-transform:none;font-family:var(--serif);font-size:.95rem;letter-spacing:0;color:var(--ink)">Sao lưu phân tán trong họ</span><br>Mỗi quý gửi file GEDCOM kèm ảnh về 5 người ở 5 nơi; hệ thống nhắc và ghi nhận ai giữ bản nào.</li>
+    <li><span class="t">Chết vì nghi ngờ bản phả bị sửa</span><span class="t" style="text-transform:none;font-family:var(--serif);font-size:.95rem;letter-spacing:0;color:var(--ink)">Chứng thư số cho mỗi ấn bản</span><br>Công bố hash bản phát hành công khai — ai cũng chứng minh được bản mình cầm còn nguyên. Nhẹ hơn blockchain mà đủ dùng.</li>
+    <li><span class="t">Chết vì im lặng dần</span><span class="t" style="text-transform:none;font-family:var(--serif);font-size:.95rem;letter-spacing:0;color:var(--ink)">Cảnh báo chi đang nguội</span><br>6 tháng không ai trong chi hoạt động → báo hội đồng và sinh nhiệm vụ đến thăm thật ngoài đời.</li>
+    <li><span class="t">Chết vì tranh chấp bị giấu</span><span class="t" style="text-transform:none;font-family:var(--serif);font-size:.95rem;letter-spacing:0;color:var(--ink)">Hồ sơ tranh chấp</span><br>Nơi ghi các bất đồng chưa giải quyết (ai là trưởng chi, mộ ai ở đâu) có lịch sử lập luận và trạng thái. Không giấu mà quản trị.</li>
+  </ul>
+</section>
+
+<!-- 13 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 13</span><h2>Emerging Tech Collision</h2></div>
+  <p class="tech-sub">Cưỡng hôn ý tưởng với một công nghệ tiền tuyến, rồi hỏi cái gì mới được sinh ra.</p>
+  <ul class="collide">
+    <li><span class="x">LLM vision × ảnh tập thể cũ</span><span class="t">Bóc tách ảnh giỗ họ 40 người.</span> Khoanh mặt để con cháu gắn tên thủ công (không nhận diện tự động — bảo vệ riêng tư). Ảnh trở thành dữ liệu quan hệ và dấu mốc ai còn ai mất.</li>
+    <li><span class="x">GIS × bản đồ cổ</span><span class="t">Phủ bản đồ Đông Dương và địa bạ cũ lên bản đồ nay</span> để định vị đúng làng đã đổi tên — bài toán thật của gia phả Việt.</li>
+    <li><span class="x">Speech × di sản</span><span class="t">Kho giọng nói tổ tiên.</span> Thu giọng các cụ còn sống kể chuyện, lưu nguyên bản làm di sản. Không tổng hợp giả giọng.</li>
+    <li><span class="x">DNA × nhận họ</span><span class="t">Khung nhập kết quả xét nghiệm ADN</span> cho trường hợp Việt kiều nhận họ; đối chiếu với giả thuyết trên graph và hiển thị mức phù hợp, không tự kết luận.</li>
+    <li><span class="x">Scan 3D × hiện vật</span><span class="t">Số hóa bia mộ, sắc phong, ấn triện</span> đang mòn — xem xoay được trên web.</li>
+    <li><span class="x">WebXR × nhà thờ họ</span><span class="t">Đứng trước bàn thờ giơ điện thoại</span> thấy tên các cụ hiện đúng vị trí khám thờ. Web-only vẫn làm được.</li>
+  </ul>
+</section>
+
+<!-- 14 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 14</span><h2>Values Archaeology &amp; Laddering</h2></div>
+  <p class="tech-sub">Hỏi “vì sao tôi quan tâm?” đến khi chạm đáy — cái giá trị không thương lượng đang âm thầm lái mọi lựa chọn — rồi ý tưởng lại từ tầng đó.</p>
+  <ul class="well">
+    <li><span class="t">Đáy: “để con tôi biết nó là ai và không thấy cô độc.”</span></li>
+    <li><span class="t">Trang “tôi là ai” gửi đời sau.</span> Mỗi người viết một trang muốn cháu chắt biết gì — công bố công khai ngay, thành chương “Đương đại” của Tộc Sử. Khác hộp thời gian đã loại vì không khóa kín.</li>
+    <li><span class="t">Nghi thức nhận lại tên.</span> Người từng bỏ họ hoặc đổi họ — con nuôi, thất lạc, con ngoài giá thú — có đường quay về được ghi nhận đàng hoàng, có quy trình và văn bản.</li>
+    <li><span class="t">“Ai đang nhớ đến cụ.”</span> Mỗi trang cụ hiện số con cháu đã ghé thăm và thắp hương số trong năm. Không bị quên là nỗi sợ sâu nhất.</li>
+    <li><span class="t">Đối chiếu “tôi và cụ”.</span> Bạn 34 tuổi — cụ đời 5 lúc 34 tuổi đã làm gì. Một tấm gương soi thế hệ.</li>
+  </ul>
+</section>
+
+<!-- 15 -->
+<section>
+  <div class="tech-head"><span class="tech-num">Kỹ thuật 15</span><h2>Build on What Works</h2></div>
+  <p class="tech-sub">Gọi tên thứ đã thành công sẵn và lý do nó thành công, rồi ý tưởng cách khuếch đại nó thay vì đi sửa cái hỏng.</p>
+  <ul class="amp">
+    <li><span class="up">▲▲▲</span><span><span class="t">Xưng hô LLM → hai người quét chung một QR.</span> Tại giỗ họ, máy nói ngay họ gọi nhau là gì. Bản demo mạnh hơn nhiều so với gõ câu mô tả — bà cụ 75 tuổi cũng làm được.</span></li>
+    <li><span class="up">▲▲</span><span><span class="t">Xưng hô cho tình huống thật.</span> “Tôi phải viết thiệp mời cưới cho ông này thì đề gì?” → cách xưng hô trong văn bản trang trọng kèm mẫu câu.</span></li>
+    <li><span class="up">▲▲</span><span><span class="t">Thám tử phả hệ xuất phiếu nhiệm vụ in được.</span> Mỗi nhiệm vụ xác minh thành một tờ giấy có mã, giao tận tay ở giỗ họ; làm xong quét mã báo hoàn thành.</span></li>
+    <li><span class="up">▲</span><span><span class="t">Bảng “vụ án đã phá”.</span> Trang công khai các mâu thuẫn đã giải quyết, ai giải và dựa vào tư liệu gì. Biến làm sạch dữ liệu thành môn thể thao.</span></li>
+    <li><span class="up">▲▲</span><span><span class="t">Tộc Sử ba bản cùng nội dung.</span> Bản trang trọng cho các cụ, bản kể chuyện cho trẻ em, bản audio cho người không đọc được.</span></li>
+    <li><span class="up">▲▲▲</span><span><span class="t">Tộc Sử tự chỉ ra chương đang thiếu.</span> Chương nào mỏng vì thiếu dữ liệu thì hiện nút “góp tư liệu cho chương này”. Cuốn sách tự đi xin dữ liệu.</span></li>
+  </ul>
+</section>
+
+</div>
+
+<!-- CAO TRÀO -->
+<div class="climax">
+ <div class="inner">
+  <div class="tech-head" style="margin-bottom:10px"><span class="tech-num">Cao trào</span><h2>Bảy mối nối mà từng ý riêng lẻ không cho thấy</h2></div>
+  <p class="tech-sub">103 ý tưởng không phải là kết quả. Đây mới là.</p>
+  <ol class="knot">
+    <li>
+      <h3>Ba ý là một ý đội ba mũ — và nó là quyết định schema, không phải tính năng</h3>
+      <p><em>Hệ độ tin cậy 3 mức</em> + <em>Hai tầng Chính phả/Kho tồn nghi</em> + <em>Phả nháp công khai</em> thực chất là cùng một hạ tầng: <strong>mọi khẳng định đều mang nguồn + độ tin cậy + trạng thái</strong>. Nó giải một lúc ba thứ: nghẽn duyệt ở trưởng họ, tranh chấp thứ bậc (rủi ro #2 trong bảng của anh), và nỗi sợ “sửa phả là báng bổ”.</p>
+      <span class="flag">Phải chốt trước mục 6.2 — thêm sau là đập bảng làm lại</span>
+    </li>
+    <li>
+      <h3>Quyết định web-only đang loại đúng nhóm giữ dữ liệu quý nhất</h3>
+      <p><em>Phả nghe được</em> + <em>số điện thoại hỏi phả</em> + <em>nhập liệu bằng kể chuyện</em> gộp thành một <strong>kênh thoại</strong>. Các cụ 80 tuổi là kho dữ liệu duy nhất không sao chép được, và cũng là nhóm gần như chắc chắn không mở web. Đây không phải tính năng WOW — đây là chỗ thủng.</p>
+    </li>
+    <li>
+      <h3>Cả một nhóm ý chung một chiến lược: đừng xin dữ liệu, đi nhặt nơi nó đang nằm</h3>
+      <p>Sổ tang/sổ mừng · bia mộ · ảnh tập thể · cây in trên bạt có ô bút dạ · nhiệm vụ “hỏi ông bà 3 câu” đổi lì xì. Không cái nào cần code phức tạp, và cộng lại chúng có thể vượt mọi form nhập liệu anh xây.</p>
+    </li>
+    <li>
+      <h3>Trục cá nhân hóa là chỗ dự án ăn được cả hai mô hình</h3>
+      <p>Tài liệu định vị “mô hình tông tộc Á Đông ≠ mô hình cá nhân phương Tây”. Nhưng <em>Tộc Sử cá nhân hóa</em> + <em>Từ tôi ngược về Tổ</em> + <em>Hồi cụ bằng tuổi cháu</em> + <em>mã gia phả riêng</em> cho phép <strong>dữ liệu là của chung, trải nghiệm lấy tôi làm tâm</strong>. Ô trống mà cả Zupu lẫn MyHeritage đều chưa đứng vào.</p>
+    </li>
+    <li>
+      <h3>Cửa sổ 49 ngày là thứ duy nhất không lấy lại được</h3>
+      <p>Ký ức về một người dồi dào nhất đúng lúc họ vừa mất — và đó là lúc tuyệt đối không ai nghĩ đến nhập liệu. Mỗi đám tang trôi qua không có cơ chế này là một chương Tộc Sử mất vĩnh viễn.</p>
+    </li>
+    <li>
+      <h3>Bản demo giỗ Tổ đang yếu hơn nó có thể</h3>
+      <p>Tài liệu bảo <em>gõ câu mô tả quan hệ</em>. <strong>Hai người quét chung một QR → máy nói ngay họ gọi nhau là gì.</strong> Cùng công nghệ, khác một trời về sức lan.</p>
+    </li>
+    <li>
+      <h3>Nhịp tim chống “chết sau 3 tháng” giờ có 5 cơ chế thay vì 1</h3>
+      <p>Đèn Chi · cảnh báo chi nguội · bảng nợ dữ liệu · mỗi ngày một mẩu chuyện · widget một dòng. Tài liệu chỉ có “lịch giỗ = nhịp tim”. Một nhịp tim là điểm chết đơn.</p>
+    </li>
+  </ol>
+
+  <div class="redflag">
+    <h3>⚑ Ba ý giáp ranh danh sách ĐÃ LOẠI — cần Hiệp quyết</h3>
+    <ul>
+      <li><span class="t">Trang “tôi là ai” gửi đời sau</span> — giống <em>hộp thời gian</em>, nhưng công bố ngay chứ không khóa kín.</li>
+      <li><span class="t">“Cụ tổ hỏi thăm”</span> — giáp ranh <em>persona tổ tiên</em>. Cố tình giữ ở mức một câu nhắc nhiệm vụ, không giả giọng.</li>
+      <li><span class="t">“Một ngày trong đời cụ”</span> — giáp ranh bịa. Bắt buộc nhãn <em>phục dựng bối cảnh</em> và cấm bịa lời cụ.</li>
+    </ul>
+  </div>
+ </div>
+</div>
+
+<div class="wrap">
+<footer>
+  <div class="seal">光前<br>裕後</div>
+  <div style="margin-top:18px">
+    BMAD BRAINSTORMING · CHẾ ĐỘ TỰ CHẠY · 09.08.2026<br>
+    NGUỒN CANONICAL: <code>.memlog.md</code> — 127 MỤC<br>
+    13 KỸ THUẬT · 103 Ý TƯỞNG · 7 MỐI NỐI · 1 CÂU HỎI ĐANG TREO
+  </div>
+</footer>
+</div>
+</body>
+</html>

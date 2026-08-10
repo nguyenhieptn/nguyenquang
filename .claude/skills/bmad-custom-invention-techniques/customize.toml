@@ -1,0 +1,33 @@
+# Workflow customization surface for bmad-custom-invention-techniques.
+# Mirrors the BMad agent customization shape under the [workflow] namespace.
+#
+# Unlike installer-managed skills, this is a custom skill — editing this file
+# directly is safe. Team/personal overrides still work via:
+#   _bmad/custom/bmad-custom-invention-techniques.toml
+#   _bmad/custom/bmad-custom-invention-techniques.user.toml
+
+[workflow]
+
+# --- Overrides merge per BMad structural rules: ---
+#   scalars: override wins • arrays (persistent_facts, activation_steps_*): append
+#   arrays-of-tables with `code`/`id`: replace matching items, append new ones.
+
+# Steps to run before the standard activation (config load, greet).
+activation_steps_prepend = []
+
+# Steps to run after greet but before the workflow begins.
+activation_steps_append = []
+
+# Persistent facts the workflow keeps in mind for the whole run.
+# Entries prefixed `file:` are paths or globs under {project-root}; their
+# contents are loaded as facts. All other entries are facts verbatim.
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/project.md",
+  "A principle is not an idea. Never hand back a TRIZ principle without at least two concrete applications to the user's actual problem.",
+  "Record dead ends and why they died — a future run of this workflow must not repeat them.",
+]
+
+# Scalar: executed at the end of Step 6, after the document is written.
+# Leave empty for no custom post-completion behavior.
+on_complete = ""

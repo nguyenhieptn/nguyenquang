@@ -1,0 +1,5 @@
+Creative Studio,_meta,,,,,,,,,false,{project-root}/_bmad/custom/creative-studio.md,
+Creative Studio,bmad-custom-agent-creative-director,Creative Director (Iris),CD,Diagnose the creative problem and route it to the right method — or run a full Creative Sprint end to end.,,,anytime,,,false,output_folder,creative brief/synthesis
+Creative Studio,bmad-custom-invention-techniques,Invention Techniques,IV,Deep inventive methods — TRIZ contradiction resolution biomimicry synectics lateral thinking morphological analysis.,,,anytime,bmad-brainstorming,bmad-custom-visual-direction,false,output_folder,invention session
+Creative Studio,bmad-custom-visual-direction,Visual Direction,VD,Decide the visual identity — aesthetic direction colour typography motion and a rendered style tile.,,,anytime,bmad-ux,frontend-design,false,output_folder,visual direction/style tile
+Creative Studio,bmad-custom-agent-toc-su,Chủ biên Tộc Sử (Tú Lâm),TS,Clan-facing writing for the genealogy project — tộc sử chapters biographies văn khấn Hán-Việt naming and clan quizzes.,,,anytime,,,false,output_folder,clan chronicle content

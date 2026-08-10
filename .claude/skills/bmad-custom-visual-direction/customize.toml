@@ -1,0 +1,28 @@
+# Workflow customization surface for bmad-custom-visual-direction.
+#
+# This is a custom skill — editing this file directly is safe.
+# Team/personal overrides still work via:
+#   _bmad/custom/bmad-custom-visual-direction.toml
+#   _bmad/custom/bmad-custom-visual-direction.user.toml
+
+[workflow]
+
+# --- Overrides merge per BMad structural rules: ---
+#   scalars: override wins • arrays (persistent_facts, activation_steps_*): append
+#   arrays-of-tables with `code`/`id`: replace matching items, append new ones.
+
+activation_steps_prepend = []
+
+activation_steps_append = []
+
+# Persistent facts the workflow keeps in mind for the whole run.
+persistent_facts = [
+  "file:{project-root}/**/project-context.md",
+  "file:{project-root}/docs/project.md",
+  "Any typeface proposed must be verified for full Vietnamese diacritic coverage, including stacked marks (ề ộ ữ ẳ ỡ). Han and Nôm coverage is required wherever Hán-Nôm source material is rendered.",
+  "Contrast ratios must be computed, not estimated. State the number and the pass/fail against WCAG AA.",
+  "Elders are a first-class audience: set the body-text floor above the usual 16px default and justify the number.",
+  "Banned unless explicitly argued for: purple-to-blue gradients, blanket glassmorphism, a single accent applied to everything, emoji as iconography.",
+]
+
+on_complete = ""
