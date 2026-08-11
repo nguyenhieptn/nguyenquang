@@ -22,6 +22,8 @@
  */
 import { Card, CardBody } from "@/components/ui/card";
 import { ThanhDieuHuong } from "@/components/pha/thanh-dieu-huong";
+// Bản máy đi qua CỔNG TẢI ĐỘNG, không import thẳng — xem đầu file cay-tai-dong.tsx.
+import { CayCaTocTaiDong } from "@/components/pha/cay-tai-dong";
 import { NGUOI, MANH, KHANH_ID, khoiChiCua, chiCua } from "../_mock/seed";
 
 const manhChinh = MANH[0];
@@ -31,30 +33,6 @@ const chiCuaToi = chiCua(KHANH_ID);
 const manhRoi = MANH.slice(1);
 const tongNguoi = MANH.reduce((s, m) => s + m.soNguoi, 0);
 const tongTonNghi = khoiChi.reduce((s, c) => s + c.soTonNghi, 0);
-
-/**
- * Thanh ngang nối các khối chi, chỉ vẽ trên bản máy.
- * Đầu mút dừng đúng TÂM khối đầu và khối cuối — kéo hết bề ngang thì thừa ra hai đoạn cụt, và
- * một cái cây có nhánh cụt đọc ra như lỗi vẽ. Với n khối chia đều, tâm khối đầu ở 1/(2n).
- */
-function ThanhNganhNoi({ soKhoi }: { soKhoi: number }) {
-  const bien = `${100 / (2 * soKhoi)}%`;
-  return (
-    <div className="relative hidden h-6 md:block" aria-hidden>
-      <span
-        className="absolute top-0 h-px bg-border"
-        style={{ left: bien, right: bien }}
-      />
-      {Array.from({ length: soKhoi }, (_, i) => (
-        <span
-          key={i}
-          className="absolute top-0 h-6 w-px bg-border"
-          style={{ left: `${((2 * i + 1) * 100) / (2 * soKhoi)}%` }}
-        />
-      ))}
-    </div>
-  );
-}
 
 export default function Page() {
   return (
@@ -81,6 +59,35 @@ export default function Page() {
           </p>
         </header>
 
+        {/* ══ BẢN MÁY — cùng một khung nhìn cây với tầng 2 và tầng 3 ═════════ */}
+        <div className="hidden md:block">
+          <CayCaTocTaiDong
+            goc={{ id: gocTam.id, hoTen: gocTam.hoTen, tenHem: gocTam.tenHem }}
+            khoiChi={khoiChi.map((c) => ({
+              id: c.gocId,
+              ten: c.ten,
+              nguoiDungDau: c.nguoiDungDau,
+              soDoi: c.soDoi,
+              soNguoi: c.soNguoi,
+              soTonNghi: c.soTonNghi,
+            }))}
+            manhRoi={manhRoi.map((m) => ({ id: m.id, nhan: m.nhan, soNguoi: m.soNguoi }))}
+            chiCuaMinhId={chiCuaToi?.id}
+          />
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to. Mảnh chưa nối nằm tách hẳn
+            sang một bên, kéo tới mới thấy — vì chưa ai tìm ra chỗ nối.
+          </p>
+          {manhRoi.length > 0 && (
+            <p className="mt-4 max-w-xl text-[17px] text-muted-foreground">
+              Mảnh rời không phải lỗi. Đó là phần dòng họ còn nhớ nhưng chưa nối lại được — và
+              nối được một mảnh là việc quý nhất ai cũng làm được.
+            </p>
+          )}
+        </div>
+
+        {/* ══ BẢN ĐIỆN THOẠI — khối chi xếp chồng, một nét dọc ═══════════════ */}
+        <div className="md:hidden">
         {/* Gốc tạm. FR-63: nói rõ đây KHÔNG phải khẳng định đã là Thuỷ tổ. */}
         <div className="md:mx-auto md:w-[280px]">
           <Card className="gap-0 border-dashed py-4">
@@ -100,16 +107,11 @@ export default function Page() {
           </Card>
         </div>
 
-        {/* Điện thoại: một nét dọc. Máy: nhánh nối thật xuống từng khối chi. */}
-        <div className="flex justify-center md:hidden" aria-hidden>
+        <div className="flex justify-center" aria-hidden>
           <span className="h-6 w-px bg-border" />
         </div>
-        <div className="hidden md:flex md:justify-center" aria-hidden>
-          <span className="h-6 w-px bg-border" />
-        </div>
-        <ThanhNganhNoi soKhoi={khoiChi.length} />
 
-        <ul className="space-y-3 md:grid md:grid-cols-3 md:gap-6 md:space-y-0">
+        <ul className="space-y-3">
           {khoiChi.map((chi) => {
             const laChiCuaToi = chi.gocId === chiCuaToi?.id;
             return (
@@ -128,7 +130,7 @@ export default function Page() {
                         </p>
                         {laChiCuaToi && (
                           <span className="shrink-0 text-[15px] font-semibold text-primary md:mt-1 md:block">
-                            chi của bạn
+                            chi của mình
                           </span>
                         )}
                       </div>
@@ -190,12 +192,13 @@ export default function Page() {
                 </li>
               ))}
             </ul>
-            <p className="mt-3 text-[15px] text-muted-foreground md:mx-auto md:mt-6 md:max-w-xl md:text-center md:text-[17px]">
+            <p className="mt-3 text-[15px] text-muted-foreground">
               Mảnh rời không phải lỗi. Đó là phần dòng họ còn nhớ nhưng chưa nối
               lại được — và nối được một mảnh là việc quý nhất ai cũng làm được.
             </p>
           </section>
         )}
+        </div>
       </main>
       <ThanhDieuHuong hienTai="gia-pha" />
     </>

@@ -19,15 +19,33 @@ import { Button } from "@/components/ui/button";
 import {
   KHANH_ID,
   MANH,
+  NGUOI,
   duongVeGoc,
   doiCua,
   maChiCua,
   type MucTinCay,
 } from "../_mock/seed";
 import { ThanhDieuHuong } from "@/components/pha/thanh-dieu-huong";
+// Bản máy đi qua CỔNG TẢI ĐỘNG, không import thẳng — xem đầu file cay-tai-dong.tsx.
+import { CayGiaPhaTaiDong } from "@/components/pha/cay-tai-dong";
 
 /** Đường về gốc, đảo lại: cụ xa nhất ở trên, chính mình ở dưới. */
 const duong = [...duongVeGoc(KHANH_ID)].reverse();
+
+/** Vợ/chồng của một người — hiện trong CÙNG thẻ, y như node trên cây bản máy. */
+const banDoiCua = (id: string) => NGUOI.find((x) => x.voChongId === id);
+
+/**
+ * Cùng dữ liệu ấy, đưa vào cây bản máy. Tầng 3 KHÔNG cần component cây riêng: một đường huyết
+ * thống chỉ là cây mà mỗi node có đúng một con. Dựng riêng thì thẻ người phải sửa hai chỗ.
+ */
+const capDuong = duong.map((n, i) => ({
+  nguoi: n,
+  banDoi: banDoiCua(n.id),
+  chaId: i === 0 ? null : duong[i - 1].id,
+  moTa: `đời ${doiCua(n.id)} · chi ${maChiCua(n.id)}`,
+}));
+const idTrenDuong = duong.map((n) => n.id);
 
 const NHAN_TIN_CAY: Record<MucTinCay, string> = {
   "chac-chan": "chắc chắn",
@@ -54,7 +72,23 @@ export default function Page() {
           </p>
         </header>
 
-        <ol className="space-y-0">
+        {/* ══ BẢN MÁY — cùng khung nhìn cây với tầng 1 và tầng 2 ════════════ */}
+        <div className="hidden md:block">
+          <CayGiaPhaTaiDong
+            caps={capDuong}
+            minhId={KHANH_ID}
+            duongVeGoc={idTrenDuong}
+            // Cả cây LÀ đường huyết thống, nên tô vòng son hết thành ra không tô gì.
+            vongSonTrenDuong={false}
+            chieuCao="h-[520px]"
+          />
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to.
+          </p>
+        </div>
+
+        {/* ══ BẢN ĐIỆN THOẠI — một cột dọc, cuộn tay ════════════════════════ */}
+        <ol className="space-y-0 md:hidden">
           {duong.map((n, i) => {
             const laToi = n.id === KHANH_ID;
             const tonNghi = n.tinCay === "ton-nghi";
@@ -90,6 +124,27 @@ export default function Page() {
                           {n.namSinh ? ` · sinh ${n.namSinh}` : ""}
                           {n.namMat ? ` · mất ${n.namMat}` : ""}
                         </p>
+                        {/* Vợ/chồng trong CÙNG một thẻ — giống hệt node trên cây bản máy.
+                            Một đường huyết thống mà thiếu các cụ bà thì chỉ còn một nửa
+                            dòng họ, và đó là nửa mà chính phả cũng chép. */}
+                        {banDoiCua(n.id) && (
+                          <div className="mt-2 border-t border-border pt-2">
+                            <p className="text-[15px] text-muted-foreground">
+                              {banDoiCua(n.id)!.gioiTinh === "nu" ? "vợ" : "chồng"}
+                            </p>
+                            <p className="font-[family-name:var(--font-pha)] text-[17px]">
+                              {banDoiCua(n.id)!.hoTen}
+                            </p>
+                            <p className="mt-0.5 text-[15px] text-muted-foreground">
+                              {banDoiCua(n.id)!.namSinh
+                                ? `sinh ${banDoiCua(n.id)!.namSinh}`
+                                : "chưa rõ năm sinh"}
+                              {banDoiCua(n.id)!.namMat
+                                ? ` · mất ${banDoiCua(n.id)!.namMat}`
+                                : ""}
+                            </p>
+                          </div>
+                        )}
                         {n.nguoiThem && (
                           <p className="mt-1.5 text-[15px] italic text-primary">
                             {n.nguoiThem} ghi · {n.ngayThem}

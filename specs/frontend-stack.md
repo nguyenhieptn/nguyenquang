@@ -14,6 +14,7 @@
 | Style | **Tailwind v4** CSS-first bằng `@theme` trong `app/globals.css` | 4.3.3 |
 | Component | **shadcn/ui** (base `radix`, preset `nova`) copy vào `components/ui/` — repo sở hữu mã | radix-ui 1.6.7 |
 | Icon | `lucide-react` | 1.31.0 |
+| Khung nhìn cây | **`@xyflow/react`** (React Flow) — CHỈ lo zoom/pan/nhánh nối; thẻ người vẫn là React + token của mình | 12.11.2 |
 | Ghép class | `cva` (biến thể) + `cn()` ở `lib/utils.ts` (clsx + tailwind-merge) | 0.7.1 / 3.6.0 |
 | Alias | `@/*` → **gốc repo**. Nên `@/core`, `@/db`, `@/components/ui` là đường dẫn AD-1 soi | `tsconfig.json` |
 
@@ -93,7 +94,39 @@ lại trên nhiều màn, và **đi theo màn khi dev promote**. Đặt trong `a
 xong là mất; đặt trong `components/ui/` thì lẫn với primitive.
 
 Ràng buộc giữ nguyên: không import tầng dữ liệu (AD-1), token có tên, không hardcode hex.
-Hiện có: `thanh-dieu-huong.tsx` (điều hướng gốc bề mặt A).
+Hiện có: `thanh-dieu-huong.tsx` (điều hướng gốc bề mặt A) · `thanh-ban-duyet.tsx` (chrome bề mặt
+B) · và bốn file của cây, `'use client'` cả bốn:
+
+| File | Việc |
+|---|---|
+| `khung-cay.tsx` | **Vỏ dùng chung** cho cả ba tầng: React Flow, nút phóng/thu, `xepCay`, chip tin cậy |
+| `cay-gia-pha.tsx` | Node = **một cặp** (người + vợ/chồng). Dùng cho tầng 2 **và** tầng 3 |
+| `cay-ca-toc.tsx` | Node = **khối chi**. Tầng 1 |
+| `cay-tai-dong.tsx` | **Cổng duy nhất** các màn được đi qua — xem luật tải động dưới đây |
+
+Ba tầng khác nhau ở **node**, không ở vỏ. Dựng ba vỏ riêng thì đổi một luật của vỏ phải sửa ba
+chỗ. Tầng 3 không có component riêng: một đường huyết thống chỉ là cây mà mỗi node có đúng một con.
+
+### React Flow — ranh giới sử dụng
+
+Thêm 11/08/2026 cho màn cây. **Chỉ dùng nó làm khung nhìn**: zoom, pan, nhánh nối, nút phóng/thu.
+
+- **Thẻ người là component của mình** (`TheNguoi` trong `cay-gia-pha.tsx`) — token có tên,
+  `serif-phả`, nét đứt + vân giấy cho tồn nghi. React Flow không đặt một pixel nào bên trong thẻ.
+- **Bố cục tự tính** (`xepCay`), không thêm dagre/elkjs: cây phả là cây thật (mỗi node một cha)
+  nên luật "cha đứng giữa bề rộng của các con" là đủ.
+- **Không dùng `<Background/>`** chấm lưới — lưới chấm là ngôn ngữ của công cụ vẽ sơ đồ, kéo sản
+  phẩm về phía "phần mềm" (DESIGN.md § Brand & Style).
+- `'use client'` ở đây là **ngoại lệ có lý do**: zoom/pan là tương tác thật. Các màn khác giữ
+  server component.
+- **TẢI ĐỘNG, KHÔNG ẨN BẰNG CSS.** Màn không được `import` thẳng `cay-gia-pha.tsx` hay
+  `cay-ca-toc.tsx`; phải qua `cay-tai-dong.tsx`
+  (`next/dynamic` + `matchMedia('(min-width: 768px)')`, `ssr: false`).
+  Đo trên production: bọc bằng `hidden md:block` thì điện thoại vẫn tải **+177 KB thô / ~57 KB
+  nén** và vẫn hydrate; qua lớp tải động còn **+5 KB**. Ngưỡng 768px phải trùng breakpoint `md`
+  mà màn dùng để ẩn/hiện khối cây.
+- ⚠️ **Chưa giải quyết:** huy hiệu attribution của React Flow đang hiện. Gỡ nó cần bản Pro trả
+  phí. Phải quyết trước khi lên production — giữ huy hiệu, hoặc mua giấy phép.
 
 ## 7. Luật cứng
 

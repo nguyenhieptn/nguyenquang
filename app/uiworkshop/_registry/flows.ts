@@ -101,8 +101,8 @@ const xemCaToc = (viewport: ViewportMode): FlowStep[] => [
   },
   {
     slug: 'cay-gia-toc',
-    label: 'Đường về cụ',
-    trigger: 'Bấm “Xem đường từ bạn ngược lên cụ”',
+    label: 'Cây gia tộc',
+    trigger: 'Bấm “Xem cây gia tộc”',
     viewport,
   },
 ];
@@ -137,7 +137,7 @@ export const FLOWS: Flow[] = [
       { slug: null, label: 'Tìm người thân', trigger: 'Gõ tên anh trai — thấy đúng 1 người' },
       {
         slug: 'cay-gia-toc',
-        label: 'Đường về cụ',
+        label: 'Cây gia tộc',
         trigger: 'Xác nhận liên kết anh em',
         climax: true,
         note: 'FR-13 + FR-63 + FR-39: đường ngược lên cụ tô sáng, node bố mang dòng “cháu Khánh ghi · hôm nay”',
@@ -150,20 +150,33 @@ export const FLOWS: Flow[] = [
     persona: 'Nguyễn Hiệp, người dựng và vận hành, làm trên desktop với một file CSV điền tay',
     source: 'EXPERIENCE.md § Key Flows — Luồng 2',
     steps: [
-      { slug: null, label: 'Nạp khung — tải mẫu', trigger: 'Mở khu quản trị' },
-      { slug: null, label: 'Tải file lên', trigger: 'Điền CSV xong ngoài hệ thống' },
+      { slug: 'nap-khung', label: 'Nạp khung — tải mẫu', trigger: 'Mở khu quản trị' },
       {
-        slug: null,
+        slug: 'nap-khung',
+        label: 'Tải file lên',
+        trigger: 'Điền CSV xong ngoài hệ thống',
+        note: 'CÙNG một màn với bước trước, ở trạng thái “đã chọn file” — hai bước vì việc thật xảy ra NGOÀI hệ thống giữa chúng',
+      },
+      {
+        slug: 'xem-truoc-so-khop',
         label: 'Xem trước so khớp',
         trigger: 'Hệ thống tự so khớp với dữ liệu đã có',
         note: 'Ba trạng thái mỗi dòng: khớp người có sẵn / người mới / nghi trùng',
       },
-      { slug: null, label: 'Cảnh báo của bot', trigger: 'Bot phát hiện lỗi so khớp hoặc ứng viên trùng', note: 'FR-48: gợi ý, KHÔNG tự gộp' },
       {
-        slug: null,
+        slug: 'xem-truoc-so-khop',
+        label: 'Cảnh báo của bot',
+        trigger: 'Bot phát hiện lỗi so khớp hoặc ứng viên trùng',
+        note: 'FR-48: gợi ý, KHÔNG tự gộp. KHÔNG phải màn riêng — cùng bảng, lọc “Cần xem lại” (sửa spine 11/08/2026)',
+      },
+      {
+        slug: 'ca-toc',
         label: 'Cây lần đầu có hình',
         trigger: 'Submit từng người hoặc submit hàng loạt',
         climax: true,
+        // Cao trào MƯỢN màn của bề mặt A, ở khung máy. Phần thưởng của việc gieo mồi không phải
+        // một bảng báo "đã ghi 8 người" mà là thứ dòng họ sắp nhìn thấy.
+        viewport: 'web',
         note: 'FR-51 + FR-63: toàn bộ vào mức tồn nghi; gốc tạm ghi rõ “cụ xa nhất hiện biết”; số mảnh chưa nối hiện trung thực',
       },
     ],
@@ -171,10 +184,11 @@ export const FLOWS: Flow[] = [
   ...['mobile', 'web'].map((khung) => ({
     id: khung === 'mobile' ? 'xem-ca-toc-dien-thoai' : 'xem-ca-toc-may',
     title: khung === 'mobile' ? 'Xem cả tộc — trên điện thoại' : 'Xem cả tộc — trên máy',
-    // ⚠️ NỢ TÀI LIỆU: chưa có nhân vật thật. Luật ghi đè của project cấm tự bịa nhân vật —
-    // phải hỏi người duyệt rồi distill vào EXPERIENCE.md § Key Flows. Vì thế `source: null`.
-    persona: '[CHƯA CÓ NHÂN VẬT — cần người duyệt kể]',
-    source: null,
+    // Người duyệt trả lời 11/08/2026: "ai cũng xem được". Đây KHÔNG phải một hành trình có nhân
+    // vật theo nghĩa của bmad-ux, mà là một NĂNG LỰC MỞ CHO MỌI NGƯỜI — và đó chính là FR-11
+    // ("xem cây không cần đăng ký"). Ghi đúng như vậy thay vì bịa ra một cái tên.
+    persona: 'Bất kỳ ai mở đường dẫn — không cần tài khoản (FR-11)',
+    source: 'EXPERIENCE.md § Key Flows — Luồng 3',
     steps: xemCaToc(khung as ViewportMode),
   })),
   // NỢ TÀI LIỆU — hai luồng chưa distill được vào spine, xem EXPERIENCE.md § Luồng chưa distill:

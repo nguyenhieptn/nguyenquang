@@ -52,9 +52,9 @@ export default function Page() {
             thứ hai tụt xuống dưới mép màn và mất hẳn tác dụng. */}
         <div className="md:grid md:grid-cols-2 md:gap-10">
           <section>
-            {/* ── Ô 1: Đường về cụ (FR-13) ───────────────────────────────── */}
+            {/* ── Ô 1: Cây gia tộc (FR-13) ───────────────────────────────── */}
             <h2 className="mb-2 text-[15px] font-bold uppercase tracking-wider text-muted-foreground">
-              Đường về cụ
+              Cây gia tộc
             </h2>
             <Card className="mb-7 gap-0 py-4">
               <CardBody className="px-4">
@@ -155,7 +155,7 @@ export default function Page() {
             variant="outline"
             className="mt-2.5 h-12 w-full text-[17px] md:mt-0 md:w-auto md:px-8"
           >
-            Xem cả cây
+            Xem cả tộc
           </Button>
         </div>
       </main>

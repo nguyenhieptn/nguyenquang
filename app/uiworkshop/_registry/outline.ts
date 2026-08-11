@@ -80,10 +80,9 @@ export const FOUNDATION: View[] = [
 /**
  * Trục chính: bề mặt → FR → view. Nhãn view giữ NGẮN (một dòng, không cắt cụt trong sidebar).
  *
- * **Đang rỗng có chủ ý.** Chưa màn nào được dựng — bmad-ux chưa chạy. Mọi FR của Đợt 1 vì thế
- * nằm ở `PLANNED_REQS` bên dưới. Khi bmad-ux render màn đầu tiên cho một FR: gỡ FR đó khỏi
- * `PLANNED_REQS`, tạo một `ReqGroup` ở đây (xem `_bmad/custom/ux-assets/react-key-screens.md`).
- * Bề mặt nào chưa có nhóm nào thì sidebar tự ẩn — không có đầu mục rỗng.
+ * Khi bmad-ux render màn đầu tiên cho một FR: gỡ FR đó khỏi `PLANNED_REQS`, tạo một `ReqGroup` ở
+ * đây (xem `_bmad/custom/ux-assets/react-key-screens.md`). Bề mặt nào chưa có nhóm nào thì sidebar
+ * tự ẩn — không có đầu mục rỗng.
  */
 export const REQ_GROUPS: ReqGroup[] = [
   {
@@ -110,7 +109,22 @@ export const REQ_GROUPS: ReqGroup[] = [
     views: [
       { slug: 'mot-chi', label: 'Một chi — tầng 2' },
       { slug: 'ca-toc', label: 'Cả tộc — tầng 1' },
-      { slug: 'cay-gia-toc', label: 'Đường về cụ' },
+      { slug: 'cay-gia-toc', label: 'Cây gia tộc' },
+    ],
+  },
+  {
+    section: 'admin',
+    fr: 'FR-51·FR-48',
+    title: 'Gieo mồi — nạp khung dòng họ',
+    epics: ['Đợt 1'],
+    // FR-48 xuất hiện ở CẢ HAI bề mặt và đó là đúng: chặn bản trùng ở bề mặt A là chặn lúc một
+    // người tự khai; ở đây là chặn lúc nạp cả một file. Cùng một yêu cầu, hai chỗ nó phải đứng.
+    //
+    // "Bảng cảnh báo" KHÔNG có mặt ở đây vì nó không phải một view: nó là bộ lọc "Cần xem lại"
+    // của chính màn xem trước (EXPERIENCE.md § Bề mặt B, sửa 11/08/2026).
+    views: [
+      { slug: 'nap-khung', label: 'Nạp khung' },
+      { slug: 'xem-truoc-so-khop', label: 'Xem trước so khớp' },
     ],
   },
 ];
@@ -126,8 +140,7 @@ export const REQ_GROUPS: ReqGroup[] = [
  * và gắn `storySlugs` cho từng view.
  */
 export const PLANNED_REQS: { fr: string; title: string; epic: string }[] = [
-  // Gieo mồi — để cây không trống trong ngày đầu.
-  { fr: 'FR-51', title: 'Nhập khung dòng họ', epic: 'Đợt 1' },
+  // Gieo mồi — FR-51 đã có màn (bề mặt "Bàn duyệt"), xem REQ_GROUPS.
   // Vòng lặp người dùng — thêm mình vào phả rồi thấy ngay mình là ai.
   { fr: 'FR-11', title: 'Tự khai 4 bước', epic: 'Đợt 1' },
   // Thu lời kể — việc duy nhất có hạn dùng, các cụ không đợi.

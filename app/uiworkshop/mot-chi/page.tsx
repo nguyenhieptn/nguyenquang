@@ -12,19 +12,25 @@
  *
  * ── HAI BỘ MẶT ──────────────────────────────────────────────────────────────────────────────
  * ĐIỆN THOẠI — đời là hàng GẬP được. Màn hẹp buộc phải giấu bớt, nên gập là cách trung thực nhất:
- *   đời của mình và đời ngay trên bung sẵn, còn lại gập.
+ *   đời của mình và đời ngay trên bung sẵn, còn lại gập. Đây đúng chữ FR-15 "collapse theo đời".
  *
- * MÁY — đời là CỘT, trái sang phải, không gập gì cả. Đây KHÔNG phải bản điện thoại kéo giãn: cột
- *   dọc theo đời chính là cách **phả in** đọc, và màn rộng là chỗ duy nhất vẽ được nó. Người xem
- *   thấy TRỌN chi trong một cái nhìn thay vì bung từng đời — đó mới là thứ không gian rộng mua
- *   được, chứ không phải chữ to hơn. Đường huyết thống của chính mình tô son xuyên các cột (FR-13).
+ * MÁY — CÂY THẬT, vẽ từ TRÊN XUỐNG: cụ ở trên, con cháu bên dưới, nhánh rủ xuống, vợ/chồng đứng
+ *   chung một thẻ. Người xem thấy TRỌN chi trong một cái nhìn thay vì bung từng đời.
+ *
+ *   SỬA 11/08/2026 — bản trước xếp đời thành CỘT trái sang phải. Sai: đó là hướng đọc của một
+ *   BẢNG, không phải của một cuốn phả. Trên phả, xuống là đi về phía sau, và chính hướng đọc ấy
+ *   mang nghĩa. Người duyệt gạch đi, đúng.
  */
 import { ThanhDieuHuong } from "@/components/pha/thanh-dieu-huong";
+// Tải ĐỘNG theo bề rộng màn: điện thoại không tải một byte React Flow nào.
+// Xem đầu file cay-tai-dong.tsx — `hidden md:block` một mình KHÔNG đủ.
+import { CayGiaPhaTaiDong } from "@/components/pha/cay-tai-dong";
 import {
   KHANH_ID,
   chiCua,
   tenChi,
   nguoiTheoDoi,
+  capTheoChi,
   doiHienThi,
   duongVeGoc,
   type Nguoi,
@@ -35,6 +41,11 @@ const gocChi = chiCua(KHANH_ID)!;
 const nhomDoi = nguoiTheoDoi(gocChi.id);
 const doiCuaToi = doiHienThi(KHANH_ID);
 const tongNguoi = nhomDoi.reduce((s, g) => s + g.nguoi.length, 0);
+
+/** Cặp (người + vợ/chồng) — dùng chung cho CẢ HAI bộ mặt, để một người bạn đời không hiện ra
+ *  ở bản này mà biến mất ở bản kia. */
+const capCuaChi = capTheoChi(gocChi.id);
+const banDoiCua = new Map(capCuaChi.map((c) => [c.nguoi.id, c.banDoi]));
 
 /** Đường huyết thống của chính mình — tô son xuyên các cột trên bản máy (FR-13). */
 const duongCuaToi = new Set(duongVeGoc(KHANH_ID).map((n) => n.id));
@@ -98,7 +109,7 @@ export default function Page() {
             href="/uiworkshop/cay-gia-toc"
             className="hidden rounded-md border border-input px-5 py-3 text-[17px] md:block"
           >
-            Xem đường từ bạn ngược lên cụ
+            Xem cây gia tộc
           </a>
         </div>
 
@@ -118,113 +129,72 @@ export default function Page() {
                     {nguoi.length} người
                   </span>
                 </summary>
+                {/* Một dòng = một CẶP, y như một node trên cây bản máy: người mang huyết thống,
+                    vợ/chồng nằm trong cùng dòng. Không tách thành hai dòng rời, nếu không cùng
+                    một người lúc thì là một ô trên cây, lúc lại là hai dòng trong danh sách. */}
                 <ul className="border-t border-border px-4 py-1">
-                  {nguoi.map((n) => (
-                    <li
-                      key={n.id}
-                      className={[
-                        "-mx-4 border-b border-border px-4 py-3 last:border-b-0",
-                        n.tinCay === "ton-nghi" ? "van-ton-nghi" : "",
-                      ].join(" ")}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">
-                            {n.hoTen}
-                            {n.id === KHANH_ID && (
-                              <span className="ml-2 text-[15px] font-semibold text-primary">
-                                bạn
-                              </span>
-                            )}
-                          </p>
-                          <DongPhu n={n} />
-                          {n.nguoiThem && (
-                            <p className="mt-1 text-[15px] italic text-primary">
-                              {n.nguoiThem} ghi · {n.ngayThem}
-                            </p>
-                          )}
-                        </div>
-                        <ChamTinCay muc={n.tinCay} />
-                      </div>
-                    </li>
-                  ))}
+                  {nguoi
+                    .filter((n) => !n.ketHonVaoHo)
+                    .map((n) => {
+                      const banDoi = banDoiCua.get(n.id);
+                      return (
+                        <li
+                          key={n.id}
+                          className={[
+                            "-mx-4 border-b border-border px-4 py-3 last:border-b-0",
+                            n.tinCay === "ton-nghi" ? "van-ton-nghi" : "",
+                          ].join(" ")}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">
+                                {n.hoTen}
+                                {n.id === KHANH_ID && (
+                                  <span className="ml-2 text-[15px] font-semibold text-primary">
+                                    mình
+                                  </span>
+                                )}
+                              </p>
+                              <DongPhu n={n} />
+                              {banDoi && (
+                                <div className="mt-2 border-t border-border pt-2">
+                                  <p className="text-[15px] text-muted-foreground">
+                                    {banDoi.gioiTinh === "nu" ? "vợ" : "chồng"}
+                                  </p>
+                                  <p className="font-[family-name:var(--font-pha)] text-[17px]">
+                                    {banDoi.hoTen}
+                                  </p>
+                                  <DongPhu n={banDoi} />
+                                </div>
+                              )}
+                              {n.nguoiThem && (
+                                <p className="mt-1 text-[15px] italic text-primary">
+                                  {n.nguoiThem} ghi · {n.ngayThem}
+                                </p>
+                              )}
+                            </div>
+                            <ChamTinCay muc={n.tinCay} />
+                          </div>
+                        </li>
+                      );
+                    })}
                 </ul>
               </details>
             </li>
           ))}
         </ul>
 
-        {/* ══ BẢN MÁY — đời là CỘT, trái sang phải, không gập ═════════════════ */}
+        {/* ══ BẢN MÁY — CÂY THẬT, vẽ từ trên xuống ═══════════════════════════ */}
         <div className="mt-8 hidden md:block">
-          <div className="flex gap-5 overflow-x-auto pb-4">
-            {nhomDoi.map(({ doi, nguoi }) => (
-              <section key={doi} className="w-[210px] shrink-0">
-                <header
-                  className={[
-                    "mb-3 border-b pb-2",
-                    doi === doiCuaToi ? "border-primary" : "border-border",
-                  ].join(" ")}
-                >
-                  <p
-                    className={[
-                      "font-[family-name:var(--font-pha)] text-[17px] font-semibold",
-                      doi === doiCuaToi ? "text-primary" : "",
-                    ].join(" ")}
-                  >
-                    Đời {doi}
-                  </p>
-                  <p className="text-[15px] text-muted-foreground">
-                    {nguoi.length} người
-                  </p>
-                </header>
-
-                <ul className="space-y-3">
-                  {nguoi.map((n) => {
-                    const tonNghi = n.tinCay === "ton-nghi";
-                    const tren = duongCuaToi.has(n.id);
-                    return (
-                      <li
-                        key={n.id}
-                        className={[
-                          "rounded-md border px-3.5 py-3",
-                          tonNghi ? "van-ton-nghi border-dashed" : "bg-card",
-                          // Đường huyết thống của mình xuyên các cột — vòng son, KHÔNG đổi nền,
-                          // để không nuốt mất phân biệt chất liệu của tầng tồn nghi.
-                          tren ? "ring-2 ring-primary" : "",
-                        ].join(" ")}
-                        style={
-                          tonNghi
-                            ? { borderColor: "var(--color-tin-ton-nghi)" }
-                            : undefined
-                        }
-                      >
-                        <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">
-                          {n.hoTen}
-                        </p>
-                        {n.id === KHANH_ID && (
-                          <p className="text-[15px] font-semibold text-primary">
-                            bạn
-                          </p>
-                        )}
-                        <DongPhu n={n} />
-                        <div className="mt-2">
-                          <ChamTinCay muc={n.tinCay} />
-                        </div>
-                        {n.nguoiThem && (
-                          <p className="mt-1.5 text-[15px] italic text-primary">
-                            {n.nguoiThem} ghi · {n.ngayThem}
-                          </p>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            ))}
-          </div>
+          <CayGiaPhaTaiDong
+            caps={capCuaChi}
+            minhId={KHANH_ID}
+            duongVeGoc={[...duongCuaToi]}
+          />
 
           <p className="mt-2 text-[15px] text-muted-foreground">
-            Vòng son là đường huyết thống từ bạn ngược lên cụ xa nhất hiện biết.
+            Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to. Vòng son là đường huyết thống
+            ngược lên cụ xa nhất hiện biết.
           </p>
         </div>
 
@@ -232,7 +202,7 @@ export default function Page() {
           href="/uiworkshop/cay-gia-toc"
           className="mt-6 block rounded-md border border-input px-4 py-3.5 text-center text-[17px] md:hidden"
         >
-          Xem đường từ bạn ngược lên cụ
+          Xem cây gia tộc
         </a>
       </main>
       <ThanhDieuHuong hienTai="gia-pha" />

@@ -26,8 +26,14 @@ colors:
   tin-loi-ke: '#7D6C55'
   tin-ton-nghi: '#B09A72'
   # Cảnh báo/lỗi KHÔNG dùng son — son đã mang nghĩa "đã chốt".
-  destructive: '#8A5A1E'       # [ASSUMPTION] hổ phách sẫm, chưa được duyệt
-  destructive-foreground: '#FBF6E9'
+  # CHỐT 11/08/2026: chàm mực, thay hổ phách #8A5A1E đã tạm đặt. Xem § Colors › Cảnh báo.
+  destructive: '#2E4B6B'       # chàm mực
+  destructive-foreground: '#F2F5F9'
+  canh-bao-nen: '#E8EDF3'      # nền khối cảnh báo — chàm pha loãng trên nền trần
+  # Bề mặt B (bàn duyệt) — khung TRẦN. Xem § Colors › Bề mặt B.
+  ban-nen: '#EDEAE4'           # nền bàn làm việc, xám ngà trung tính
+  ban-o: '#FFFFFF'             # ô bảng
+  ban-vien: '#D6D2CA'
 typography:
   # Thân, nhãn, phụ chú thừa kế shadcn về cấu trúc; ghi đè họ chữ và SÀN CỠ.
   body:
@@ -111,6 +117,8 @@ mè. Mỗi thứ đó đều kéo sản phẩm về phía "phần mềm" và r�
 | Nhãn phụ | `#7D6C55` | Đời, chi, ngày, siêu dữ liệu |
 | Viền giấy | `#DDD0B2` | Đường phân, viền ô chính thức |
 | **Son** | `#A8322A` | **Khan hiếm** — xem dưới |
+| Chàm mực | `#2E4B6B` | Cảnh báo, ghi chú của bot — xem dưới |
+| Nền bàn duyệt | `#EDEAE4` | Nền bề mặt B — xem dưới |
 
 ### Son là màu khan hiếm
 
@@ -120,7 +128,37 @@ mè. Mỗi thứ đó đều kéo sản phẩm về phía "phần mềm" và r�
 hiếm; rải son lên mọi nút bấm là làm mất chính thứ đang mượn.
 
 Hệ quả trực tiếp: **cảnh báo và lỗi không được dùng son.** Nếu lỗi cũng đỏ thì "đỏ" mất nghĩa.
-Đã tạm đặt `destructive: #8A5A1E` (hổ phách sẫm) — `[ASSUMPTION]`, chưa duyệt.
+
+### Cảnh báo là chàm mực, không phải đỏ
+
+**Chốt 11/08/2026** — `#2E4B6B`. Thay bản tạm `#8A5A1E` (hổ phách sẫm), nay bỏ.
+
+Hai lý do, lý do thứ hai mới là lý do chính:
+
+1. Chàm nằm **ngoài trục đỏ–nâu** của cả bảng màu, nên không bao giờ bị đọc nhầm là son nhạt.
+   Hổ phách thì cùng họ với mực nâu `#3A2F24` — trong một bảng dày, nó chìm.
+2. Chàm đọc ra **"máy ghi chú"**, không phải **"nguy hiểm"**. Đó đúng là điều FR-48 đòi: *bot gợi
+   ý, không tự gộp.* Một cảnh báo màu đỏ nói với người vận hành rằng có gì đó **hỏng**; ở đây
+   không có gì hỏng — chỉ có một câu hỏi máy không tự trả lời được và đang chuyển cho người.
+
+Cảnh báo vẫn **không được mã hoá chỉ bằng màu**: luôn kèm chữ nói rõ bot thấy gì, và kèm khối
+nền `#E8EDF3` có viền trái đặc.
+
+### Bề mặt B — khung trần, dữ liệu phả giữ chất liệu
+
+**Chốt 11/08/2026.** Bàn duyệt **không** mặc giấy dó. Nền là xám ngà trung tính `#EDEAE4`, ô bảng
+trắng `#FFFFFF`, viền `#D6D2CA`, chữ vỏ giao diện là **chữ không chân**.
+
+Nhưng **mọi thứ là dữ liệu phả thì vẽ y hệt bề mặt A**: tên người dùng `serif-phả`, node tồn nghi
+vẫn nét đứt + vân chéo, chip mức tin cậy giữ nguyên ba mức.
+
+Lý do không phải thẩm mỹ mà là **tính đúng đắn**: bàn duyệt là nơi quyết định thứ sẽ hiện trên
+phả. Nếu nó vẽ dữ liệu khác đi, người vận hành duyệt một thứ và người trong họ thấy một thứ
+khác. Cái được phép khác là **khung** — thanh, bảng, nút — vì khung là đồ nghề của người vận
+hành, không phải nội dung của dòng họ.
+
+Ranh giới thực hành: nếu một pixel biểu diễn **một khẳng định về người thật**, nó theo luật bề
+mặt A. Còn lại theo khung trần.
 
 ### Ba mức tin cậy không được mã hoá chỉ bằng màu
 

@@ -648,6 +648,38 @@ export function khoiChiCua(manhId: string): KhoiChi[] {
   });
 }
 
+/**
+ * Một NODE trên cây = một CẶP, không phải một người.
+ *
+ * Vì sao gộp vợ/chồng vào cùng một node: trong phả, vợ chồng đứng chung một ô và con cái treo
+ * dưới cả hai. Tách thành hai node thì hoặc con nối vào mỗi người cha (mất người mẹ khỏi cây),
+ * hoặc phải vẽ nhánh đôi — cả hai đều xa cách đọc của phả in.
+ */
+export type CapTrenCay = {
+  /** Người mang huyết thống — cũng là id của node. */
+  nguoi: Nguoi;
+  /** Vợ/chồng, hiện TRONG cùng một thẻ. */
+  banDoi?: Nguoi;
+  /** Node cha; `null` = gốc của cây đang vẽ. */
+  chaId: string | null;
+};
+
+/**
+ * Các cặp của một chi, đã sẵn sàng để xếp thành cây — dữ liệu cho TẦNG 2 bản máy.
+ *
+ * `chaId` chỉ giữ khi người cha CÓ MẶT trong chính chi đang vẽ; cha nằm ngoài (gốc tạm của cả
+ * tộc) thì trả `null`, nếu không cây sẽ đi tìm một node không tồn tại và nhánh treo lơ lửng.
+ */
+export function capTheoChi(gocChiId: string): CapTrenCay[] {
+  const thanhVien = NGUOI.filter((n) => chiCua(n.id)?.id === gocChiId);
+  const huyetThong = thanhVien.filter((n) => !n.ketHonVaoHo);
+  return huyetThong.map((n) => ({
+    nguoi: n,
+    banDoi: thanhVien.find((x) => x.voChongId === n.id),
+    chaId: huyetThong.some((x) => x.id === n.chaId) ? n.chaId : null,
+  }));
+}
+
 /** Người trong một chi, gom theo đời — dữ liệu cho TẦNG 2 (gập theo đời, đúng chữ FR-15). */
 export function nguoiTheoDoi(gocChiId: string): { doi: number; nguoi: Nguoi[] }[] {
   const thanhVien = NGUOI.filter((n) => chiCua(n.id)?.id === gocChiId);
@@ -664,3 +696,207 @@ export const SO_MANH_CHUA_NOI = MANH.length;
 
 /** Tổng giờ ghi âm đã thu — chỉ số M3 của PRD §9. */
 export const GIO_GHI_AM = LOI_KE.reduce((s, l) => s + l.thoiLuong, 0) / 3600;
+
+// ── BÀN DUYỆT — nạp khung dòng họ (FR-51 + FR-48) ───────────────────────────
+//
+// Đây là dữ liệu của bề mặt B: các DÒNG trong file CSV Hiệp điền tay ngoài hệ thống, ở khoảnh
+// khắc TRƯỚC khi được ghi vào phả. Chúng chưa phải `Nguoi` — một dòng CSV chỉ trở thành người
+// khi có người bấm ghi. Trộn hai thứ vào một kiểu là mất đúng ranh giới mà cả màn xem trước
+// sinh ra để giữ.
+
+/** Trạng thái so khớp của một dòng — ba trạng thái, đúng EXPERIENCE.md § Component Patterns. */
+export type TrangThaiDong = 'nguoi-moi' | 'khop' | 'nghi-trung';
+
+/**
+ * Ghi chú của bot về một dòng. **Gợi ý, không tự gộp** (FR-48) — nên đây là dữ liệu để BÀY RA,
+ * không phải quyết định đã lấy. Không trường nào nói "đã chọn".
+ */
+export type CanhBao =
+  | {
+      loai: 'nghi-trung';
+      /** Ứng viên đã CÓ TRONG PHẢ. */
+      ungVienIds: string[];
+      /** Ứng viên là DÒNG KHÁC trong chính file này (theo `stt`) — ca của file điền tay. */
+      ungVienDong: number[];
+    }
+  | {
+      loai: 'loi-so-khop';
+      /** Tên cha ghi trong dòng nhưng không tìm thấy ở đâu — cả trong file lẫn trong phả. */
+      tenChaKhongThay: string;
+    };
+
+/** Một dòng trong file khung. Cột nào chưa biết thì để trống — gieo mồi luôn thiếu. */
+export type DongKhung = {
+  stt: number;
+  hoTen: string;
+  gioiTinh: 'nam' | 'nu';
+  namSinh?: number;
+  namMat?: number;
+  tenCha?: string;
+  /** Người kết hôn vào họ không có cha trong phả; cột này mới là cột nối họ vào cây. */
+  voChongCua?: string;
+  nguon: string;
+  trangThai: TrangThaiDong;
+  /** Người đã có trong phả mà dòng này khớp — chỉ có nghĩa khi `trangThai === 'khop'`. */
+  khopVoiId?: string;
+  /** Độc lập với `trangThai`: một dòng *người mới* vẫn có thể mang lỗi so khớp. */
+  canhBao?: CanhBao;
+};
+
+export const TEN_FILE_KHUNG = 'khung-ho-nguyen-quang.csv';
+
+/**
+ * NGÀY 0 — file khung đầu tiên, hệ thống còn trống.
+ *
+ * Vì trống nên **không dòng nào khớp người có sẵn** — đó là sự thật của ngày 0, không phải thiếu
+ * sót của mock. Nhưng hai loại cảnh báo thì có ngay từ ngày đầu:
+ *   · dòng 2 và 3 nghi là cùng một cụ, do hai người kể khác nhau ghi vào cùng một file;
+ *   · dòng 8 khai cha là cụ Đường, mà cả file lẫn phả đều không có ai tên Đường — cụ bị quên.
+ * Đây chính là lý do FR-48 tồn tại, và cả hai ca đều lộ ra TRƯỚC khi ghi vào phả.
+ */
+export const DONG_KHUNG: DongKhung[] = [
+  {
+    stt: 1,
+    hoTen: 'Nguyễn Quang Thản',
+    gioiTinh: 'nam',
+    namMat: 1901,
+    nguon: 'Bia nhà thờ họ — ảnh chụp 03/2026',
+    trangThai: 'nguoi-moi',
+  },
+  {
+    stt: 2,
+    hoTen: 'Nguyễn Quang Đệ',
+    gioiTinh: 'nam',
+    namSinh: 1888,
+    namMat: 1954,
+    tenCha: 'Nguyễn Quang Thản',
+    nguon: 'Bia nhà thờ họ — ảnh chụp 03/2026',
+    trangThai: 'nghi-trung',
+    canhBao: { loai: 'nghi-trung', ungVienIds: [], ungVienDong: [3] },
+  },
+  {
+    stt: 3,
+    hoTen: 'Nguyễn Quang Đệ',
+    gioiTinh: 'nam',
+    namMat: 1954,
+    nguon: 'Lời kể — bà Nguyễn Thị Lành, 04/2026',
+    trangThai: 'nghi-trung',
+    canhBao: { loai: 'nghi-trung', ungVienIds: [], ungVienDong: [2] },
+  },
+  {
+    stt: 4,
+    hoTen: 'Trần Thị Vẽ',
+    gioiTinh: 'nu',
+    namMat: 1961,
+    voChongCua: 'Nguyễn Quang Đệ',
+    nguon: 'Lời kể — bà Nguyễn Thị Lành, 04/2026',
+    trangThai: 'nguoi-moi',
+  },
+  {
+    stt: 5,
+    hoTen: 'Nguyễn Quang Bảng',
+    gioiTinh: 'nam',
+    namSinh: 1921,
+    namMat: 1998,
+    tenCha: 'Nguyễn Quang Đệ',
+    nguon: 'Bia mộ — ảnh chụp 03/2026',
+    trangThai: 'nguoi-moi',
+  },
+  {
+    stt: 6,
+    hoTen: 'Nguyễn Quang Đoài',
+    gioiTinh: 'nam',
+    namMat: 1949,
+    tenCha: 'Nguyễn Quang Thản',
+    nguon: 'Bia nhà thờ họ — ảnh chụp 03/2026',
+    trangThai: 'nguoi-moi',
+  },
+  {
+    stt: 7,
+    hoTen: 'Nguyễn Quang Cẩn',
+    gioiTinh: 'nam',
+    namSinh: 1925,
+    namMat: 2001,
+    tenCha: 'Nguyễn Quang Đoài',
+    nguon: 'Lời kể — cụ Nguyễn Quang Hoạch, 05/2026',
+    trangThai: 'nguoi-moi',
+  },
+  {
+    stt: 8,
+    hoTen: 'Nguyễn Quang Lộc',
+    gioiTinh: 'nam',
+    namSinh: 1930,
+    namMat: 1988,
+    tenCha: 'Nguyễn Quang Đường',
+    nguon: 'Lời kể — cụ Nguyễn Quang Hoạch, 05/2026',
+    trangThai: 'nguoi-moi',
+    canhBao: { loai: 'loi-so-khop', tenChaKhongThay: 'Nguyễn Quang Đường' },
+  },
+];
+
+export const TEN_FILE_DOT_SAU = 'khung-chi-trong-nam.csv';
+
+/**
+ * ĐỢT NẠP SAU — khi trong phả đã có người, trạng thái *khớp người có sẵn* mới xuất hiện.
+ *
+ * Dòng 2 là ca FR-48 khó nhất mà seed đã dựng sẵn từ đầu: một cụ tên Đệ, mất 1954, đang có
+ * **hai** bản trong phả — `n-002` ở mảnh chính và `n-101` ở mảnh chi trong Nam. Bot bày cả hai
+ * ứng viên ra; không ứng viên nào được chọn sẵn, vì gộp nhầm hai cụ là hỏng phả của cả một chi.
+ */
+export const DONG_KHUNG_DOT_SAU: DongKhung[] = [
+  {
+    stt: 1,
+    hoTen: 'Nguyễn Quang Hoạch',
+    gioiTinh: 'nam',
+    namSinh: 1949,
+    tenCha: 'Nguyễn Quang Bảng',
+    nguon: 'Tự khai — Nguyễn Quang Trọng, 06/2026',
+    trangThai: 'khop',
+    khopVoiId: 'n-005',
+  },
+  {
+    stt: 2,
+    hoTen: 'Nguyễn Quang Đệ',
+    gioiTinh: 'nam',
+    namMat: 1954,
+    nguon: 'Tự khai — Nguyễn Quang Trọng, 06/2026',
+    trangThai: 'nghi-trung',
+    canhBao: { loai: 'nghi-trung', ungVienIds: ['n-002', 'n-101'], ungVienDong: [] },
+  },
+  {
+    stt: 3,
+    hoTen: 'Nguyễn Quang Thuyết',
+    gioiTinh: 'nam',
+    namSinh: 1930,
+    namMat: 2009,
+    tenCha: 'Nguyễn Quang Đệ',
+    nguon: 'Tự khai — Nguyễn Quang Trọng, 06/2026',
+    trangThai: 'khop',
+    khopVoiId: 'n-102',
+  },
+  {
+    stt: 4,
+    hoTen: 'Nguyễn Quang Trọng',
+    gioiTinh: 'nam',
+    namSinh: 1966,
+    tenCha: 'Nguyễn Quang Thuyết',
+    nguon: 'Tự khai — Nguyễn Quang Trọng, 06/2026',
+    trangThai: 'khop',
+    khopVoiId: 'n-103',
+  },
+];
+
+/** Đếm theo trạng thái — số trên chip bộ lọc. Đếm tại chỗ, không chép tay. */
+export function demTrangThai(dong: DongKhung[], tt: TrangThaiDong): number {
+  return dong.filter((d) => d.trangThai === tt).length;
+}
+
+/**
+ * Số dòng CẦN XEM LẠI — thứ chip bộ lọc cuối đếm, và là thứ thay cho "màn bảng cảnh báo".
+ *
+ * Đếm theo `canhBao` chứ không theo `trangThai`: một dòng *người mới* mang lỗi so khớp vẫn phải
+ * được người vận hành nhìn tới. Đếm theo trạng thái sẽ bỏ sót đúng dòng 8.
+ */
+export function demCanXemLai(dong: DongKhung[]): number {
+  return dong.filter((d) => d.canhBao).length;
+}

@@ -72,8 +72,12 @@
   --muted-foreground: #7d6c55;
   --accent: #efe5cc;
   --accent-foreground: #3a2f24;
-  /* Lỗi KHÔNG dùng son: nếu lỗi cũng đỏ thì "đỏ" mất nghĩa. Hổ phách sẫm. */
-  --destructive: #8a5a1e;
+  /* Lỗi KHÔNG dùng son: nếu lỗi cũng đỏ thì "đỏ" mất nghĩa.
+   * CHỐT 11/08/2026 — chàm mực, thay bản tạm hổ phách #8a5a1e.
+   * Chàm nằm ngoài trục đỏ–nâu nên không chìm trong bảng dày, và nó đọc ra
+   * "máy ghi chú" chứ không phải "nguy hiểm" — đúng FR-48 "bot gợi ý, không
+   * tự gộp". DESIGN.md § Colors › Cảnh báo là chàm mực. */
+  --destructive: #2e4b6b;
   --border: #ddd0b2;
   --input: #ddd0b2;
   --ring: #a8322a;
@@ -141,6 +145,19 @@
    * Latin Extended Additional (ễ ộ ự ằ ỹ) trước khi khoá — việc của story hạ
    * tầng, không kiểm bằng mắt. Đây mới là chỗ dành sẵn. */
   --font-pha: ui-serif, Georgia, 'Times New Roman', Times, serif;
+
+  /* Nền khối cảnh báo — chàm pha loãng. Cảnh báo KHÔNG được mã hoá chỉ bằng
+   * màu: khối này luôn có viền trái đặc + câu chữ nói rõ bot thấy gì. */
+  --color-canh-bao-nen: #e8edf3;
+
+  /* ── BỀ MẶT B (bàn duyệt) — khung TRẦN ────────────────────────────────────
+   * DESIGN.md § Colors › Bề mặt B. Bàn duyệt KHÔNG mặc giấy dó: khung là đồ
+   * nghề của người vận hành, không phải nội dung của dòng họ.
+   * Ranh giới: pixel nào biểu diễn MỘT KHẲNG ĐỊNH VỀ NGƯỜI THẬT thì vẫn theo
+   * luật bề mặt A (serif-phả, nét đứt tồn nghi, chip tin cậy). Còn lại trần. */
+  --color-ban-nen: #edeae4; /* nền bàn làm việc, xám ngà trung tính */
+  --color-ban-o: #ffffff; /* ô bảng */
+  --color-ban-vien: #d6d2ca;
 
   /* Bo góc: mềm hơn góc vuông của bia, cứng hơn bo tròn của app tiêu dùng. */
   --radius-sm: 6px;
