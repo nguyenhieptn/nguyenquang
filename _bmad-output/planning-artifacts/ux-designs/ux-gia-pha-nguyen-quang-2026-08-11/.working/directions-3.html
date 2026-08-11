@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ba hướng thị giác — Gia phả Nguyễn Quang</title>
+<style>
+/* ============================================================
+   BA HƯỚNG — cùng một màn chủ, khác tính cách.
+   Ràng buộc chung áp cho cả ba (từ .memlog.md):
+     · thân chữ 17px, tối thiểu tuyệt đối 15px — KHÔNG ngoại lệ
+     · microcopy không chủ ngữ
+     · giữ nguyên từ phả học: tồn nghi / chính thức
+     · tồn nghi khác CHẤT LIỆU (nét đứt + vân giấy), KHÔNG nhạt hơn
+     · ghi công người đóng góp ngay trên node (FR-39)
+   ============================================================ */
+
+*,*::before,*::after{box-sizing:border-box}
+body{
+  margin:0;padding:40px 24px 72px;
+  background:#e8e6e1;color:#1a1a1a;
+  font:17px/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+h1{font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+.sub{font-size:15px;color:#5a5a5a;margin:0 0 36px;max-width:62ch}
+.rail{display:flex;gap:28px;align-items:flex-start;overflow-x:auto;padding-bottom:16px}
+.col{flex:0 0 340px}
+.hdr{margin-bottom:14px}
+.tag{font-size:15px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#6b6257}
+.nm{font-size:21px;font-weight:700;margin:2px 0 6px}
+.why{font-size:15px;line-height:1.55;color:#4a4a4a;margin:0 0 16px}
+.phone{border-radius:26px;padding:14px;box-shadow:0 10px 28px rgba(0,0,0,.16);overflow:hidden}
+.cap{font-size:15px;color:#6b6257;margin:10px 0 6px;font-style:italic}
+.swatches{display:flex;gap:6px;margin-top:12px}
+.sw{width:30px;height:30px;border-radius:6px;border:1px solid rgba(0,0,0,.15)}
+
+/* ---------- chung cho ruột màn ---------- */
+.scr{border-radius:14px;padding:18px 16px 20px;min-height:430px}
+.scr h2{margin:0 0 4px}
+.card{border-radius:10px;padding:13px 14px;margin-bottom:11px}
+.lbl{font-size:15px;letter-spacing:.04em;text-transform:uppercase;font-weight:700;margin:20px 0 9px}
+.lbl:first-of-type{margin-top:4px}
+.who{font-size:17px;font-weight:600;line-height:1.35}
+.meta{font-size:15px;margin-top:3px}
+.by{font-size:15px;margin-top:6px;font-style:italic}
+.path{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:9px 0 3px}
+.dot{width:11px;height:11px;border-radius:50%;flex:none}
+.ln{width:15px;height:2px;flex:none}
+.btn{display:block;text-align:center;padding:13px;border-radius:9px;font-size:17px;font-weight:600;margin-top:15px}
+.btn2{display:block;text-align:center;padding:12px;border-radius:9px;font-size:17px;margin-top:9px}
+
+/* ============ A · BIA ĐÁ ============
+   nền đá #2b2926 · chữ ngà #ece7dc · vàng khắc #c9a227 */
+.A .phone{background:#1a1917}
+.A .scr{background:#2b2926;color:#ece7dc;font-family:Georgia,"Times New Roman",serif}
+.A h2{font-size:23px;font-weight:400;letter-spacing:.02em;color:#c9a227}
+.A .top{font-size:15px;color:#9a9184;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
+.A .lbl{color:#9a9184;font-family:system-ui,sans-serif;font-size:15px}
+.A .card{background:#35322e;border:1px solid #4a453e}
+.A .toonghi{background:repeating-linear-gradient(135deg,#35322e,#35322e 5px,#302d2a 5px,#302d2a 10px);border:1px dashed #7d7466}
+.A .who{color:#ece7dc}
+.A .meta{color:#a9a091}
+.A .by{color:#c9a227}
+.A .dot{background:#c9a227}
+.A .ln{background:#5f584e}
+.A .btn{background:#c9a227;color:#221f1c}
+.A .btn2{border:1px solid #5f584e;color:#c9b99a}
+
+/* ============ B · GIẤY DÓ & SON ============
+   giấy #f4ecd8 · mực nâu #3a2f24 · son #a8322a */
+.B .phone{background:#ded2b6}
+.B .scr{background:#f4ecd8;color:#3a2f24;font-family:Georgia,"Times New Roman",serif}
+.B h2{font-size:23px;font-weight:400;color:#a8322a}
+.B .top{font-size:15px;color:#8a7a62;letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px}
+.B .lbl{color:#8a7a62;font-family:system-ui,sans-serif;font-size:15px}
+.B .card{background:#fbf6e9;border:1px solid #ddd0b2}
+.B .toonghi{background:repeating-linear-gradient(135deg,#fbf6e9,#fbf6e9 5px,#f3ead4 5px,#f3ead4 10px);border:1px dashed #b09a72}
+.B .who{color:#3a2f24}
+.B .meta{color:#7d6c55}
+.B .by{color:#a8322a}
+.B .dot{background:#a8322a}
+.B .ln{background:#c6b48f}
+.B .btn{background:#a8322a;color:#f8f2e2}
+.B .btn2{border:1px solid #c6b48f;color:#6b5a44}
+
+/* ============ C · SÁNG & RÕ ============
+   nền #ffffff · mực #16181d · chàm #1d4ed8 */
+.C .phone{background:#d8dae0}
+.C .scr{background:#fff;color:#16181d;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.C h2{font-size:24px;font-weight:800;letter-spacing:-.02em}
+.C .top{font-size:15px;color:#5b6270;font-weight:700;letter-spacing:.1em;text-transform:uppercase;margin-bottom:14px}
+.C .lbl{color:#5b6270;font-size:15px}
+.C .card{background:#f5f6f8;border:1px solid #dfe2e8}
+.C .toonghi{background:repeating-linear-gradient(135deg,#f5f6f8,#f5f6f8 5px,#eceef3 5px,#eceef3 10px);border:1px dashed #98a1b2}
+.C .who{color:#16181d;font-weight:700}
+.C .meta{color:#5b6270}
+.C .by{color:#1d4ed8;font-style:normal;font-weight:600}
+.C .dot{background:#1d4ed8}
+.C .ln{background:#c3c9d4}
+.C .btn{background:#1d4ed8;color:#fff}
+.C .btn2{border:1px solid #c3c9d4;color:#3d4350}
+
+.note{margin-top:40px;padding:18px 20px;background:#fff;border-left:4px solid #6b6257;border-radius:0 8px 8px 0;max-width:78ch;font-size:15px;line-height:1.65}
+.note b{display:block;margin-bottom:6px;font-size:17px}
+</style>
+</head>
+<body>
+
+<h1>Ba hướng thị giác</h1>
+<p class="sub">Cùng một màn chủ, cùng một nội dung thật, cùng sàn chữ 17px. Khác nhau ở <b>cảm giác tự hào đến từ đâu</b> — và ở cách Tầng tồn nghi hiện ra mà không đọc thành “hạng hai”.</p>
+
+<div class="rail">
+
+<!-- ================= A ================= -->
+<div class="col A">
+  <div class="hdr">
+    <div class="tag">Hướng A</div>
+    <div class="nm">Bia đá</div>
+    <p class="why">Tự hào đến từ <b>sự bền</b>. Nền tối như mặt bia, chữ ngà khắc lên, vàng đồng cho thứ đã được xác nhận. Mở ra thấy trang nghiêm ngay — gần nhà thờ họ hơn là gần phần mềm.</p>
+  </div>
+  <div class="phone"><div class="scr">
+    <div class="top">Nguyễn Quang</div>
+    <h2>光前裕後</h2>
+    <div class="lbl">Đường về cụ</div>
+    <div class="path">
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span>
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span>
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span><span class="dot"></span>
+    </div>
+    <div class="meta">7 đời tới cụ xa nhất hiện biết</div>
+    <div class="lbl">Vừa vào phả</div>
+    <div class="card">
+      <div class="who">Nguyễn Quang Khánh</div>
+      <div class="meta">đời 7 · chi Hai · sinh 2004</div>
+    </div>
+    <div class="card toonghi">
+      <div class="who">Nguyễn Quang Hùng</div>
+      <div class="meta">đời 6 · chi Hai · tồn nghi</div>
+      <div class="by">cháu Khánh ghi · hôm nay</div>
+    </div>
+    <a class="btn">Thêm người thân</a>
+    <a class="btn2">Xem cả cây</a>
+  </div></div>
+  <div class="cap">Ô nét đứt + vân chéo = tồn nghi. Chữ đậm bằng ô kia.</div>
+  <div class="swatches">
+    <span class="sw" style="background:#2b2926"></span>
+    <span class="sw" style="background:#ece7dc"></span>
+    <span class="sw" style="background:#c9a227"></span>
+    <span class="sw" style="background:#35322e"></span>
+  </div>
+</div>
+
+<!-- ================= B ================= -->
+<div class="col B">
+  <div class="hdr">
+    <div class="tag">Hướng B</div>
+    <div class="nm">Giấy dó &amp; son</div>
+    <p class="why">Tự hào đến từ <b>hơi ấm gia truyền</b>. Nền giấy ngà, mực nâu, dấu son đỏ cho thứ đã chốt. Cảm giác lật cuốn phả cũ trong nhà thờ họ chứ không phải mở một trang web.</p>
+  </div>
+  <div class="phone"><div class="scr">
+    <div class="top">Nguyễn Quang</div>
+    <h2>光前裕後</h2>
+    <div class="lbl">Đường về cụ</div>
+    <div class="path">
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span>
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span>
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span><span class="dot"></span>
+    </div>
+    <div class="meta">7 đời tới cụ xa nhất hiện biết</div>
+    <div class="lbl">Vừa vào phả</div>
+    <div class="card">
+      <div class="who">Nguyễn Quang Khánh</div>
+      <div class="meta">đời 7 · chi Hai · sinh 2004</div>
+    </div>
+    <div class="card toonghi">
+      <div class="who">Nguyễn Quang Hùng</div>
+      <div class="meta">đời 6 · chi Hai · tồn nghi</div>
+      <div class="by">cháu Khánh ghi · hôm nay</div>
+    </div>
+    <a class="btn">Thêm người thân</a>
+    <a class="btn2">Xem cả cây</a>
+  </div></div>
+  <div class="cap">Son đỏ chỉ dùng cho thứ đã chốt — dùng nhiều là mất thiêng.</div>
+  <div class="swatches">
+    <span class="sw" style="background:#f4ecd8"></span>
+    <span class="sw" style="background:#3a2f24"></span>
+    <span class="sw" style="background:#a8322a"></span>
+    <span class="sw" style="background:#ddd0b2"></span>
+  </div>
+</div>
+
+<!-- ================= C ================= -->
+<div class="col C">
+  <div class="hdr">
+    <div class="tag">Hướng C</div>
+    <div class="nm">Sáng &amp; rõ</div>
+    <p class="why">Tự hào đến từ <b>“họ mình có thứ tử tế”</b>. Trắng, tương phản cao, chữ sans đậm, một màu nhấn duy nhất. Dễ đọc nhất trong ba hướng, và ít doạ người lạ công nghệ nhất.</p>
+  </div>
+  <div class="phone"><div class="scr">
+    <div class="top">Nguyễn Quang</div>
+    <h2>Chào Khánh</h2>
+    <div class="lbl">Đường về cụ</div>
+    <div class="path">
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span>
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span>
+      <span class="dot"></span><span class="ln"></span><span class="dot"></span><span class="ln"></span><span class="dot"></span>
+    </div>
+    <div class="meta">7 đời tới cụ xa nhất hiện biết</div>
+    <div class="lbl">Vừa vào phả</div>
+    <div class="card">
+      <div class="who">Nguyễn Quang Khánh</div>
+      <div class="meta">đời 7 · chi Hai · sinh 2004</div>
+    </div>
+    <div class="card toonghi">
+      <div class="who">Nguyễn Quang Hùng</div>
+      <div class="meta">đời 6 · chi Hai · tồn nghi</div>
+      <div class="by">cháu Khánh ghi · hôm nay</div>
+    </div>
+    <a class="btn">Thêm người thân</a>
+    <a class="btn2">Xem cả cây</a>
+  </div></div>
+  <div class="cap">Lưu ý: “Chào Khánh” là chỗ DUY NHẤT lệch luật không-xưng-hô.</div>
+  <div class="swatches">
+    <span class="sw" style="background:#ffffff"></span>
+    <span class="sw" style="background:#16181d"></span>
+    <span class="sw" style="background:#1d4ed8"></span>
+    <span class="sw" style="background:#f5f6f8"></span>
+  </div>
+</div>
+
+</div>
+
+<div class="note">
+  <b>Ba thứ giống nhau ở cả ba hướng — vì chúng đã chốt, không phải đem ra chọn</b>
+  Tầng tồn nghi luôn là <b>nét đứt + vân chéo</b>, chữ đậm ngang ô chính thức — không hướng nào làm nhạt đi.
+  Dòng ghi công (“cháu Khánh ghi · hôm nay”) luôn nằm trên node, lấy từ FR-39.
+  Không chữ nào dưới 15px, kể cả nhãn phụ và chú thích.
+</div>
+
+</body>
+</html>

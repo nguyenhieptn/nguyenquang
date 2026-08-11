@@ -1,0 +1,46 @@
+/*
+  CẦU NỐI TOKEN của UI Workshop — file DUY NHẤT phải sửa để xưởng mang màu của project bạn.
+
+  Vỏ xưởng (sidebar, thanh trên, khung thiết bị, bản đồ luồng) là plumbing DÙNG CHUNG giữa các
+  project, nên nó chỉ gọi token theo tên trung tính `ws-*`. Sửa 16 dòng ở đây là xong — không phải
+  đi dò 9 file plumbing, và `upgrade` vẫn kéo được plumbing mới về mà không đụng vào brand.
+
+  Mặc định bên dưới là bảng trung tính TỰ CHẠY ĐƯỢC: cắm xong là xưởng đã coi được ngay. Khi
+  project đã có hệ token riêng, thay vế phải bằng `var(--color-…)` của bạn, ví dụ:
+
+      --color-ws-accent: var(--color-brand-600);
+
+  ⚠️ Đây KHÔNG phải nơi khai màu mới cho sản phẩm. Màn dựng thử (`app/uiworkshop/<slug>/`) là nội
+  dung của project nên dùng THẲNG token thật, đừng dùng `ws-*`.
+
+  Nạp qua `@import` ở đầu file CSS gốc (nơi có `@import 'tailwindcss'`) — Tailwind v4 chỉ sinh
+  utility cho token nằm cùng một luồng biên dịch. `kit.mjs install` tự thêm dòng đó.
+
+  Lưu ý namespace Tailwind v4: thời lượng là `--transition-duration-*` (KHÔNG phải `--duration-*`;
+  tên sai thì `duration-…` im lặng không sinh class nào), nhịp là `--ease-*`, màu là `--color-*`.
+*/
+@theme {
+  /* trung tính — xưởng dựa vào 5 bậc này để phân tầng bề mặt */
+  --color-ws-n-05: #f5f7f9;
+  --color-ws-n-10: #e8edf1;
+  --color-ws-n-20: #d5dde4;
+  --color-ws-n-40: #93a0ab;
+  --color-ws-n-60: #616e79;
+
+  /* nhấn + chữ */
+  --color-ws-accent: #1668b0; /* mục đang chọn, viền tiêu điểm, link */
+  --color-ws-warm: #f0a028; /* nhịp cao trào trên bản đồ luồng */
+  --color-ws-ink: #333333; /* tiêu đề */
+  --color-ws-ink-strong: #123a5c; /* nhãn nhỏ + số liệu */
+  --color-ws-body: #4a5661; /* chữ thân bài */
+
+  /* ngữ nghĩa — xưởng chỉ cần "còn thiếu" (caution) và "xong" (success) */
+  --color-ws-caution: #8a5a00;
+  --color-ws-caution-bg: #f6ead2;
+  --color-ws-success: #1f6b3a;
+
+  /* chuyển động */
+  --ease-ws: cubic-bezier(0.2, 0, 0, 1);
+  --transition-duration-ws-fast: 120ms;
+  --transition-duration-ws-base: 200ms;
+}

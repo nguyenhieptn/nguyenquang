@@ -156,15 +156,31 @@ Ai sửa, khi nào, từ giá trị nào sang giá trị nào. Xem lại đượ
 
 ## 6. Yêu cầu phi chức năng
 
-**Không được mất dữ liệu.** Băng ghi âm cao niên và ảnh tư liệu là **không tái tạo được**. Sao lưu hằng ngày, giữ ≥ 90 ngày, bản sao ở ≥ 2 nơi, và **diễn tập khôi phục thật ít nhất 1 lần/năm** — backup chưa từng restore là backup không tồn tại.
+**Mười một yêu cầu.**
 
-**Một người vận hành được.** Khởi động lại bằng một lệnh, cấu hình nằm trong repo, không có bước thủ công nào chỉ Hiệp biết. Tài liệu đủ để người khác tiếp quản trong 1 ngày.
+> NFR-1 · NFR-2 · NFR-3 · NFR-4 · NFR-5 · NFR-6 · NFR-7 · NFR-8 · NFR-9 · NFR-10 · NFR-11
 
-**Đơn giản là ràng buộc, không phải mong muốn.** Thêm một người vào phả: **≤ 4 màn hình, ≤ 3 phút**, điện thoại tầm trung, 4G ở quê. Tính năng nào làm luồng này dài thêm phải nhường đường.
+Số hiệu NFR-1→10 giữ nguyên từ bản trước để mọi trích dẫn ở `addendum.md` và các bản đối chiếu còn trỏ đúng. NFR-11 là mục mới. Số hiệu không tái sử dụng — cùng kỷ luật đang áp cho FR ở §7.
 
-**AI không được bịa.** Không câu nào do AI sinh ra được trình bày như sự thật phả hệ nếu không trỏ về nguồn. Áp cho **mọi** thứ sinh văn bản, kể cả những cái không trông giống mệnh đề sự thật — văn khấn, tiểu truyện, lời dẫn. Sai một lần trước mặt các cụ là mất uy tín cả dự án.
+**NFR-1 — Không được mất dữ liệu.** Băng ghi âm cao niên và ảnh tư liệu là **không tái tạo được**. Sao lưu hằng ngày, giữ ≥ 90 ngày, bản sao ở ≥ 2 nơi, và **diễn tập khôi phục thật ít nhất 1 lần/năm** — backup chưa từng restore là backup không tồn tại.
 
-**Đa dòng họ: thiết kế sẵn, chưa mở.** *(chốt 10/08/2026)*
+**NFR-2 — Sao lưu phân tán trong họ.** *(Đợt 2 — xem §7 "Trước ngày ra mắt")*
+Bản sao nằm ở **nhiều người, nhiều nơi**, không chỉ trên hạ tầng do một người quản. Định dạng là **GEDCOM 7** (addendum §A.6), nên FR-40 *(tự xuất dữ liệu cá nhân)* là tiền đề — cùng một đường xuất phục vụ cả hai.
+
+> NFR-1 chống hỏng đĩa. NFR-2 chống việc dự án dừng: hạ tầng mất, người quản dừng, tài khoản hết hạn — phả vẫn còn trong tay dòng họ.
+
+**NFR-3 — Một người vận hành được.** Khởi động lại bằng một lệnh, cấu hình nằm trong repo, không có bước thủ công nào chỉ Hiệp biết. Tài liệu đủ để người khác tiếp quản trong 1 ngày.
+
+**NFR-4 — Dự án không chết theo người phụ trách.** Phụ trách kỹ thuật là điểm gãy đơn lẻ, và đối sách không nằm ở phần mềm:
+
+- **Chi phí hạ tầng lấy từ quỹ họ**, không lấy từ túi một người — vừa để dự án là "của chung", vừa để nó không dừng khi một người dừng.
+- **Đào tạo 1–2 người trẻ** trong họ đủ để tiếp quản, dựa trên tài liệu mà NFR-3 đòi.
+
+**NFR-5 — Đơn giản là ràng buộc, không phải mong muốn.** Thêm một người vào phả: **≤ 4 màn hình, ≤ 3 phút**, điện thoại tầm trung, 4G ở quê. Tính năng nào làm luồng này dài thêm phải nhường đường.
+
+**NFR-6 — AI không được bịa.** Không câu nào do AI sinh ra được trình bày như sự thật phả hệ nếu không trỏ về nguồn. Áp cho **mọi** thứ sinh văn bản, kể cả những cái không trông giống mệnh đề sự thật — văn khấn, tiểu truyện, lời dẫn. Sai một lần trước mặt các cụ là mất uy tín cả dự án.
+
+**NFR-7 — Đa dòng họ: thiết kế sẵn, chưa mở.** *(chốt 10/08/2026)*
 Chỉ họ Nguyễn Quang dùng. Không có đăng ký dòng họ mới, không có trang giới thiệu, không hỗ trợ ai khác. Nhưng **cấu trúc phải sẵn sàng**:
 
 - Mọi bảng mang **khóa phân vùng theo dòng họ** ngay từ ngày đầu, kể cả khi chỉ có một giá trị. Tách sau đồng nghĩa migrate toàn bộ.
@@ -173,9 +189,15 @@ Chỉ họ Nguyễn Quang dùng. Không có đăng ký dòng họ mới, không 
 
 > Đây là chỗ quyết định ngăn xếp chạm vào: Apache AGE không có row-level security, nên việc cô lập giữa các dòng họ phải tự làm ở tầng khác. Rò dữ liệu giữa hai dòng họ là loại lỗi không bản vá nào chữa được lòng tin đã mất.
 
-**Web đủ năng lực.** Trình duyệt di động ghi âm, chụp ảnh, quét QR, tải tệp đều được. Không yêu cầu nào được viện lý do *"vì là web nên không làm được X"*. Giới hạn thật của web-only là **thói quen mở trình duyệt** và **thông báo đẩy**.
+**NFR-8 — Hiệu năng.** Ngưỡng thiết kế gốc: **5.000 node, mọi truy vấn đường quan hệ < 1 giây**.
 
-**Tiếng Việt là mặc định.** Tìm kiếm không dấu, sắp xếp theo alphabet tiếng Việt, Hán-Nôm hiển thị kèm phiên âm.
+> Q1 chốt 10/08/2026 hạ quy mô thật xuống **dưới 300 người, 5–7 đời** (§10). Ở mức đó ngưỡng này thừa xa — SQL thường chạy tức thì, không tối ưu nào cần thiết. Giữ 5.000 node làm **trần thiết kế** để không khoá đường lớn lên, nhưng **không được lấy nó làm cớ** chọn hạ tầng nặng: §10 đã ghi rõ đây là dữ kiện `bmad-architecture` phải biết trước khi bỏ công xác minh.
+
+**NFR-9 — Tiếng Việt là mặc định.** Tìm kiếm không dấu, sắp xếp theo alphabet tiếng Việt, Hán-Nôm hiển thị kèm phiên âm.
+
+**NFR-10 — Mỗi ấn bản có mã băm công bố.** Chống nghi ngờ *"phả bị sửa lén"* bằng một mã băm công bố cho mỗi ấn bản, đối chiếu được về sau. Đây là **phương án thay blockchain**, đạt cùng mục tiêu với chi phí gần bằng không (addendum §F). Dựa trên FR-39 *(nhật ký sửa)* — có nhật ký rồi thì băm chỉ là một bước nữa.
+
+**NFR-11 — Web đủ năng lực.** Trình duyệt di động ghi âm, chụp ảnh, quét QR, tải tệp đều được. Không yêu cầu nào được viện lý do *"vì là web nên không làm được X"*. Giới hạn thật của web-only là **thói quen mở trình duyệt** và **thông báo đẩy**.
 
 ---
 
@@ -185,7 +207,7 @@ Không thuộc Đợt 1. Số hiệu giữ nguyên để không đánh trùng.
 
 | | |
 |---|---|
-| **Trước ngày ra mắt** | FR-19 xưng hô hai người quét chung một QR *(đây là màn demo ra mắt — chưa có nó thì chưa ra mắt)* · FR-52 quy tắc từ chối trả lời · FR-54 vùng miền, dâu theo chồng · FR-41 lịch giỗ âm lịch · FR-46 cửa sổ 49 ngày · FR-59 chế độ tang chế · FR-8 bóc tách lời kể · FR-9 nhập từ ảnh tư liệu · sao lưu phân tán trong họ |
+| **Trước ngày ra mắt** | FR-19 xưng hô hai người quét chung một QR *(đây là màn demo ra mắt — chưa có nó thì chưa ra mắt)* · FR-52 quy tắc từ chối trả lời · FR-54 vùng miền, dâu theo chồng · FR-41 lịch giỗ âm lịch · FR-46 cửa sổ 49 ngày · FR-59 chế độ tang chế · FR-8 bóc tách lời kể · FR-9 nhập từ ảnh tư liệu · **NFR-2** sao lưu phân tán trong họ |
 | **Gia phong** | FR-22 kho gia huấn sống · FR-23 tách lời răn khỏi lời kể · FR-24 hội đồng phê chuẩn hằng năm · FR-25 trang "tôi là ai" · FR-57 mục "Chuyện thật" · FR-58 nghi thức nhận lại tên |
 | **Quang Gia Tộc Sử** | FR-30 biên soạn · FR-31 chỉ nói điều có nguồn · FR-32 tự chỉ chương thiếu · FR-33 xuất bản in · FR-34 bản cá nhân hóa · FR-35 QR phiên bản trên bản in · FR-61 phả nghe được |
 | **Thám tử phả hệ** | FR-26 rà mâu thuẫn · FR-27 phát hiện lỗ hổng · FR-28 nhiệm vụ in giấy · FR-29 phiếu câu hỏi A4 · FR-50 giấy in tuân đúng luật riêng tư như màn hình |
@@ -239,7 +261,7 @@ Backlog rộng hơn (QR mộ phần, nhận họ, đố vui, trang vàng…): `a
 | **Q2** | Xác thực | **Google + Facebook + tài khoản riêng**, có hệ thống quản lý người dùng riêng → FR-64 |
 | **Q3** | Thủy tổ | **Không khai báo — hệ thống tự suy ra từ node có sẵn rồi loang ra** → FR-63, §3 |
 | **Q6** | Tên miền | Để sau, không chặn gì |
-| **Q7** | Dòng họ khác | **Chưa mở, nhưng thiết kế sẵn sàng** — xem NFR "Đa dòng họ" ở §6 |
+| **Q7** | Dòng họ khác | **Chưa mở, nhưng thiết kế sẵn sàng** — xem NFR-7 ở §6 |
 
 > **Quy mô nhỏ có một hệ quả cần nói.** Dưới 300 người, cây gia phả nhỏ hơn nhiều so với mức mà bất kỳ tối ưu nào trở nên cần thiết — truy vấn đường quan hệ trên 300 node chạy tức thì bằng SQL thường. Lập luận của cổng phản biện về việc bỏ Apache AGE vì thế mạnh hơn hẳn so với lúc chưa biết con số. Quyết định giữ ngăn xếp là của anh và tôi không tự đổi; nhưng đây là dữ kiện mới, và `bmad-architecture` nên biết trước khi bỏ 20–40h xác minh tương thích ảnh Docker.
 >

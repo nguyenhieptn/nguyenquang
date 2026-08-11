@@ -1,0 +1,31 @@
+{
+  "$comment": "Dấu vết UI Workshop Kit — baseline cho `kit.mjs upgrade`. Đừng sửa tay.",
+  "kit": "ui-workshop-kit",
+  "version": "1.2.1",
+  "plumbing": {
+    "app/uiworkshop/layout.tsx": "1e1d716598912389",
+    "app/uiworkshop/(shell)/layout.tsx": "d86ca07a3353ac7f",
+    "app/uiworkshop/(shell)/page.tsx": "aa69727acbfc5f49",
+    "app/uiworkshop/(shell)/view/[slug]/page.tsx": "fae68fde09ccd15b",
+    "app/uiworkshop/(shell)/flow/[id]/page.tsx": "3731f18023f9dd00",
+    "app/uiworkshop/_components/sidebar.tsx": "4ca57f000440cc32",
+    "app/uiworkshop/_components/viewport.tsx": "2c1fb23cbc63d7f8",
+    "app/uiworkshop/_components/device-frame.tsx": "1ab1853f7951107f",
+    "app/uiworkshop/_components/flow-map.tsx": "72011659e264fe20"
+  },
+  "shapeRevs": {
+    "app/uiworkshop/tokens.css": 1,
+    "app/uiworkshop/_registry/sprint.ts": 1,
+    "app/uiworkshop/_registry/outline.ts": 1,
+    "app/uiworkshop/_registry/flows.ts": 1,
+    "app/uiworkshop/_mock/seed.ts": 1,
+    "app/uiworkshop/design-system/page.tsx": 1,
+    "app/uiworkshop/README.md": 1,
+    "_bmad/custom/bmad-ux.toml": 1,
+    "_bmad/custom/bmad-dev-story.toml": 1,
+    "_bmad/custom/bmad-dev-auto.toml": 1,
+    "_bmad/custom/bmad-quick-dev.toml": 1,
+    "_bmad/custom/ux-assets/react-key-screens.md": 1,
+    "specs/frontend-stack.md": 1
+  }
+}

@@ -264,12 +264,20 @@ function collectCss(dir, out = [], depth = 0) {
   return out;
 }
 
+/**
+ * Đổi target trong `paths` thành thư mục. Alias trỏ thẳng về GỐC repo (`"./*"`) phải ra chính
+ * `root`: cắt `/*` bằng regex có dấu `/` sẽ để lại `*` và biến root thành `<root>/*` không tồn tại.
+ */
+function aliasTargetDir(root, target) {
+  return path.join(root, target.replace(/^\.\//, '').replace(/\*$/, '').replace(/\/$/, ''));
+}
+
 /** Thư mục mà alias `@/*` trỏ tới (thường `src/`). null nếu tsconfig không khai. */
 function aliasDirOf(root) {
   const tsconfigPath = path.join(root, 'tsconfig.json');
   if (!existsSync(tsconfigPath)) return null;
   const target = readJsonLoose(tsconfigPath).compilerOptions?.paths?.[manifest.requires.alias]?.[0];
-  return target ? path.join(root, target.replace(/^\.\//, '').replace(/\/\*$/, '')) : null;
+  return target ? aliasTargetDir(root, target) : null;
 }
 
 /** File CSS gốc của Tailwind v4 — nơi phải nạp cầu nối token. */
@@ -322,7 +330,7 @@ function doctor(root, { quiet = false } = {}) {
     const target = paths[manifest.requires.alias]?.[0];
     if (!target) bad(`tsconfig thiếu paths "${manifest.requires.alias}"`);
     else {
-      aliasDir = path.join(root, target.replace(/^\.\//, '').replace(/\/\*$/, ''));
+      aliasDir = aliasTargetDir(root, target);
       ok(`alias ${manifest.requires.alias} → ${path.relative(root, aliasDir)}/`);
     }
   }

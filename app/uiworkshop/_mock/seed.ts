@@ -1,0 +1,666 @@
+/**
+ * Dữ liệu mock dùng chung cho các màn UI Workshop — gia phả dòng họ Nguyễn Quang.
+ *
+ * Thư mục `_mock` có tiền tố `_` nên Next KHÔNG coi là route (private folder). Mọi màn dựng thử
+ * import từ đây để cả xưởng đọc như MỘT hệ thống nhất quán — cùng một thực thể, thay vì mỗi màn
+ * bịa dữ liệu riêng. Khi dev promote một màn ra route thật, đây chính là chỗ bị thay bằng truy
+ * vấn dữ liệu thật (Drizzle/API).
+ *
+ * ⚠️ **Đây là dữ liệu BỊA để dựng giao diện, không phải phả thật.** Tên người dưới đây không phải
+ * người thật trong họ. Không ai được chép số liệu từ file này sang tài liệu dòng họ.
+ *
+ * Hình dạng bám PRD §4 (Thuật ngữ) + §5, cố ý mang sẵn ba ràng buộc khó nhất để màn nào cũng phải
+ * đối diện chúng thay vì né:
+ *   1. **Đời và mã chi là DẪN XUẤT** (PRD §3, FR-63) — seed KHÔNG lưu `doi`/`maChi` trên người;
+ *      màn nào cần thì gọi `doiCua()` / `maChiCua()`.
+ *   2. **Dữ liệu là nhiều MẢNH rời**, chưa phải một cây (FR-48) — seed có hai mảnh chưa nối.
+ *   3. **Mỗi khẳng định mang nguồn và độ tin cậy** (FR-1, FR-2) — không có sự thật trần trụi.
+ */
+
+/** Ba mức tin cậy hiện trên cây bằng màu (FR-2). */
+export type MucTinCay = 'chac-chan' | 'theo-loi-ke' | 'ton-nghi';
+
+/** Hai tầng dữ liệu (FR-3): ghi vào tồn nghi ngay, người có vai nâng lên chính phả. */
+export type Tang = 'chinh-pha' | 'ton-nghi';
+
+/** Vai trò tối thiểu để FR-3 có nghĩa (FR-64). */
+export type Vai = 'quan-tri' | 'dau-moi-chi' | 'thanh-vien' | 'khach';
+
+/**
+ * Một người trong phả. `id` là định danh KHÔNG BAO GIỜ ĐỔI khi gốc dịch (PRD §3 hệ quả 2) —
+ * đừng dùng mã chi làm khoá.
+ */
+export type Nguoi = {
+  id: string;
+  hoTen: string;
+  /** Tên thật của người đã khuất, kiêng gọi thẳng (PRD §4). */
+  huy?: string;
+  /** Tên dùng khi khấn — đọc sai là lỗi nặng, nên màn nào hiện tên này phải hiện rõ nhãn. */
+  tenHem?: string;
+  gioiTinh: 'nam' | 'nu';
+  /** Người còn sống: CHỈ năm sinh, không ngày tháng (FR-37 mặc định §11). */
+  namSinh?: number;
+  namMat?: number;
+  conSong: boolean;
+  /** `null` = chưa truy được đời trên → ứng viên làm gốc tạm của mảnh. */
+  chaId: string | null;
+  meId: string | null;
+  /** Vợ/chồng — chính phả chép người mang huyết thống *và vợ của họ* (PRD §4). */
+  voChongId?: string;
+  /** Con dâu/rể ghi tên thật đầy đủ (§11), đánh dấu để màn biết vẽ khác. */
+  ketHonVaoHo?: boolean;
+  tang: Tang;
+  tinCay: MucTinCay;
+  /** Mảnh chứa người này — chưa nối thì mỗi mảnh có gốc tạm riêng (PRD §3 hệ quả 3). */
+  manhId: string;
+  /**
+   * Ai đưa người này vào phả, và khi nào — dẫn xuất từ nhật ký sửa (FR-39).
+   *
+   * Không phải trang trí: đây là cơ chế tạo TỰ HÀO chính ở tầng dữ liệu — tên người đóng góp nằm
+   * TRÊN PHẢ, không chỉ trong nhật ký. `DESIGN.md § Components` bắt buộc mọi node vừa được thêm
+   * phải mang dòng này.
+   */
+  nguoiThem?: string;
+  ngayThem?: string;
+};
+
+/** Đơn vị dữ liệu nhỏ nhất: KHẲNG ĐỊNH về người, luôn mang nguồn (FR-1). */
+export type KhangDinh = {
+  id: string;
+  veNguoiId: string;
+  menhDe: string;
+  nguon: string;
+  nguoiKhai: string;
+  ngayKhai: string;
+  tinCay: MucTinCay;
+  tang: Tang;
+};
+
+/** Bản thu lời kể (FR-47) + mức tiếp cận do chính người kể chọn (FR-49). */
+export type LoiKe = {
+  id: string;
+  nguoiKeId: string;
+  nguoiThu: string;
+  ngayThu: string;
+  /** Giây — màn nào hiện tổng giờ ghi âm (M3) cộng từ đây. */
+  thoiLuong: number;
+  noiVe: string[];
+  tiepCan: 'cong-khai' | 'chi-quan-tri' | 'niem-phong';
+  /** Chỉ có nghĩa khi `tiepCan === 'niem-phong'`. */
+  moNiemPhongNam?: number;
+  daBocTach: boolean;
+};
+
+/** Một mảnh rời chưa nối vào cây chung (FR-48). */
+export type Manh = {
+  id: string;
+  nhan: string;
+  /** Gốc TẠM — "cụ xa nhất hiện biết", không phải khẳng định đã là Thủy tổ (FR-63). */
+  gocTamId: string;
+  soNguoi: number;
+};
+
+// ── Người ───────────────────────────────────────────────────────────────────
+
+export const NGUOI: Nguoi[] = [
+  // Mảnh A — mảnh lớn, dựng từ khung nhập tay (FR-51) rồi loang ra bằng tự khai.
+  {
+    id: 'n-001',
+    hoTen: 'Nguyễn Quang Thản',
+    huy: 'Thản',
+    tenHem: 'Phúc Chính',
+    gioiTinh: 'nam',
+    namMat: 1901,
+    conSong: false,
+    chaId: null,
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-002',
+    hoTen: 'Nguyễn Quang Đệ',
+    huy: 'Đệ',
+    gioiTinh: 'nam',
+    namSinh: 1888,
+    namMat: 1954,
+    conSong: false,
+    chaId: 'n-001',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-003',
+    hoTen: 'Trần Thị Vẽ',
+    gioiTinh: 'nu',
+    namMat: 1961,
+    conSong: false,
+    chaId: null,
+    meId: null,
+    voChongId: 'n-002',
+    ketHonVaoHo: true,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-004',
+    hoTen: 'Nguyễn Quang Bảng',
+    gioiTinh: 'nam',
+    namSinh: 1921,
+    namMat: 1998,
+    conSong: false,
+    chaId: 'n-002',
+    meId: 'n-003',
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-005',
+    hoTen: 'Nguyễn Quang Hoạch',
+    gioiTinh: 'nam',
+    namSinh: 1949,
+    conSong: true,
+    chaId: 'n-004',
+    meId: null,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-006',
+    hoTen: 'Nguyễn Thị Lành',
+    gioiTinh: 'nu',
+    namSinh: 1952,
+    conSong: true,
+    chaId: 'n-004',
+    meId: null,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-007',
+    hoTen: 'Nguyễn Quang Hiệp',
+    gioiTinh: 'nam',
+    namSinh: 1978,
+    conSong: true,
+    chaId: 'n-005',
+    meId: null,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-008',
+    hoTen: 'Nguyễn Quang An',
+    gioiTinh: 'nam',
+    namSinh: 2012,
+    conSong: true,
+    chaId: 'n-007',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+
+  // ── Hành trình 1 (EXPERIENCE.md § Key Flows — Khánh) ──────────────────────
+  // Trạng thái SAU nhịp cao trào: Khánh đã khai bố và xác nhận liên kết anh em.
+  // Cả ba vào thẳng Tầng tồn nghi, hiện ngay, không chờ duyệt (FR-3).
+  {
+    id: 'n-009',
+    hoTen: 'Nguyễn Quang Hùng',
+    gioiTinh: 'nam',
+    namSinh: 1975,
+    conSong: true,
+    chaId: 'n-005',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-a',
+    nguoiThem: 'cháu Khánh',
+    ngayThem: 'hôm nay',
+  },
+  {
+    // Anh trai Khánh. Nạp từ khung CSV (FR-51) như NODE RỜI — biết tên, chưa biết cha; đó là lý
+    // do Khánh tìm anh thì thấy mà tìm bố thì không. `chaId` chỉ có giá trị SAU khi Khánh khai
+    // bố và xác nhận liên kết. Xem [NOTE FOR UX] ở EXPERIENCE.md § Key Flows — Luồng 1.
+    id: 'n-011',
+    hoTen: 'Nguyễn Quang Khoa',
+    gioiTinh: 'nam',
+    namSinh: 2001,
+    conSong: true,
+    chaId: 'n-009',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-a',
+    nguoiThem: 'khung nhập tay',
+    ngayThem: '02/2026',
+  },
+  {
+    id: 'n-010',
+    hoTen: 'Nguyễn Quang Khánh',
+    gioiTinh: 'nam',
+    namSinh: 2004,
+    conSong: true,
+    chaId: 'n-009',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+    nguoiThem: 'tự khai',
+    ngayThem: 'hôm nay',
+  },
+
+  // ── Chi Hai và Chi Ba ─────────────────────────────────────────────────────
+  // Hai người con nữa của cụ Thản, để tầng "cả tộc" có nhiều hơn một khối chi. Không có mấy chi
+  // thì màn cả tộc không nói lên điều gì — và ba chi có độ dày rất khác nhau mới lộ ra đúng thứ
+  // khối chi sinh ra để cho thấy: chi nào đã ghi được nhiều, chi nào còn kẹt ở tồn nghi.
+  {
+    id: 'n-020',
+    hoTen: 'Nguyễn Quang Đoài',
+    gioiTinh: 'nam',
+    namMat: 1949,
+    conSong: false,
+    chaId: 'n-001',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-021',
+    hoTen: 'Nguyễn Quang Cẩn',
+    gioiTinh: 'nam',
+    namSinh: 1925,
+    namMat: 2001,
+    conSong: false,
+    chaId: 'n-020',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-022',
+    hoTen: 'Nguyễn Quang Tuyên',
+    gioiTinh: 'nam',
+    namSinh: 1955,
+    conSong: true,
+    chaId: 'n-021',
+    meId: null,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-023',
+    hoTen: 'Nguyễn Quang Vinh',
+    gioiTinh: 'nam',
+    namSinh: 1982,
+    conSong: true,
+    chaId: 'n-022',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-024',
+    hoTen: 'Nguyễn Thị Hoà',
+    gioiTinh: 'nu',
+    namSinh: 1985,
+    conSong: true,
+    chaId: 'n-022',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-030',
+    hoTen: 'Nguyễn Quang Đường',
+    gioiTinh: 'nam',
+    namMat: 1943,
+    conSong: false,
+    chaId: 'n-001',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-031',
+    hoTen: 'Nguyễn Quang Lộc',
+    gioiTinh: 'nam',
+    namSinh: 1930,
+    namMat: 1988,
+    conSong: false,
+    chaId: 'n-030',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-032',
+    hoTen: 'Nguyễn Quang Sơn',
+    gioiTinh: 'nam',
+    namSinh: 1961,
+    conSong: true,
+    chaId: 'n-031',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-a',
+  },
+
+  // Hai ứng viên gần giống cho màn KHÔNG TÌM THẤY — xem UNG_VIEN_GAN_GIONG.
+  // Cả hai đều không phải bố Khánh; đó mới là ca cần vẽ.
+  {
+    id: 'n-012',
+    hoTen: 'Nguyễn Quang Hưng', // khác đúng một dấu
+    gioiTinh: 'nam',
+    namSinh: 1971,
+    conSong: true,
+    chaId: 'n-004',
+    meId: null,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+
+  // Mảnh B — một người ở xa tự khai từ dưới lên, chưa ai nối được vào mảnh A.
+  // Đây chính là ca FR-48 phải giải: `n-101` có thể LÀ `n-002`, chưa ai chắc.
+  {
+    id: 'n-101',
+    hoTen: 'Nguyễn Quang Đệ',
+    gioiTinh: 'nam',
+    namMat: 1954,
+    conSong: false,
+    chaId: null,
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'ton-nghi',
+    manhId: 'm-b',
+  },
+  {
+    id: 'n-102',
+    hoTen: 'Nguyễn Quang Thuyết',
+    gioiTinh: 'nam',
+    namSinh: 1930,
+    namMat: 2009,
+    conSong: false,
+    chaId: 'n-101',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-b',
+  },
+  {
+    id: 'n-103',
+    hoTen: 'Nguyễn Quang Trọng',
+    gioiTinh: 'nam',
+    namSinh: 1966,
+    conSong: true,
+    chaId: 'n-102',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-b',
+  },
+  {
+    // TRÙNG KHÍT tên bố Khánh, nhưng ở mảnh khác — người thật, không phải bố Khánh.
+    id: 'n-013',
+    hoTen: 'Nguyễn Quang Hùng',
+    gioiTinh: 'nam',
+    namSinh: 1958,
+    conSong: true,
+    chaId: 'n-102',
+    meId: null,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-b',
+  },
+];
+
+/** Người đang đăng nhập ở màn BÀN DUYỆT — bán kính riêng tư (FR-37) tính từ đây. */
+export const TOI_ID = 'n-007';
+
+/**
+ * Người đang đăng nhập ở bề mặt NGƯỜI TRONG HỌ.
+ *
+ * Tách khỏi `TOI_ID` vì hai bề mặt có hai nhân vật khác nhau (EXPERIENCE.md § Foundation): bàn
+ * duyệt là Hiệp, còn màn của người trong họ kể hành trình của Khánh. Cùng một `TOI_ID` cho cả hai
+ * thì bán kính riêng tư vẽ sai người.
+ */
+export const KHANH_ID = 'n-010';
+
+/**
+ * Ứng viên gần giống khi Khánh tìm "Nguyễn Quang Hùng" (EXPERIENCE.md § State Patterns).
+ *
+ * Ca khó cố ý: `n-013` tên **trùng khít**, `n-012` chỉ khác dấu. Cả hai đều KHÔNG phải bố Khánh.
+ * Đây là lý do màn không-tìm-thấy bắt buộc hiện **đời + chi** — chỉ hiện tên thì người dùng chọn
+ * nhầm, và một liên kết cha-con sai làm hỏng phả của cả một chi.
+ */
+export const UNG_VIEN_GAN_GIONG = ['n-013', 'n-012'];
+
+// ── Mảnh ────────────────────────────────────────────────────────────────────
+
+// `soNguoi` là DẪN XUẤT — đếm tại chỗ thay vì chép tay. Con số chép tay lệch ngay lần đầu có ai
+// thêm người, và một bảng "mảnh chưa nối" nói sai số là đúng thứ FR-48 sinh ra để chống.
+export const MANH: Manh[] = [
+  { id: 'm-a', nhan: 'Mảnh chính (từ khung nhập tay)', gocTamId: 'n-001', soNguoi: 0 },
+  { id: 'm-b', nhan: 'Mảnh chi trong Nam', gocTamId: 'n-101', soNguoi: 0 },
+].map((m) => ({ ...m, soNguoi: NGUOI.filter((n) => n.manhId === m.id).length }));
+
+// ── Khẳng định ──────────────────────────────────────────────────────────────
+
+export const KHANG_DINH: KhangDinh[] = [
+  {
+    id: 'k-001',
+    veNguoiId: 'n-002',
+    menhDe: 'Nguyễn Quang Đệ là con của Nguyễn Quang Thản',
+    nguon: 'Lời kể — bà Nguyễn Thị Lành, 04/2026',
+    nguoiKhai: 'Nguyễn Quang Hiệp',
+    ngayKhai: '2026-04-18',
+    tinCay: 'theo-loi-ke',
+    tang: 'ton-nghi',
+  },
+  {
+    id: 'k-002',
+    veNguoiId: 'n-004',
+    menhDe: 'Nguyễn Quang Bảng mất năm 1998',
+    nguon: 'Bia mộ — ảnh chụp 03/2026',
+    nguoiKhai: 'Nguyễn Quang Hiệp',
+    ngayKhai: '2026-03-02',
+    tinCay: 'chac-chan',
+    tang: 'chinh-pha',
+  },
+  {
+    id: 'k-003',
+    veNguoiId: 'n-001',
+    menhDe: 'Tên hèm của cụ Thản là Phúc Chính',
+    nguon: 'Lời kể — cụ Nguyễn Quang Hoạch, 05/2026',
+    nguoiKhai: 'Nguyễn Quang Hiệp',
+    ngayKhai: '2026-05-11',
+    tinCay: 'ton-nghi',
+    tang: 'ton-nghi',
+  },
+  {
+    id: 'k-004',
+    veNguoiId: 'n-101',
+    menhDe: 'Cụ tổ của chi trong Nam tên Đệ, mất khoảng 1954',
+    nguon: 'Tự khai — Nguyễn Quang Trọng',
+    nguoiKhai: 'Nguyễn Quang Trọng',
+    ngayKhai: '2026-06-30',
+    tinCay: 'ton-nghi',
+    tang: 'ton-nghi',
+  },
+];
+
+// ── Lời kể ──────────────────────────────────────────────────────────────────
+
+export const LOI_KE: LoiKe[] = [
+  {
+    id: 'lk-001',
+    nguoiKeId: 'n-006',
+    nguoiThu: 'Nguyễn Quang Hiệp',
+    ngayThu: '2026-04-18',
+    thoiLuong: 372,
+    noiVe: ['n-001', 'n-002'],
+    tiepCan: 'cong-khai',
+    daBocTach: false,
+  },
+  {
+    id: 'lk-002',
+    nguoiKeId: 'n-005',
+    nguoiThu: 'Nguyễn Quang Hiệp',
+    ngayThu: '2026-05-11',
+    thoiLuong: 1544,
+    noiVe: ['n-001', 'n-004'],
+    tiepCan: 'chi-quan-tri',
+    daBocTach: false,
+  },
+  {
+    id: 'lk-003',
+    nguoiKeId: 'n-006',
+    nguoiThu: 'Nguyễn Quang Hiệp',
+    ngayThu: '2026-05-11',
+    thoiLuong: 806,
+    noiVe: ['n-004'],
+    tiepCan: 'niem-phong',
+    moNiemPhongNam: 2046,
+    daBocTach: false,
+  },
+];
+
+// ── Dẫn xuất — KHÔNG lưu cứng (FR-63) ───────────────────────────────────────
+
+/** Đường ngược lên gốc tạm của mảnh chứa người này. Phần thưởng của FR-13 vẽ từ hàm này. */
+export function duongVeGoc(id: string): Nguoi[] {
+  const duong: Nguoi[] = [];
+  let cur = NGUOI.find((n) => n.id === id);
+  while (cur) {
+    duong.push(cur);
+    cur = cur.chaId ? NGUOI.find((n) => n.id === cur!.chaId) : undefined;
+  }
+  return duong;
+}
+
+/** Đời tính TỪ GỐC TẠM của mảnh, đếm lúc hiển thị. Gốc tạm là đời 1. */
+export function doiCua(id: string): number {
+  return duongVeGoc(id).length;
+}
+
+/**
+ * Mã chi hiển thị (`1.3.2`) — cũng là dẫn xuất, tính từ thứ tự con trong mỗi đời. Đổi khi gốc
+ * dịch, nên KHÔNG được lưu và KHÔNG được dùng làm khoá.
+ */
+export function maChiCua(id: string): string {
+  const duong = duongVeGoc(id).reverse();
+  return duong
+    .map((n, i) => {
+      if (i === 0) return '1';
+      const anhChiEm = NGUOI.filter((x) => x.chaId === duong[i - 1].id);
+      return String(anhChiEm.findIndex((x) => x.id === n.id) + 1);
+    })
+    .join('.');
+}
+
+/**
+ * CHI = nhánh xuất phát từ một người con của gốc tạm (đời 2).
+ *
+ * Cũng là DẪN XUẤT, không lưu (FR-63) — gốc dịch một đời thì cái đang là "chi" thành "cả tộc",
+ * và cái đang là "cả tộc" thành một chi con. Lưu cứng là hỏng toàn bộ khi tìm thêm được một đời.
+ *
+ * Trả `null` cho chính gốc tạm: cụ tổ không thuộc chi nào, cụ LÀ điểm chia chi.
+ */
+export function chiCua(id: string): Nguoi | null {
+  const nguoi = NGUOI.find((n) => n.id === id);
+  // Người kết hôn vào họ không có đường huyết thống lên gốc, nhưng THUỘC chi của chồng/vợ —
+  // PRD §4: chính phả chép người mang huyết thống *và vợ của họ*. Bỏ sót họ thì tổng các chi
+  // không bằng tổng dòng họ, và con dâu biến mất khỏi chính cái phả có tên mình.
+  if (nguoi && !nguoi.chaId && nguoi.voChongId) return chiCua(nguoi.voChongId);
+  const duong = [...duongVeGoc(id)].reverse(); // [gốc tạm, …, chính mình]
+  return duong.length >= 2 ? duong[1] : null;
+}
+
+/** Tên chi theo thứ tự sinh: Chi Nhất, Chi Hai, Chi Ba… Dẫn xuất từ thứ tự con của gốc tạm. */
+export function tenChi(gocChiId: string): string {
+  const goc = NGUOI.find((n) => n.id === gocChiId);
+  if (!goc?.chaId) return 'Chi';
+  const anhChiEm = NGUOI.filter((x) => x.chaId === goc.chaId);
+  const thu = anhChiEm.findIndex((x) => x.id === gocChiId);
+  return ['Chi Nhất', 'Chi Hai', 'Chi Ba', 'Chi Tư', 'Chi Năm', 'Chi Sáu', 'Chi Bảy'][thu] ?? 'Chi';
+}
+
+/**
+ * Đời để HIỂN THỊ. Khác `doiCua` — cái đó đếm theo huyết thống.
+ *
+ * Người kết hôn vào họ không có đường huyết thống lên gốc, nên `doiCua` trả về 1 và cụ bà đứng
+ * nhầm chỗ ngang cụ tổ. Trong phả, đời của con dâu/con rể là **đời của chồng/vợ**.
+ */
+export function doiHienThi(id: string): number {
+  const nguoi = NGUOI.find((n) => n.id === id);
+  if (nguoi && !nguoi.chaId && nguoi.voChongId) return doiHienThi(nguoi.voChongId);
+  return doiCua(id);
+}
+
+export type KhoiChi = {
+  gocId: string;
+  ten: string;
+  /** Người đứng đầu chi — hiện dưới tên chi để người trong họ nhận ra chi của mình. */
+  nguoiDungDau: string;
+  soNguoi: number;
+  /** Còn bao nhiêu người chưa được duyệt lên Tầng chính thức — lộ ra chi nào cần người xác minh. */
+  soTonNghi: number;
+  soDoi: number;
+};
+
+/**
+ * Các khối chi của một mảnh — dữ liệu cho TẦNG 1 của cây (cả tộc).
+ *
+ * Tầng 1 vẽ CHI chứ không vẽ người: ở quy mô PRD chốt (dưới 300 người, 5–7 đời), đời rộng nhất
+ * khoảng 120 người; với sàn chữ 17px thì một ô tên cần ~140px, tức ~16.800px bề ngang trên màn
+ * 390px. Vẽ hết người trong một màn buộc chữ xuống dưới sàn 15px — vi phạm chính hàng rào cứng
+ * của Accessibility Floor. Nên tầng 1 vẽ 5–7 khối chi, luôn vừa màn, chữ luôn đủ lớn.
+ */
+export function khoiChiCua(manhId: string): KhoiChi[] {
+  const manh = MANH.find((m) => m.id === manhId);
+  if (!manh) return [];
+  const nguoiTrongManh = NGUOI.filter((n) => n.manhId === manhId);
+  return NGUOI.filter((n) => n.chaId === manh.gocTamId).map((gocChi) => {
+    const thanhVien = nguoiTrongManh.filter((n) => chiCua(n.id)?.id === gocChi.id);
+    return {
+      gocId: gocChi.id,
+      ten: tenChi(gocChi.id),
+      nguoiDungDau: gocChi.hoTen,
+      soNguoi: thanhVien.length,
+      soTonNghi: thanhVien.filter((n) => n.tang === 'ton-nghi').length,
+      soDoi: Math.max(...thanhVien.map((n) => doiHienThi(n.id))) - 1,
+    };
+  });
+}
+
+/** Người trong một chi, gom theo đời — dữ liệu cho TẦNG 2 (gập theo đời, đúng chữ FR-15). */
+export function nguoiTheoDoi(gocChiId: string): { doi: number; nguoi: Nguoi[] }[] {
+  const thanhVien = NGUOI.filter((n) => chiCua(n.id)?.id === gocChiId);
+  const nhom = new Map<number, Nguoi[]>();
+  for (const n of thanhVien) {
+    const d = doiHienThi(n.id);
+    nhom.set(d, [...(nhom.get(d) ?? []), n]);
+  }
+  return [...nhom.entries()].sort((a, b) => a[0] - b[0]).map(([doi, nguoi]) => ({ doi, nguoi }));
+}
+
+/** Số mảnh chưa nối — hiển thị trung thực thay vì vẽ như một cây liền (FR-48). */
+export const SO_MANH_CHUA_NOI = MANH.length;
+
+/** Tổng giờ ghi âm đã thu — chỉ số M3 của PRD §9. */
+export const GIO_GHI_AM = LOI_KE.reduce((s, l) => s + l.thoiLuong, 0) / 3600;
