@@ -97,7 +97,52 @@ export const REQ_GROUPS: ReqGroup[] = [
     fr: 'FR-48·FR-11',
     title: 'Hợp nhất mảnh — chặn trùng tại nguồn',
     epics: ['Đợt 1'],
-    views: [{ slug: 'khong-tim-thay', label: 'Không tìm thấy' }],
+    // Tìm và không-tìm-thấy đứng cùng một nhóm vì chúng là MỘT việc: chặn bản trùng tại nguồn.
+    // Người dùng nghĩ mình đang tra cứu; hệ thống đang chặn. Tách ra hai nhóm thì cái thứ hai đọc
+    // ra như một màn lỗi, mà nó là màn quan trọng nhất của Đợt 1.
+    views: [
+      { slug: 'tim-nguoi-than', label: 'Tìm người thân' },
+      { slug: 'khong-tim-thay', label: 'Không tìm thấy' },
+    ],
+  },
+  {
+    section: 'app',
+    fr: 'FR-11·FR-3',
+    title: 'Tự khai — bốn câu, ghi ngay',
+    epics: ['Đợt 1'],
+    views: [{ slug: 'them-nguoi-than', label: 'Thêm người thân' }],
+  },
+  {
+    section: 'app',
+    fr: 'FR-1·FR-2·FR-37',
+    title: 'Trang một người — khẳng định mang nguồn',
+    epics: ['Đợt 1'],
+    // FR-39 cũng đổ vào màn này (nhật ký sửa đọc thành "ai đã ghi gì"), nhưng nhãn FR giữ ba mã:
+    // FR-39 đã đứng tên ở nhóm "Trả công tức thì", và lặp mã ở hai chỗ khiến sidebar đọc ra như
+    // có hai yêu cầu khác nhau trùng số.
+    views: [{ slug: 'trang-nguoi', label: 'Trang một người' }],
+  },
+  {
+    section: 'app',
+    fr: 'FR-47·FR-49',
+    title: 'Thu lời kể & đồng thuận',
+    epics: ['Đợt 1'],
+    // ⚠️ Màn dựng từ § IA và § Interaction Primitives, KHÔNG từ một hành trình có thật — hành
+    // trình gốc UJ-1 đã mất. Đúng luật, chưa chắc đúng nhịp. Xem EXPERIENCE.md § Luồng chưa distill.
+    views: [{ slug: 'thu-loi-ke', label: 'Thu lời kể' }],
+  },
+  {
+    section: 'app',
+    fr: 'FR-64·FR-55',
+    title: 'Tài khoản, chỗ của mình, quyền của người sống',
+    epics: ['Đợt 1'],
+    // Hai FR nằm chung một nhóm vì chúng là hai nửa của cùng một câu hỏi — "phả biết mình là ai".
+    // FR-64 trả lời phần chứng minh; FR-55 trả lời phần hệ quả: đã biết mình là ai thì phần về
+    // mình do mình quyết.
+    views: [
+      { slug: 'dang-nhap', label: 'Đăng nhập & nhận chỗ' },
+      { slug: 'toi', label: 'Tôi' },
+    ],
   },
   {
     section: 'app',
@@ -127,6 +172,25 @@ export const REQ_GROUPS: ReqGroup[] = [
       { slug: 'xem-truoc-so-khop', label: 'Xem trước so khớp' },
     ],
   },
+  {
+    section: 'admin',
+    fr: 'FR-3',
+    title: 'Duyệt lên Tầng chính thức',
+    epics: ['Đợt 1'],
+    // ⚠️ Cùng nợ tài liệu với "Thu lời kể": hành trình gốc UJ-3 đã mất, và phần còn lại phụ thuộc
+    // FR-4 vốn ngoài Đợt 1. Màn dựng từ § IA, nhịp chưa được kiểm bằng một lần duyệt thật.
+    views: [{ slug: 'hang-cho-duyet', label: 'Hàng chờ duyệt' }],
+  },
+  {
+    section: 'admin',
+    fr: 'FR-48',
+    title: 'Nối mảnh rời',
+    epics: ['Đợt 1'],
+    // FR-48 giờ đứng ở CẢ BA chỗ, và đó là đúng: chặn lúc một người tự khai (bề mặt A), chặn lúc
+    // nạp cả một file (xem trước), và gỡ cái đã lọt (đây). Cùng một yêu cầu, ba khoảnh khắc khác
+    // nhau của cùng một dữ liệu.
+    views: [{ slug: 'hop-nhat-manh', label: 'Mảnh chưa nối' }],
+  },
 ];
 
 /**
@@ -140,21 +204,19 @@ export const REQ_GROUPS: ReqGroup[] = [
  * và gắn `storySlugs` cho từng view.
  */
 export const PLANNED_REQS: { fr: string; title: string; epic: string }[] = [
-  // Gieo mồi — FR-51 đã có màn (bề mặt "Bàn duyệt"), xem REQ_GROUPS.
-  // Vòng lặp người dùng — thêm mình vào phả rồi thấy ngay mình là ai.
-  { fr: 'FR-11', title: 'Tự khai 4 bước', epic: 'Đợt 1' },
-  // Thu lời kể — việc duy nhất có hạn dùng, các cụ không đợi.
-  // ⚠️ Hai FR dưới đây nằm trong phạm vi Đợt 1 nhưng CHƯA CÓ HÀNH TRÌNH nào dẫn tới chúng:
-  //    hành trình gốc UJ-1 (bà Nhàn 84 tuổi, cháu Quân) đã mất khi PRD được viết lại và không
-  //    khôi phục được. Xem EXPERIENCE.md § Luồng chưa distill.
-  { fr: 'FR-47', title: 'Thu và lưu lời kể', epic: 'Đợt 1' },
-  { fr: 'FR-49', title: 'Đồng thuận cho lời kể', epic: 'Đợt 1' },
-  // Nền dữ liệu.
-  { fr: 'FR-1', title: 'Khẳng định mang nguồn', epic: 'Đợt 1' },
-  { fr: 'FR-64', title: 'Đăng nhập & quản lý người dùng', epic: 'Đợt 1' },
-  // Không làm hại ai.
-  { fr: 'FR-37', title: 'Riêng tư theo bán kính họ hàng', epic: 'Đợt 1' },
-  { fr: 'FR-55', title: 'Quyền của người sống', epic: 'Đợt 1' },
+  // RỖNG kể từ 12/08/2026 — cả mười lăm FR của Đợt 1 đều đã có ít nhất một màn dựng thử, nên
+  // sidebar tự ẩn mục này.
+  //
+  // ⚠️ ĐỌC ĐÚNG CON SỐ RỖNG NÀY. Nó nói: mọi yêu cầu Đợt 1 đã có một HÌNH DẠNG để nhìn và để cãi.
+  // Nó KHÔNG nói:
+  //   · rằng chúng đã dev — xưởng chạy trên mock, chưa màn nào chạm vào dữ liệu thật;
+  //   · rằng chúng đã đúng — ba màn (thu lời kể, hàng chờ duyệt, và nửa sau của tự khai) dựng từ
+  //     § IA chứ không từ một hành trình có thật, vì UJ-1 và UJ-3 đã mất khi PRD được viết lại;
+  //   · rằng FR-55 đã xong — cơ chế của nó là KÉO, người không mở web thì không bao giờ biết mình
+  //     đã bị đưa vào phả, mà đó đúng là nhóm FR-55 sinh ra để bảo vệ (PRD §12 đã tự thú).
+  //
+  // FR của "Sau này" (prd.md §7) vẫn KHÔNG liệt kê ở đây — kể cả hai ô còn thiếu của màn chủ
+  // (FR-22 lời giáo huấn, FR-41 sự kiện sắp tới). Đợt 1 cố ý dựng hai trong bốn ô.
 ];
 
 /**

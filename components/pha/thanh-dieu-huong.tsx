@@ -46,9 +46,12 @@ const MUC: Muc[] = [
   { key: 'trang-chu', label: 'Trang chủ', Icon: House, href: '/uiworkshop/dong-ho-dang-song' },
   // Vào thẳng TẦNG 2 (chi của mình), không phải tầng 1. FR-15: "mở lên thấy chính mình trước".
   { key: 'gia-pha', label: 'Gia phả', Icon: Network, href: '/uiworkshop/mot-chi' },
-  { key: 'them', label: 'Thêm', Icon: Plus, href: null, noiBat: true },
-  { key: 'loi-ke', label: 'Lời kể', Icon: Mic, href: null },
-  { key: 'toi', label: 'Tôi', Icon: User, href: null },
+  // "Thêm" mở vào màn TÌM, không mở thẳng vào màn khai. Không phải một lần chạm thừa: tìm là
+  // thao tác chặn trùng (FR-48), và chặn một lần gõ rẻ hơn nhiều so với gỡ hai bản trùng ra khỏi
+  // nhau về sau. Người dùng nghĩ mình đang tìm; hệ thống đang chặn.
+  { key: 'them', label: 'Thêm', Icon: Plus, href: '/uiworkshop/tim-nguoi-than', noiBat: true },
+  { key: 'loi-ke', label: 'Lời kể', Icon: Mic, href: '/uiworkshop/thu-loi-ke' },
+  { key: 'toi', label: 'Tôi', Icon: User, href: '/uiworkshop/toi' },
 ];
 
 export function ThanhDieuHuong({ hienTai }: { hienTai: MucDieuHuong }) {

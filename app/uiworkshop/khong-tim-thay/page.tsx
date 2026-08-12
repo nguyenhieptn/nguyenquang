@@ -21,7 +21,7 @@ import {
   MANH,
   UNG_VIEN_GAN_GIONG,
   doiCua,
-  maChiCua,
+  nhanChi,
 } from "../_mock/seed";
 import { ThanhDieuHuong } from "@/components/pha/thanh-dieu-huong";
 
@@ -62,7 +62,7 @@ export default function Page() {
                     Chỉ hiện tên thì người dùng chọn nhầm, và một liên kết cha-con sai
                     làm hỏng phả của cả một chi. */}
                   <p className="mt-0.5 text-[15px] text-muted-foreground">
-                    đời {doiCua(n.id)} · chi {maChiCua(n.id)}
+                    đời {doiCua(n.id)} · {nhanChi(n.id)}
                     {n.namSinh ? ` · sinh ${n.namSinh}` : ""}
                   </p>
                   <p className="mt-0.5 text-[15px] text-muted-foreground">

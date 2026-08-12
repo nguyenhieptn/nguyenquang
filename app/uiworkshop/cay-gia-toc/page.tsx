@@ -22,7 +22,7 @@ import {
   NGUOI,
   duongVeGoc,
   doiCua,
-  maChiCua,
+  nhanChi,
   type MucTinCay,
 } from "../_mock/seed";
 import { ThanhDieuHuong } from "@/components/pha/thanh-dieu-huong";
@@ -43,7 +43,7 @@ const capDuong = duong.map((n, i) => ({
   nguoi: n,
   banDoi: banDoiCua(n.id),
   chaId: i === 0 ? null : duong[i - 1].id,
-  moTa: `đời ${doiCua(n.id)} · chi ${maChiCua(n.id)}`,
+  moTa: `đời ${doiCua(n.id)} · ${nhanChi(n.id)}`,
 }));
 const idTrenDuong = duong.map((n) => n.id);
 
@@ -120,7 +120,7 @@ export default function Page() {
                           )}
                         </p>
                         <p className="mt-0.5 text-[15px] text-muted-foreground">
-                          đời {doiCua(n.id)} · chi {maChiCua(n.id)}
+                          đời {doiCua(n.id)} · {nhanChi(n.id)}
                           {n.namSinh ? ` · sinh ${n.namSinh}` : ""}
                           {n.namMat ? ` · mất ${n.namMat}` : ""}
                         </p>

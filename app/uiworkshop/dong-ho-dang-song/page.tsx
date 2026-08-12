@@ -18,7 +18,7 @@ import {
   KHANH_ID,
   duongVeGoc,
   doiCua,
-  maChiCua,
+  nhanChi,
   MANH,
 } from "../_mock/seed";
 import { ThanhDieuHuong } from "@/components/pha/thanh-dieu-huong";
@@ -84,8 +84,8 @@ export default function Page() {
                 </p>
                 {/* FR-63: nói rõ đây là gốc TẠM, không phải khẳng định đã là Thuỷ tổ. */}
                 <p className="mt-1 text-[15px] text-muted-foreground">
-                  cụ xa nhất hiện biết · đời {doiCua(toi.id)} · chi{" "}
-                  {maChiCua(toi.id)}
+                  cụ xa nhất hiện biết · đời {doiCua(toi.id)} ·{" "}
+                  {nhanChi(toi.id)}
                 </p>
               </CardBody>
             </Card>
@@ -118,7 +118,7 @@ export default function Page() {
                         {n.hoTen}
                       </p>
                       <p className="mt-0.5 text-[15px] text-muted-foreground">
-                        đời {doiCua(n.id)} · chi {maChiCua(n.id)}
+                        đời {doiCua(n.id)} · {nhanChi(n.id)}
                         {n.namSinh ? ` · sinh ${n.namSinh}` : ""}
                         {tonNghi ? " · tồn nghi" : ""}
                       </p>

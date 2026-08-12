@@ -20,7 +20,7 @@
  * đã có Key Flows, chép từng luồng vào đây theo mẫu ở cuối file. Giữ nguyên phần bố cục bản đồ.
  * ─────────────────────────────────────────────────────────────────────────────────────────────
  */
-import { defaultViewport, type ViewportMode } from './outline';
+import { REQ_GROUPS, defaultViewport, type ViewportMode } from './outline';
 
 export type FlowStep = {
   /** View đã dựng trong xưởng; `null` = bước chưa có màn (hiện thành ô trống trên bản đồ). */
@@ -105,6 +105,21 @@ const xemCaToc = (viewport: ViewportMode): FlowStep[] => [
     trigger: 'Bấm “Xem cây gia tộc”',
     viewport,
   },
+  {
+    // NHỊP CUỐI của trục zoom: tộc → chi → đường của mình → MỘT NGƯỜI.
+    //
+    // Chưa nằm trong § Key Flows — Luồng 3 (đang dừng ở tầng 3), nhưng KHÔNG bịa: § Component
+    // Patterns › Node người chốt "Chạm → mở trang một người. Không có menu ngữ cảnh, không nhấn-
+    // giữ." Đây là thao tác thường gặp nhất của cả sản phẩm, mà trước 12/08/2026 không luồng nào
+    // đi qua nó — nên trang người là màn duy nhất người duyệt không bao giờ gặp khi đi theo bản đồ.
+    //
+    // ⚠️ Việc phải làm: thêm nhịp này vào EXPERIENCE.md § Key Flows — Luồng 3.
+    slug: 'trang-nguoi',
+    label: 'Trang một người',
+    trigger: 'Chạm vào một người trên cây',
+    viewport,
+    note: 'FR-1 lộ ra ở ĐÂY và chỉ ở đây: mức tin cậy gắn vào từng khẳng định, kèm ai khai và dựa vào đâu',
+  },
 ];
 
 export const FLOWS: Flow[] = [
@@ -120,7 +135,13 @@ export const FLOWS: Flow[] = [
         trigger: 'Mở đường dẫn nghe được ở buổi họp họ',
         note: 'Chưa đăng nhập vẫn xem được cây (FR-11). Đợt 1 chỉ dựng 2/4 ô.',
       },
-      { slug: null, label: 'Tìm người thân', trigger: 'Gõ tên bố: Nguyễn Quang Hùng' },
+      {
+        slug: 'tim-nguoi-than',
+        label: 'Tìm người thân',
+        trigger: 'Gõ tên bố: Nguyễn Quang Hùng',
+        query: 'v=go-ten',
+        note: 'Tìm là thao tác CHẶN TRÙNG (FR-48), không phải tra cứu — mọi đường vào việc thêm đều qua đây',
+      },
       {
         slug: 'khong-tim-thay',
         label: 'Không tìm thấy',
@@ -128,13 +149,31 @@ export const FLOWS: Flow[] = [
         note: 'MÀN QUAN TRỌNG NHẤT ĐỢT 1 — trạng thái mặc định nhiều tháng đầu, không phải lỗi',
       },
       {
-        slug: null,
-        label: 'Đăng nhập / gắn node',
+        slug: 'dang-nhap',
+        label: 'Đăng nhập / nhận chỗ của mình',
         trigger: 'Bấm “Không ai cả — thêm bố vào phả”',
-        note: 'FR-64: tới đây mới cần xác thực',
+        query: 'v=tai-khoan',
+        // MỘT bước, đúng số bước của spine — dù màn có HAI lớp (tài khoản, rồi nhận chỗ). Tách
+        // đôi trên bản đồ là sửa hành trình, mà hành trình sửa ở EXPERIENCE.md trước rồi file này
+        // mới theo sau. Muốn xem cả hai lớp: mở /uiworkshop/view/dang-nhap, màn bày đủ ba trạng
+        // thái xếp chồng.
+        note: 'FR-64 tới đây mới cần: xem cây thì không cần gì cả (FR-11). Màn có HAI lớp — tài khoản, rồi nhận chỗ của mình.',
       },
-      { slug: null, label: 'Thêm người thân', trigger: 'Xác thực xong', note: 'Vào thẳng Tầng tồn nghi, không chờ duyệt (FR-3)' },
-      { slug: null, label: 'Tìm người thân', trigger: 'Gõ tên anh trai — thấy đúng 1 người' },
+      {
+        slug: 'them-nguoi-than',
+        label: 'Thêm người thân',
+        trigger: 'Xác thực xong',
+        query: 'v=b1',
+        // Cũng MỘT bước: bốn câu hỏi + màn trả công là một nhịp của hành trình, không phải năm.
+        note: 'FR-3: vào thẳng Tầng tồn nghi, hiện ngay, không chờ duyệt. NFR-5: bốn câu dùng hết ngân sách 4 màn.',
+      },
+      {
+        slug: 'tim-nguoi-than',
+        label: 'Tìm người thân',
+        trigger: 'Gõ tên anh trai — thấy đúng 1 người',
+        query: 'v=thay-mot-nguoi',
+        note: 'Nhịp trả công cho bước khai vừa rồi: dòng họ nhận ra Khánh',
+      },
       {
         slug: 'cay-gia-toc',
         label: 'Cây gia tộc',
@@ -181,6 +220,157 @@ export const FLOWS: Flow[] = [
       },
     ],
   },
+  {
+    id: 'khoa-nhan-cho',
+    title: 'Khoa mở web và thấy tên mình đã ở đó',
+    persona: 'Nguyễn Quang Khoa, sinh 2001, anh trai Khánh — chưa từng mở web, được em nhắn',
+    // NỢ TÀI LIỆU. Luồng này CHƯA nằm trong § Key Flows, nên `source: null`.
+    //
+    // Nhưng nó KHÔNG bịa: § State Patterns › "Vừa được thêm bởi người khác (FR-55)" đã tả đúng
+    // nhịp cuối — *thông báo lưu sẵn trên node, hiện ra lần đầu người đó đăng nhập và gắn được
+    // vào node của mình, kèm ba đường: sửa · ẩn · từ chối in*. Hai nhịp đầu là hệ quả trực tiếp
+    // của Luồng 1: Khánh vừa ghi về anh mình xong.
+    //
+    // Vì sao đáng dựng thành luồng thay vì để yên: FR-55 là yêu cầu DUY NHẤT của Đợt 1 mà người
+    // hưởng lợi không phải người đang thao tác. Không có một hành trình đứng từ phía Khoa thì
+    // không ai kiểm được rằng ba quyền kia có thật sự với tới được hay không — và bản đồ sẽ im
+    // lặng đúng chỗ cần nói.
+    //
+    // ⚠️ Việc phải làm: distill vào EXPERIENCE.md § Key Flows rồi trỏ `source` về đó. Trước khi
+    // distill, cần người duyệt xác nhận nhịp mở đầu — hiện đang giả định Khoa được em nhắn, mà
+    // giả định ấy chưa ai kể.
+    source: null,
+    steps: [
+      {
+        slug: 'dong-ho-dang-song',
+        label: 'Dòng họ đang sống',
+        trigger: 'Em trai nhắn: “anh có tên trên phả rồi”',
+        note: 'Chưa đăng nhập vẫn xem được (FR-11) — kể cả xem chính mình',
+      },
+      {
+        slug: 'dang-nhap',
+        label: 'Nhận chỗ của mình',
+        trigger: 'Thấy tên mình trên cây, bấm vào',
+        query: 'v=khai-minh-la-ai',
+        note: 'Ca NGƯỢC với Khánh: tên đã nằm sẵn trên phả do người khác ghi, nên đây là NHẬN một chỗ có sẵn — cần bảo lãnh, không phải tự khai',
+      },
+      {
+        slug: 'toi',
+        label: 'Ai đã ghi gì về mình',
+        trigger: 'Ban tu phả xác nhận',
+        query: 'v=vua-gan',
+        climax: true,
+        note: 'FR-55: ba đường bày NGANG NHAU — sửa · ẩn khỏi phần công khai (nhánh vẫn liền) · từ chối in. Quyền từ chối mà khó tìm hơn quyền sửa thì không còn là quyền.',
+      },
+    ],
+  },
+  {
+    id: 'thu-loi-ke-cua-ba',
+    title: 'Bà kể, và lời kể có chỗ đứng trên phả',
+    persona: 'Nguyễn Quang Hiệp ngồi thu · bà Nguyễn Thị Lành kể — hai người, một máy điện thoại',
+    // ⚠️⚠️ NỢ NẶNG NHẤT CỦA CẢ SPINE, đọc kỹ trước khi tin luồng này.
+    //
+    // Hành trình gốc UJ-1 — bà Nhàn 84 tuổi, cháu Quân, "hồi đói Ất Dậu" — ĐÃ MẤT khi PRD được
+    // viết lại, và PRD không nằm trong git nên không khôi phục được. PRD từng gắn nhãn đó là
+    // "hành trình quan trọng nhất của sản phẩm".
+    //
+    // Luồng dưới đây KHÔNG phải bản khôi phục. Nó suy ra từ § Interaction Primitives (một nút to,
+    // một trạng thái đang ghi, một nút dừng) + § IA (đồng thuận nằm TRONG luồng thu) + dữ liệu
+    // seed. Nhân vật lấy từ chính seed, không bịa tên mới. Nó đúng LUẬT, và chưa chắc đúng NHỊP —
+    // nhịp chỉ có được khi người duyệt kể lại một lần thu có thật.
+    //
+    // Vì sao vẫn dựng thay vì để trống: việc thu là việc DUY NHẤT của sản phẩm có hạn dùng — các
+    // cụ không đợi. Một màn không có luồng nào dẫn tới là một màn không ai kiểm được, và đây là
+    // màn ít được phép hỏng nhất.
+    source: null,
+    steps: [
+      {
+        slug: 'thu-loi-ke',
+        label: 'Sẵn sàng thu',
+        trigger: 'Ngồi xuống cạnh bà, mở web',
+        query: 'v=san-sang',
+        note: 'Một nút, và không có gì khác để bấm nhầm — mỗi nút thêm vào là một lần ngắt mạch câu chuyện',
+      },
+      {
+        slug: 'thu-loi-ke',
+        label: 'Đang thu',
+        trigger: 'Bấm “Bắt đầu thu”, rồi đặt máy xuống bàn',
+        query: 'v=dang-ghi',
+        note: 'KHÔNG dạng sóng: nó kéo mắt người cầm máy xuống màn hình đúng lúc phải nhìn người đang kể',
+      },
+      {
+        slug: 'thu-loi-ke',
+        label: 'Ai được nghe bản này',
+        trigger: 'Bà kể xong, bấm “Dừng và lưu”',
+        query: 'v=dong-thuan',
+        note: 'FR-49 chỉ có nghĩa khi bà CÒN NGỒI ĐÓ. Tách thành màn cài đặt là hỏi sau khi bà đã về — lúc ấy người trả lời là con cháu, không phải người có quyền trả lời.',
+      },
+      {
+        slug: 'thu-loi-ke',
+        label: 'Sổ bản đã thu',
+        trigger: 'Bà chọn “Cả họ nghe được”',
+        query: 'v=da-thu',
+        note: 'Bóc tách là việc SAU — màn nói thẳng điều đó, im lặng khiến người đi thu tưởng mình còn phải làm gì nữa',
+      },
+      {
+        slug: 'trang-nguoi',
+        label: 'Lời kể đứng trên trang cụ',
+        trigger: 'Mở trang cụ mà bà vừa kể về',
+        query: 'v=cu-to',
+        climax: true,
+        // Cao trào MƯỢN màn của một FR khác, y như Luồng 2 mượn ca-toc. Phần thưởng của việc đi
+        // thu không phải một dòng "đã lưu 6 phút 12 giây" — mà là lời bà nằm cạnh tên cụ, ở chỗ
+        // con cháu sẽ mở ra đọc.
+        note: 'FR-47 + FR-1: bản thu thành NGUỒN của khẳng định, không nằm chết trong một thư mục ghi âm',
+      },
+    ],
+  },
+  {
+    id: 'hiep-don-pha',
+    title: 'Đợt nạp thứ hai — hai mảnh tìm thấy nhau',
+    persona: 'Nguyễn Quang Hiệp, vài tuần sau ngày 0, khi chi trong Nam gửi khung của họ',
+    // NỢ TÀI LIỆU. § Key Flows chưa có luồng nào cho việc dọn phả, và hành trình gốc UJ-3 (duyệt
+    // lên Tầng chính thức) cũng đã mất cùng UJ-1.
+    //
+    // Khác với luồng thu lời kể, luồng này có chỗ dựa chắc hơn: seed đã dựng sẵn ca khó nhất của
+    // FR-48 từ đầu (cụ Đệ có hai bản — `n-002` ở mảnh chính, `n-101` ở chi trong Nam), và
+    // DONG_KHUNG_DOT_SAU là đúng đợt nạp làm ca ấy lộ ra. Nhịp ở đây suy ra từ DỮ LIỆU, không từ
+    // một câu chuyện tưởng tượng.
+    source: null,
+    steps: [
+      {
+        slug: 'xem-truoc-so-khop',
+        label: 'Xem trước đợt hai',
+        trigger: 'Chi trong Nam gửi khung của họ',
+        note: 'Giờ mới có trạng thái “khớp người có sẵn” — ngày 0 hệ thống trống nên không dòng nào khớp được',
+      },
+      {
+        slug: 'hop-nhat-manh',
+        label: 'Hai mảnh, một cụ',
+        trigger: 'Bot thấy cụ Đệ đang có hai bản',
+        climax: true,
+        note: 'Thao tác đắt nhất sản phẩm: nối đúng thì hai nhánh tìm lại nhau sau mấy chục năm, nối sai thì hỏng phả cả một chi. Không có đường nhanh, không cái nào chọn sẵn.',
+      },
+      {
+        slug: 'hang-cho-duyet',
+        label: 'Nâng những người đã đủ nguồn',
+        trigger: 'Chọn “là cùng một người”, hai mảnh về một cây',
+        note: 'Duyệt KHÔNG phải cho phép xuất hiện — những người này đã đứng trên cây từ lâu. Duyệt là nâng mức.',
+      },
+      {
+        // CỐ Ý để trống. Mock của xưởng là MỘT trạng thái tĩnh — nó vẽ được phả TRƯỚC khi nối,
+        // không vẽ được phả SAU khi nối. Nhúng `ca-toc` vào đây thì bản đồ hiện "2 mảnh chưa nối"
+        // ngay dưới một bước tên là "đã nối xong": đúng thứ bản đồ luồng sinh ra để chống.
+        //
+        // Ô trống này là lỗ hổng THẬT và nên đếm vào "bước hụt": muốn vẽ được nhịp trả công của
+        // cả luồng thì seed phải có trạng thái thứ hai (sau hợp nhất).
+        slug: null,
+        label: 'Cây liền lại — số mảnh về 0',
+        trigger: 'Nâng xong',
+        note: 'CHƯA DỰNG ĐƯỢC: mock chỉ có một trạng thái tĩnh (trước khi nối). Cần seed trạng thái sau hợp nhất, nếu không bản đồ sẽ nói dối.',
+      },
+    ],
+  },
   ...['mobile', 'web'].map((khung) => ({
     id: khung === 'mobile' ? 'xem-ca-toc-dien-thoai' : 'xem-ca-toc-may',
     title: khung === 'mobile' ? 'Xem cả tộc — trên điện thoại' : 'Xem cả tộc — trên máy',
@@ -211,6 +401,36 @@ export function gapCount(flow: Flow): number {
 /** Số bước có màn nhưng mới có bản tiếng Việt — với luồng đa ngữ, đây là việc phải làm. */
 export function viOnlyCount(flow: Flow): number {
   return flow.steps.filter((s) => s.viOnly).length;
+}
+
+/**
+ * ĐẾM NGƯỢC — màn nào KHÔNG luồng nào dẫn tới.
+ *
+ * Thêm 12/08/2026. `gapCount` đếm **bước thiếu màn**; hàm này đếm **màn thiếu bước**, và không có
+ * nó thì xưởng nói dối theo đúng cái kiểu nó sinh ra để chống: trang tổng quan ghi "0 bước hụt"
+ * nghe như đã phủ hết, trong khi bốn màn đứng ngoài mọi hành trình — tức là bốn màn không ai kiểm
+ * được, vì không có đường nào dẫn người duyệt đi qua chúng.
+ *
+ * Một màn ngoài mọi luồng KHÔNG hẳn là lỗi. Nó là một trong hai điều, và cả hai đều đáng biết:
+ * hoặc hành trình dẫn tới nó chưa được distill (nợ tài liệu), hoặc bản thân màn ấy thừa.
+ *
+ * `FOUNDATION` không tính: từ điển thị giác là đồ nghề của người dựng, không phải nơi ai đi qua.
+ */
+export function viewChuaCoLuong(): { slug: string; label: string; fr: string }[] {
+  const coLuong = new Set(FLOWS.flatMap((f) => f.steps.map((s) => s.slug)).filter(Boolean));
+  return REQ_GROUPS.flatMap((g) =>
+    g.views.filter((v) => !coLuong.has(v.slug)).map((v) => ({ ...v, fr: g.fr })),
+  );
+}
+
+/**
+ * Luồng CHƯA distill vào spine (`source: null`) — nợ tài liệu, không phải luồng hạng hai.
+ *
+ * Phải đếm được, nếu không một luồng tôi suy ra từ § State Patterns trông y hệt một luồng người
+ * duyệt đã kể — và cái thứ hai mới là thứ đáng tin.
+ */
+export function luongChuaDistill(): Flow[] {
+  return FLOWS.filter((f) => f.source === null);
 }
 
 // ── Bố cục bản đồ (GIỮ NGUYÊN khi cắm kit) ───────────────────────────────────

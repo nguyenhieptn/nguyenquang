@@ -502,7 +502,50 @@ export const KHANG_DINH: KhangDinh[] = [
     tinCay: 'ton-nghi',
     tang: 'ton-nghi',
   },
+  // Khẳng định về BỐ KHÁNH — node vừa sinh ra ở cao trào Luồng 1. Trang một người vẽ từ đây, và
+  // đây là chỗ DUY NHẤT FR-1 lộ ra với người thường (EXPERIENCE.md § Chip mức tin cậy): một người
+  // không đọc "bản ghi", họ đọc "ai nói điều này, dựa vào đâu".
+  {
+    id: 'k-005',
+    veNguoiId: 'n-009',
+    menhDe: 'Nguyễn Quang Hùng là con của Nguyễn Quang Hoạch',
+    nguon: 'Tự khai — con trai, cháu Khánh',
+    nguoiKhai: 'Nguyễn Quang Khánh',
+    ngayKhai: '2026-08-12',
+    tinCay: 'ton-nghi',
+    tang: 'ton-nghi',
+  },
+  {
+    id: 'k-006',
+    veNguoiId: 'n-009',
+    menhDe: 'Nguyễn Quang Hùng sinh năm 1975',
+    nguon: 'Tự khai — con trai, cháu Khánh',
+    nguoiKhai: 'Nguyễn Quang Khánh',
+    ngayKhai: '2026-08-12',
+    tinCay: 'ton-nghi',
+    tang: 'ton-nghi',
+  },
+  {
+    // Cùng một người, hai khẳng định KHÁC MỨC TIN CẬY. Cố ý: mức tin cậy gắn vào KHẲNG ĐỊNH chứ
+    // không gắn vào người (FR-1 + FR-2). Một trang người vẽ đúng phải cho thấy điều đó, nếu không
+    // "tồn nghi" bị đọc thành một nhãn dán lên con người — sai, và xúc phạm.
+    id: 'k-007',
+    veNguoiId: 'n-009',
+    menhDe: 'Nguyễn Quang Hùng là anh ruột của Nguyễn Quang Khoa',
+    nguon: 'Xác nhận liên kết — cháu Khánh, đối chiếu khung nhập tay 02/2026',
+    nguoiKhai: 'Nguyễn Quang Khánh',
+    ngayKhai: '2026-08-12',
+    tinCay: 'theo-loi-ke',
+    tang: 'ton-nghi',
+  },
 ];
+
+/** Khẳng định về một người, mới nhất trước. Trang một người và panel giải nghĩa đọc từ đây. */
+export function khangDinhVe(nguoiId: string): KhangDinh[] {
+  return KHANG_DINH.filter((k) => k.veNguoiId === nguoiId).sort((a, b) =>
+    b.ngayKhai.localeCompare(a.ngayKhai),
+  );
+}
 
 // ── Lời kể ──────────────────────────────────────────────────────────────────
 
@@ -589,6 +632,25 @@ export function chiCua(id: string): Nguoi | null {
   if (nguoi && !nguoi.chaId && nguoi.voChongId) return chiCua(nguoi.voChongId);
   const duong = [...duongVeGoc(id)].reverse(); // [gốc tạm, …, chính mình]
   return duong.length >= 2 ? duong[1] : null;
+}
+
+/**
+ * NHÃN CHI để hiển thị cạnh số đời — "chi Hai", không phải mã chi "1.1.1.1.2".
+ *
+ * Hai thứ khác nhau, và trước 12/08/2026 mọi màn đang in nhầm thứ hai vào chỗ của thứ nhất:
+ *   · `maChiCua` là **mã đường đi** (`1.3.2`) — công cụ của người tu phả, dùng để tra và đối
+ *     chiếu. Nó dài ra theo từng đời, nên tới đời 6 đã là `1.1.1.1.2.1`: không đọc được, không
+ *     nhớ được, và không phải cách người trong họ gọi nhau.
+ *   · Nhãn chi là **cách dòng họ tự gọi mình**: chi Nhất, chi Hai, chi Ba. Đây là thứ EXPERIENCE.md
+ *     § State Patterns viết ra trong ví dụ chuẩn ("đời 6 · chi Hai"), và là thứ duy nhất giúp phân
+ *     biệt hai người trùng tên mà không bắt ai đọc một dãy số.
+ *
+ * Gốc tạm không thuộc chi nào — cụ LÀ điểm chia chi, nên trả về nhãn riêng thay vì bịa ra "chi 1".
+ */
+export function nhanChi(id: string): string {
+  const goc = chiCua(id);
+  if (!goc) return 'gốc của tộc';
+  return tenChi(goc.id).replace(/^Chi /, 'chi ');
 }
 
 /** Tên chi theo thứ tự sinh: Chi Nhất, Chi Hai, Chi Ba… Dẫn xuất từ thứ tự con của gốc tạm. */
@@ -900,3 +962,179 @@ export function demTrangThai(dong: DongKhung[], tt: TrangThaiDong): number {
 export function demCanXemLai(dong: DongKhung[]): number {
   return dong.filter((d) => d.canhBao).length;
 }
+
+// ── Nhật ký sửa (FR-39) ─────────────────────────────────────────────────────
+//
+// FR-39 là mỏ neo của HAI thứ tưởng rời nhau: ô "Vừa vào phả" ở màn chủ, và dòng ghi công dưới
+// mỗi node. Cả hai đều là LÁT CẮT của cùng một nhật ký — nên nhật ký phải có thật ở seed, không
+// thì hai màn kia đang vẽ một thứ không tồn tại ở tầng dữ liệu.
+
+export type MucNhatKy = {
+  id: string;
+  veNguoiId: string;
+  /** Câu kể việc đã xảy ra, không phải tên thao tác. Bề mặt A cấm từ kỹ thuật. */
+  viec: string;
+  nguoiLam: string;
+  khi: string;
+};
+
+export const NHAT_KY: MucNhatKy[] = [
+  { id: 'nk-001', veNguoiId: 'n-009', viec: 'Thêm vào phả', nguoiLam: 'cháu Khánh', khi: 'hôm nay' },
+  {
+    id: 'nk-002',
+    veNguoiId: 'n-009',
+    viec: 'Ghi năm sinh 1975',
+    nguoiLam: 'cháu Khánh',
+    khi: 'hôm nay',
+  },
+  {
+    id: 'nk-003',
+    veNguoiId: 'n-009',
+    viec: 'Nối vào cụ Hoạch làm con',
+    nguoiLam: 'cháu Khánh',
+    khi: 'hôm nay',
+  },
+  {
+    id: 'nk-004',
+    veNguoiId: 'n-011',
+    viec: 'Nạp từ khung nhập tay',
+    nguoiLam: 'Nguyễn Quang Hiệp',
+    khi: '02/2026',
+  },
+  {
+    id: 'nk-005',
+    veNguoiId: 'n-011',
+    viec: 'Nối vào cụ Hùng làm con',
+    nguoiLam: 'cháu Khánh',
+    khi: 'hôm nay',
+  },
+];
+
+/** Nhật ký của một người, mới nhất trước. */
+export function nhatKyVe(nguoiId: string): MucNhatKy[] {
+  return NHAT_KY.filter((m) => m.veNguoiId === nguoiId);
+}
+
+// ── Lời kể (FR-47 + FR-49) ──────────────────────────────────────────────────
+
+/** Bản thu có nhắc tới người này — trang một người bày ra để lời kể không nằm chết một chỗ. */
+export function loiKeVe(nguoiId: string): LoiKe[] {
+  return LOI_KE.filter((l) => l.noiVe.includes(nguoiId) || l.nguoiKeId === nguoiId);
+}
+
+/** Giây → "6 phút 12 giây". Không dùng dạng `06:12` — dấu hai chấm là ngôn ngữ của máy. */
+export function doDai(giay: number): string {
+  const phut = Math.floor(giay / 60);
+  const du = giay % 60;
+  return du ? `${phut} phút ${du} giây` : `${phut} phút`;
+}
+
+/** Nhãn ba mức đồng thuận (FR-49) — chính người kể chọn, không ai chọn hộ. */
+export const NHAN_TIEP_CAN: Record<LoiKe['tiepCan'], string> = {
+  'cong-khai': 'Cả họ nghe được',
+  'chi-quan-tri': 'Chỉ ban tu phả nghe',
+  'niem-phong': 'Niêm phong',
+};
+
+// ── Hàng chờ duyệt lên Tầng chính thức (FR-3) ───────────────────────────────
+//
+// DẪN XUẤT, không phải một bảng riêng: hàng chờ CHÍNH LÀ Tầng tồn nghi, nhìn từ phía người có vai
+// duyệt. Lưu thành danh sách riêng là mở đường cho hai con số lệch nhau — bảng nói 9, cây nói 11.
+
+export type MucHangCho = {
+  nguoi: Nguoi;
+  /** Khẳng định làm chỗ dựa để duyệt — người duyệt cần thấy NGUỒN, không chỉ thấy tên. */
+  khangDinh: KhangDinh[];
+  /** Có bản thu nào nhắc tới người này không — chứng cứ mạnh hơn một dòng tự khai. */
+  soLoiKe: number;
+};
+
+export function hangChoDuyet(): MucHangCho[] {
+  return NGUOI.filter((n) => n.tang === 'ton-nghi').map((nguoi) => ({
+    nguoi,
+    khangDinh: khangDinhVe(nguoi.id),
+    soLoiKe: loiKeVe(nguoi.id).length,
+  }));
+}
+
+// ── Hợp nhất mảnh (FR-48) ───────────────────────────────────────────────────
+//
+// Ca thật của seed: cụ Đệ đang có HAI bản — `n-002` ở mảnh chính, `n-101` ở mảnh chi trong Nam.
+// Nối đúng thì hai mảnh thành một cây; nối sai thì hỏng phả của cả một chi. Đây là lý do màn hợp
+// nhất tồn tại, và là lý do KHÔNG cái nào được chọn sẵn.
+
+export type UngVienNoi = {
+  id: string;
+  /** Hai người nghi là một. Thứ tự không mang nghĩa — không bên nào là "bản đúng". */
+  aId: string;
+  bId: string;
+  /** Điều bot thấy giống nhau. Bày ra để người quyết, không phải để máy quyết. */
+  giongNhau: string[];
+  /** Điều bot thấy KHÁC nhau — bắt buộc phải bày, nếu không đây là màn dụ người bấm gộp. */
+  khacNhau: string[];
+  /** Nối hai mảnh này lại thì bao nhiêu người về cùng một cây. */
+  soNguoiAnhHuong: number;
+};
+
+export const UNG_VIEN_NOI: UngVienNoi[] = [
+  {
+    id: 'un-001',
+    aId: 'n-002',
+    bId: 'n-101',
+    giongNhau: ['Cùng tên: Nguyễn Quang Đệ', 'Cùng năm mất: 1954', 'Đều là gốc tạm một mảnh'],
+    khacNhau: [
+      'Mảnh chính ghi sinh 1888; chi trong Nam không ghi năm sinh',
+      'Mảnh chính ghi có vợ là Trần Thị Vẽ; chi trong Nam không nhắc',
+      'Con ghi khác nhau: một bên là cụ Bảng, một bên là cụ Thuyết',
+    ],
+    soNguoiAnhHuong: 4,
+  },
+  {
+    // Ca thứ hai cố ý KHÔNG phải một người — để màn phải bày được cả câu trả lời "hai người khác
+    // nhau", chứ không chỉ bày đường gộp. Trùng tên trong một dòng họ là chuyện thường.
+    id: 'un-002',
+    aId: 'n-009',
+    bId: 'n-013',
+    giongNhau: ['Cùng tên: Nguyễn Quang Hùng'],
+    khacNhau: [
+      'Sinh 1975 và sinh 1958 — cách nhau 17 năm',
+      'Cha khác nhau: cụ Hoạch và cụ Thuyết',
+      'Ở hai mảnh khác nhau',
+    ],
+    soNguoiAnhHuong: 0,
+  },
+];
+
+// ── Quyền của người sống (FR-55) ────────────────────────────────────────────
+
+/**
+ * Thông báo LƯU SẴN TRÊN NODE, chỉ hiện ra lần đầu người đó gắn được vào chỗ của mình
+ * (EXPERIENCE.md § Vừa được thêm bởi người khác).
+ *
+ * ⚠️ Giới hạn đã chấp nhận, phải mang theo: cơ chế này là **kéo**. Người không bao giờ mở web thì
+ * không bao giờ biết mình đã bị đưa vào phả — mà đó chính là nhóm cao niên FR-55 sinh ra để bảo
+ * vệ. Đừng để màn nào ngầm nói rằng FR-55 đã xong.
+ */
+export type ThongBaoNode = {
+  veNguoiId: string;
+  nguoiThem: string;
+  khi: string;
+  /**
+   * Những gì người khác đã ghi về mình — kể ra HẾT, kèm ai ghi. Tóm tắt là giấu bớt, mà đây đúng
+   * là màn không được phép giấu: người sống chỉ quyết được về thứ họ nhìn thấy.
+   */
+  daGhi: { menhDe: string; boi: string; khi: string }[];
+};
+
+export const THONG_BAO_NODE: ThongBaoNode[] = [
+  {
+    veNguoiId: 'n-011',
+    nguoiThem: 'Ban tu phả',
+    khi: '02/2026',
+    daGhi: [
+      { menhDe: 'Tên: Nguyễn Quang Khoa', boi: 'Ban tu phả', khi: '02/2026' },
+      { menhDe: 'Sinh 2001', boi: 'Ban tu phả', khi: '02/2026' },
+      { menhDe: 'Là con của Nguyễn Quang Hùng', boi: 'em trai Khánh', khi: 'hôm nay' },
+    ],
+  },
+];

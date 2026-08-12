@@ -42,7 +42,7 @@ import {
   demTrangThai,
   demCanXemLai,
   doiCua,
-  maChiCua,
+  nhanChi,
   type DongKhung,
 } from '../_mock/seed';
 
@@ -72,7 +72,7 @@ function TheNguoiTrongPha({ id }: { id: string }) {
       {/* Đời + chi là BẮT BUỘC, y như màn "không tìm thấy" của bề mặt A và vì cùng một lý do:
           trùng tên là chuyện thường trong một dòng họ, và gộp nhầm hai cụ làm hỏng phả cả chi. */}
       <p className="mt-0.5 text-[15px] text-muted-foreground">
-        đời {doiCua(n.id)} · chi {maChiCua(n.id)}
+        đời {doiCua(n.id)} · {nhanChi(n.id)}
         {n.namMat ? ` · mất ${n.namMat}` : ''}
       </p>
       <p className="mt-0.5 text-[15px] text-muted-foreground">
@@ -178,7 +178,7 @@ function OSoKhop({ dong }: { dong: DongKhung }) {
         <p className="text-[17px]">Khớp người có sẵn</p>
         <p className="mt-0.5 text-[15px] text-muted-foreground">
           <span className="font-[family-name:var(--font-pha)]">{n?.hoTen}</span> · đời{' '}
-          {doiCua(dong.khopVoiId)} · chi {maChiCua(dong.khopVoiId)}
+          {doiCua(dong.khopVoiId)} · {nhanChi(dong.khopVoiId)}
         </p>
       </>
     );

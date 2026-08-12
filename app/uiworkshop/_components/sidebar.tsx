@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FLOWS, gapCount } from '../_registry/flows';
+import { FLOWS, gapCount, viewChuaCoLuong } from '../_registry/flows';
 import {
   FOUNDATION,
   PLANNED_REQS,
@@ -28,10 +28,17 @@ import type { StoryMeta } from '../_registry/sprint';
  *    hai cho từng view, nhân đôi chiều cao của 40+ hàng.
  * 2. **Nhóm theo bề mặt** (chuẩn chrome khác nhau) chứ không trộn khách với CMS.
  * 3. Chiều rộng cố định, không hàng nào tràn: nhãn co được, phần đuôi (chấm) không co.
+ *
+ * ⚠️ FILE NÀY ĐÃ SỬA TẠI PROJECT — lệch khỏi bản kit (12/08/2026). `kit.mjs upgrade` sẽ báo drift;
+ * khi ấy hoà tay, đừng ghi đè mất. Phần thêm vào là HAI DẤU NỢ, cả hai đều để lỗ hổng khỏi im lặng:
+ *   · `∅` trên một view = chưa luồng nào dẫn tới nó (xem `viewChuaCoLuong`);
+ *   · `~` trên một luồng = `source: null`, chưa distill vào EXPERIENCE.md § Key Flows.
+ * Nếu bản kit sau này có sẵn hai dấu ấy thì bỏ phần sửa tay này đi.
  */
 export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
   const pathname = usePathname();
   const isActive = (slug: string) => pathname === `/uiworkshop/view/${slug}`;
+  const moCoi = new Set(viewChuaCoLuong().map((v) => v.slug));
 
   /** Gộp trạng thái nhiều story của một view thành một tông + một dòng mô tả cho tooltip. */
   function rollup(view: View) {
@@ -64,6 +71,16 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
         ].join(' ')}
       >
         <span className="min-w-0 flex-1 truncate">{view.label}</span>
+        {/* Màn KHÔNG luồng nào dẫn tới. Không phải lỗi, nhưng là thứ phải nhìn thấy: hoặc hành
+            trình dẫn tới nó chưa distill, hoặc chính màn ấy thừa. Im lặng thì cả hai đều trôi. */}
+        {moCoi.has(view.slug) && (
+          <span
+            title="Chưa luồng nào dẫn tới màn này — hoặc hành trình chưa distill, hoặc màn thừa"
+            className="shrink-0 font-mono text-[9px] leading-none text-ws-caution"
+          >
+            ∅
+          </span>
+        )}
         {/* Trạng thái story — MỘT chấm, chi tiết ở tooltip (giữ hàng đúng một dòng). */}
         {st && (
           <span
@@ -140,7 +157,9 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
                 <Link
                   key={f.id}
                   href={`/uiworkshop/flow/${f.id}`}
-                  title={`${f.title}\n${f.persona}\n${f.steps.length} bước${gaps ? ` · ${gaps} chưa có màn` : ''}`}
+                  title={`${f.title}\n${f.persona}\n${f.steps.length} bước${gaps ? ` · ${gaps} chưa có màn` : ''}${
+                    f.source === null ? '\n\n~ CHƯA DISTILL vào EXPERIENCE.md § Key Flows' : ''
+                  }`}
                   className={[
                     'flex min-h-7 items-center gap-2 rounded px-2 py-1 text-[13px] leading-tight',
                     active
@@ -149,6 +168,16 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
                   ].join(' ')}
                 >
                   <span className="min-w-0 flex-1 truncate">{f.title}</span>
+                  {/* Luồng SUY RA khác luồng người duyệt KỂ. Không đánh dấu thì hai thứ trông y
+                      hệt nhau trên sidebar, mà chỉ cái thứ hai đáng tin. */}
+                  {f.source === null && (
+                    <span
+                      title="Chưa distill vào EXPERIENCE.md § Key Flows — nợ tài liệu"
+                      className="shrink-0 font-mono text-[9px] leading-none text-ws-caution"
+                    >
+                      ~
+                    </span>
+                  )}
                   <span className="shrink-0 font-mono text-[9px] tabular-nums text-ws-n-40">
                     {f.steps.length}
                   </span>

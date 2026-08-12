@@ -34,8 +34,8 @@ type Muc = {
 const MUC: Muc[] = [
   { key: 'nap-khung', label: 'Nạp khung', href: '/uiworkshop/nap-khung' },
   { key: 'xem-truoc', label: 'Xem trước', href: '/uiworkshop/xem-truoc-so-khop' },
-  { key: 'hang-cho', label: 'Hàng chờ duyệt', href: null },
-  { key: 'manh-chua-noi', label: 'Mảnh chưa nối', href: null },
+  { key: 'hang-cho', label: 'Hàng chờ duyệt', href: '/uiworkshop/hang-cho-duyet' },
+  { key: 'manh-chua-noi', label: 'Mảnh chưa nối', href: '/uiworkshop/hop-nhat-manh' },
 ];
 
 export function ThanhBanDuyet({ hienTai }: { hienTai: MucBanDuyet }) {

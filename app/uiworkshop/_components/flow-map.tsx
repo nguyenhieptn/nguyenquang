@@ -20,6 +20,10 @@ import { layoutFlow, type Flow, type FlowNode } from '../_registry/flows';
  *     bốc 9 trang cùng lúc. Đã nạp thì giữ, không tháo — tránh nháy trắng khi pan qua lại.
  *  3. **iframe bị vô hiệu chuột trừ node đang focus** → kéo ngang qua màn vẫn là kéo bản đồ, và
  *     bấm vào một màn xa là "đi tới màn đó" chứ không phải bấm vào ruột nó.
+ *
+ * ⚠️ FILE NÀY ĐÃ SỬA TẠI PROJECT — lệch khỏi bản kit (12/08/2026). `kit.mjs upgrade` sẽ báo drift;
+ * hoà tay, đừng ghi đè mất. Phần sửa: dãy bước ở đáy mang NHÃN + dấu ◆ cao trào thay vì chỉ đánh
+ * số — xem chú thích tại chỗ. Nếu bản kit sau này đã có, bỏ phần sửa tay này đi.
  */
 export function FlowMap({ flow }: { flow: Flow }) {
   const box = useRef<HTMLDivElement>(null);
@@ -302,23 +306,41 @@ export function FlowMap({ flow }: { flow: Flow }) {
       )}
 
       <div className="absolute bottom-3 left-1/2 flex max-w-[calc(100%-1.5rem)] -translate-x-1/2 items-center gap-2 rounded-xl border border-ws-n-20 bg-white/95 p-1.5 shadow-md backdrop-blur">
+        {/* DÃY BƯỚC — mang NHÃN, không chỉ mang số.
+            Sửa 12/08/2026. Dãy cũ là bảy ô vuông đánh số: ở mức "vừa khung" — mức người ta gặp
+            đầu tiên và ở lại lâu nhất — nhãn bên trong node đã nhỏ tới mức không đọc được, nên
+            muốn biết bước 5 là gì thì phải bay tới bước 5. Tức là muốn đọc hành trình thì phải đi
+            hết hành trình, đúng cái mà một tấm bản đồ sinh ra để khỏi phải làm.
+            Đọc được cả chuỗi bằng chữ ở đây thì mức zoom thôi phải gánh việc truyền đạt. */}
         <div className="flex min-w-0 items-center gap-1 overflow-x-auto">
           {nodes.map((n) => (
             <button
               key={n.i}
               type="button"
               onClick={() => goTo(n.i)}
-              title={n.step.label}
+              title={`${n.step.label}\n\ntới đây bằng: ${n.step.trigger}`}
               className={[
-                'size-7 shrink-0 rounded-lg font-mono text-[11px] tabular-nums transition-colors duration-ws-fast ease-ws',
+                'flex h-7 max-w-44 shrink-0 items-center gap-1.5 rounded-lg px-2 transition-colors duration-ws-fast ease-ws',
                 focus === n.i
-                  ? 'bg-ws-accent font-bold text-white'
+                  ? 'bg-ws-accent text-white'
                   : n.step.slug === null
                     ? 'border border-dashed border-ws-n-40 text-ws-n-40 hover:border-ws-accent'
                     : 'bg-ws-n-05 text-ws-n-60 hover:bg-ws-accent/10 hover:text-ws-accent',
               ].join(' ')}
             >
-              {n.i + 1}
+              <span className="font-mono text-[11px] tabular-nums opacity-70">{n.i + 1}</span>
+              <span className="truncate text-[11px] leading-none">{n.step.label}</span>
+              {/* Nhịp cao trào nhìn thấy được TỪ XA — không phải đi hết luồng mới biết đâu là
+                  chỗ trả công. Đây cũng là chỗ người duyệt nên soi kỹ nhất. */}
+              {n.step.climax && (
+                <span
+                  aria-hidden
+                  title="Nhịp cao trào"
+                  className={focus === n.i ? 'text-white' : 'text-ws-warm'}
+                >
+                  ◆
+                </span>
+              )}
             </button>
           ))}
         </div>
