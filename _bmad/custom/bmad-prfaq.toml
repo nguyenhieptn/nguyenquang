@@ -1,0 +1,12 @@
+# Override team cho skill bmad-prfaq — Gia phả Nguyễn Quang.
+# Luật merge của BMAD: scalar override, ARRAY APPEND (không xoá được default).
+#
+# Mục đích DUY NHẤT của file này: nạp policy định tuyến model cho subagent.
+# Sửa bảng định tuyến ở _bmad/custom/model-routing.md — KHÔNG sửa ở đây, để một
+# chỗ duy nhất giữ luật thay vì chín bản sao trôi lệch nhau.
+
+[workflow]
+
+persistent_facts = [
+  "file:{project-root}/_bmad/custom/model-routing.md",
+]

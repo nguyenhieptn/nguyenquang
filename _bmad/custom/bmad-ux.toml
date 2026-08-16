@@ -8,6 +8,8 @@
 
 # Nạp làm ngữ cảnh nền suốt phiên. APPEND vào default (chỉ có project-context.md).
 persistent_facts = [
+  # Định tuyến model cho subagent — giữ Opus ở chỗ suy luận, hạ ở chỗ cơ học.
+  "file:{project-root}/_bmad/custom/model-routing.md",
   # Hợp đồng viết giao diện của project — đọc trước khi render bất kỳ prototype nào.
   "file:{project-root}/specs/frontend-stack.md",
   # Cách xưởng tổ chức + đăng ký màn (trục REQUIREMENT/FR, REQ_GROUPS trong outline.ts).

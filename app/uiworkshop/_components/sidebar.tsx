@@ -64,7 +64,7 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
         href={`/uiworkshop/view/${view.slug}`}
         title={st ? `${view.label}\n\n${st.title}` : view.label}
         className={[
-          'flex min-h-7 items-center gap-2 rounded px-2 py-1 text-[13px] leading-tight',
+          'flex min-h-8 items-center gap-2 rounded px-2 py-1 text-[14px] leading-tight',
           active
             ? 'bg-ws-accent/10 font-semibold text-ws-accent'
             : 'text-ws-body hover:bg-ws-n-05 hover:text-ws-ink',
@@ -76,7 +76,7 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
         {moCoi.has(view.slug) && (
           <span
             title="Chưa luồng nào dẫn tới màn này — hoặc hành trình chưa distill, hoặc màn thừa"
-            className="shrink-0 font-mono text-[9px] leading-none text-ws-caution"
+            className="shrink-0 font-mono text-[11px] leading-none text-ws-caution"
           >
             ∅
           </span>
@@ -106,15 +106,15 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
         <summary className="flex cursor-pointer list-none items-center gap-1.5 rounded px-2 py-1 hover:bg-ws-n-05">
           <span
             aria-hidden
-            className="shrink-0 text-[9px] text-ws-n-40 transition-transform group-open:rotate-90"
+            className="shrink-0 text-[11px] text-ws-n-40 transition-transform group-open:rotate-90"
           >
             ▶
           </span>
-          <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-ws-ink">
+          <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ws-ink">
             {group.title}
           </span>
           <span
-            className="shrink-0 font-mono text-[9px] uppercase tracking-wide text-ws-n-40"
+            className="shrink-0 font-mono text-[11px] uppercase tracking-wide text-ws-n-40"
             title={`${group.fr} · ${group.epics.join(' ')}`}
           >
             {group.fr}
@@ -130,12 +130,12 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
   }
 
   return (
-    <aside className="w-72 shrink-0 overflow-y-auto overflow-x-hidden border-r border-ws-n-20 bg-white">
+    <aside className="w-80 shrink-0 overflow-y-auto overflow-x-hidden border-r border-ws-n-20 bg-white">
       <nav className="grid grid-cols-1 gap-4 p-3 pb-8">
         <Link
           href="/uiworkshop"
           className={[
-            'rounded px-2 py-1.5 text-[13px] font-semibold',
+            'rounded px-2 py-1.5 text-[14px] font-semibold',
             pathname === '/uiworkshop'
               ? 'bg-ws-accent/10 text-ws-accent'
               : 'text-ws-ink hover:bg-ws-n-05',
@@ -161,7 +161,7 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
                     f.source === null ? '\n\n~ CHƯA DISTILL vào EXPERIENCE.md § Key Flows' : ''
                   }`}
                   className={[
-                    'flex min-h-7 items-center gap-2 rounded px-2 py-1 text-[13px] leading-tight',
+                    'flex min-h-8 items-center gap-2 rounded px-2 py-1 text-[14px] leading-tight',
                     active
                       ? 'bg-ws-accent/10 font-semibold text-ws-accent'
                       : 'text-ws-body hover:bg-ws-n-05 hover:text-ws-ink',
@@ -173,12 +173,12 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
                   {f.source === null && (
                     <span
                       title="Chưa distill vào EXPERIENCE.md § Key Flows — nợ tài liệu"
-                      className="shrink-0 font-mono text-[9px] leading-none text-ws-caution"
+                      className="shrink-0 font-mono text-[11px] leading-none text-ws-caution"
                     >
                       ~
                     </span>
                   )}
-                  <span className="shrink-0 font-mono text-[9px] tabular-nums text-ws-n-40">
+                  <span className="shrink-0 font-mono text-[11px] tabular-nums text-ws-n-40">
                     {f.steps.length}
                   </span>
                   {gaps > 0 && (
@@ -213,18 +213,18 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
 
         <section className="grid gap-0.5">
           <details>
-            <summary className="cursor-pointer list-none px-2 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-ws-n-40 hover:text-ws-ink-strong">
+            <summary className="cursor-pointer list-none px-2 py-1 font-mono text-[12px] uppercase tracking-[0.12em] text-ws-n-40 hover:text-ws-ink-strong">
               FR chưa dựng ({PLANNED_REQS.length})
             </summary>
             <div className="mt-0.5 ml-[9px] grid gap-px border-l border-ws-n-10 pl-1.5">
               {PLANNED_REQS.map((r) => (
                 <div
                   key={r.fr + r.title}
-                  className="flex min-h-7 items-center gap-2 px-2 py-1 text-[13px] leading-tight text-ws-n-40"
+                  className="flex min-h-8 items-center gap-2 px-2 py-1 text-[14px] leading-tight text-ws-n-40"
                   title={`${r.fr} · ${r.epic}`}
                 >
                   <span className="min-w-0 flex-1 truncate">{r.title}</span>
-                  <span className="shrink-0 font-mono text-[9px]">{r.fr}</span>
+                  <span className="shrink-0 font-mono text-[11px]">{r.fr}</span>
                 </div>
               ))}
             </div>
@@ -239,11 +239,11 @@ export function Sidebar({ stories }: { stories: Record<string, StoryMeta> }) {
 function SectionHead({ label, note, count }: { label: string; note?: string; count: number }) {
   return (
     <h3 className="flex items-baseline gap-1.5 px-2 pb-0.5 pt-1">
-      <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-ws-ink-strong">
+      <span className="font-mono text-[12px] font-semibold uppercase tracking-[0.14em] text-ws-ink-strong">
         {label}
       </span>
-      {note && <span className="min-w-0 flex-1 truncate text-[10px] text-ws-n-40">{note}</span>}
-      <span className="ml-auto shrink-0 font-mono text-[9px] tabular-nums text-ws-n-40">
+      {note && <span className="min-w-0 flex-1 truncate text-[12px] text-ws-n-40">{note}</span>}
+      <span className="ml-auto shrink-0 font-mono text-[11px] tabular-nums text-ws-n-40">
         {count}
       </span>
     </h3>

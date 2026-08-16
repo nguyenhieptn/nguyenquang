@@ -83,6 +83,19 @@ export const FOUNDATION: View[] = [
  * Khi bmad-ux render màn đầu tiên cho một FR: gỡ FR đó khỏi `PLANNED_REQS`, tạo một `ReqGroup` ở
  * đây (xem `_bmad/custom/ux-assets/react-key-screens.md`). Bề mặt nào chưa có nhóm nào thì sidebar
  * tự ẩn — không có đầu mục rỗng.
+ *
+ * ─────────────────────────────────────────────────────────────────────────────────────────────
+ * ⚠️ THU PHẠM VI — 16/08/2026. Xưởng từng có 18 màn phủ kín 15 FR của Đợt 1. Mười sáu màn đã bị
+ * XOÁ, còn đúng MỘT: `trang-chu`. Không phải vì chúng sai, mà vì mười tám màn dựng song song thì
+ * không màn nào được làm tới nơi — và chi phí giữ chúng đồng bộ với nhau lớn hơn giá trị chúng trả
+ * về ở giai đoạn này.
+ *
+ * Cách làm mới: **một view một lúc, làm xong mới mở view sau.** Mười lăm FR kia quay về
+ * `PLANNED_REQS` — chúng vẫn là phạm vi Đợt 1, chỉ là chưa có hình dạng để nhìn.
+ *
+ * Mười sáu màn đã xoá nằm trong lịch sử git (trừ `tim-vi-tri` — chưa từng commit, mất hẳn). Dựng
+ * lại thì `git log --diff-filter=D --name-only -- app/uiworkshop` là ra.
+ * ─────────────────────────────────────────────────────────────────────────────────────────────
  */
 export const REQ_GROUPS: ReqGroup[] = [
   {
@@ -90,106 +103,17 @@ export const REQ_GROUPS: ReqGroup[] = [
     fr: 'FR-13·FR-39·FR-63',
     title: 'Trả công tức thì',
     epics: ['Đợt 1'],
-    views: [{ slug: 'dong-ho-dang-song', label: 'Dòng họ đang sống' }],
-  },
-  {
-    section: 'app',
-    fr: 'FR-48·FR-11',
-    title: 'Hợp nhất mảnh — chặn trùng tại nguồn',
-    epics: ['Đợt 1'],
-    // Tìm và không-tìm-thấy đứng cùng một nhóm vì chúng là MỘT việc: chặn bản trùng tại nguồn.
-    // Người dùng nghĩ mình đang tra cứu; hệ thống đang chặn. Tách ra hai nhóm thì cái thứ hai đọc
-    // ra như một màn lỗi, mà nó là màn quan trọng nhất của Đợt 1.
     views: [
-      { slug: 'tim-nguoi-than', label: 'Tìm người thân' },
-      { slug: 'khong-tim-thay', label: 'Không tìm thấy' },
+      {
+        slug: 'trang-chu',
+        label: 'Trang chủ',
+        // `web` ĐÈ mặc định `mobile` của bề mặt 'app'. Bề mặt vẫn khai đúng: sản phẩm thật sống
+        // trên trình duyệt điện thoại (NFR §6). Nhưng THỨ TỰ DỰNG thì ngược lại — dựng bề ngang
+        // trước, vì bố cục hai cột ở đây (cột đời | ghi chú lề) là quyết định phải chốt trước, và
+        // nó chỉ tồn tại ở khung rộng. Bản hẹp là bản xếp chồng của nó, không phải ngược lại.
+        viewport: 'web',
+      },
     ],
-  },
-  {
-    section: 'app',
-    fr: 'FR-11·FR-3',
-    title: 'Tự khai — bốn câu, ghi ngay',
-    epics: ['Đợt 1'],
-    views: [{ slug: 'them-nguoi-than', label: 'Thêm người thân' }],
-  },
-  {
-    section: 'app',
-    fr: 'FR-1·FR-2·FR-37',
-    title: 'Trang một người — khẳng định mang nguồn',
-    epics: ['Đợt 1'],
-    // FR-39 cũng đổ vào màn này (nhật ký sửa đọc thành "ai đã ghi gì"), nhưng nhãn FR giữ ba mã:
-    // FR-39 đã đứng tên ở nhóm "Trả công tức thì", và lặp mã ở hai chỗ khiến sidebar đọc ra như
-    // có hai yêu cầu khác nhau trùng số.
-    views: [{ slug: 'trang-nguoi', label: 'Trang một người' }],
-  },
-  {
-    section: 'app',
-    fr: 'FR-47·FR-49',
-    title: 'Thu lời kể & đồng thuận',
-    epics: ['Đợt 1'],
-    // ⚠️ Màn dựng từ § IA và § Interaction Primitives, KHÔNG từ một hành trình có thật — hành
-    // trình gốc UJ-1 đã mất. Đúng luật, chưa chắc đúng nhịp. Xem EXPERIENCE.md § Luồng chưa distill.
-    views: [{ slug: 'thu-loi-ke', label: 'Thu lời kể' }],
-  },
-  {
-    section: 'app',
-    fr: 'FR-64·FR-55',
-    title: 'Tài khoản, chỗ của mình, quyền của người sống',
-    epics: ['Đợt 1'],
-    // Hai FR nằm chung một nhóm vì chúng là hai nửa của cùng một câu hỏi — "phả biết mình là ai".
-    // FR-64 trả lời phần chứng minh; FR-55 trả lời phần hệ quả: đã biết mình là ai thì phần về
-    // mình do mình quyết.
-    views: [
-      { slug: 'dang-nhap', label: 'Đăng nhập & nhận chỗ' },
-      { slug: 'toi', label: 'Tôi' },
-    ],
-  },
-  {
-    section: 'app',
-    fr: 'FR-15·FR-2·FR-3',
-    title: 'Cây gia tộc & ba mức tin cậy',
-    epics: ['Đợt 1'],
-    // Ba tầng zoom, đúng chữ FR-15 "zoom theo chi, collapse theo đời".
-    // Điểm vào của mục "Gia phả" là TẦNG 2 — FR-15 đòi thấy chính mình trước.
-    views: [
-      { slug: 'mot-chi', label: 'Một chi — tầng 2' },
-      { slug: 'ca-toc', label: 'Cả tộc — tầng 1' },
-      { slug: 'cay-gia-toc', label: 'Cây gia tộc' },
-    ],
-  },
-  {
-    section: 'admin',
-    fr: 'FR-51·FR-48',
-    title: 'Gieo mồi — nạp khung dòng họ',
-    epics: ['Đợt 1'],
-    // FR-48 xuất hiện ở CẢ HAI bề mặt và đó là đúng: chặn bản trùng ở bề mặt A là chặn lúc một
-    // người tự khai; ở đây là chặn lúc nạp cả một file. Cùng một yêu cầu, hai chỗ nó phải đứng.
-    //
-    // "Bảng cảnh báo" KHÔNG có mặt ở đây vì nó không phải một view: nó là bộ lọc "Cần xem lại"
-    // của chính màn xem trước (EXPERIENCE.md § Bề mặt B, sửa 11/08/2026).
-    views: [
-      { slug: 'nap-khung', label: 'Nạp khung' },
-      { slug: 'xem-truoc-so-khop', label: 'Xem trước so khớp' },
-    ],
-  },
-  {
-    section: 'admin',
-    fr: 'FR-3',
-    title: 'Duyệt lên Tầng chính thức',
-    epics: ['Đợt 1'],
-    // ⚠️ Cùng nợ tài liệu với "Thu lời kể": hành trình gốc UJ-3 đã mất, và phần còn lại phụ thuộc
-    // FR-4 vốn ngoài Đợt 1. Màn dựng từ § IA, nhịp chưa được kiểm bằng một lần duyệt thật.
-    views: [{ slug: 'hang-cho-duyet', label: 'Hàng chờ duyệt' }],
-  },
-  {
-    section: 'admin',
-    fr: 'FR-48',
-    title: 'Nối mảnh rời',
-    epics: ['Đợt 1'],
-    // FR-48 giờ đứng ở CẢ BA chỗ, và đó là đúng: chặn lúc một người tự khai (bề mặt A), chặn lúc
-    // nạp cả một file (xem trước), và gỡ cái đã lọt (đây). Cùng một yêu cầu, ba khoảnh khắc khác
-    // nhau của cùng một dữ liệu.
-    views: [{ slug: 'hop-nhat-manh', label: 'Mảnh chưa nối' }],
   },
 ];
 
@@ -204,16 +128,29 @@ export const REQ_GROUPS: ReqGroup[] = [
  * và gắn `storySlugs` cho từng view.
  */
 export const PLANNED_REQS: { fr: string; title: string; epic: string }[] = [
-  // RỖNG kể từ 12/08/2026 — cả mười lăm FR của Đợt 1 đều đã có ít nhất một màn dựng thử, nên
-  // sidebar tự ẩn mục này.
+  // ĐẦY LẠI từ 16/08/2026 sau khi thu phạm vi. Danh sách này từng rỗng — mọi FR Đợt 1 đều đã có
+  // một màn dựng thử. Mười sáu màn đó bị xoá, nên các FR quay về đây.
   //
-  // ⚠️ ĐỌC ĐÚNG CON SỐ RỖNG NÀY. Nó nói: mọi yêu cầu Đợt 1 đã có một HÌNH DẠNG để nhìn và để cãi.
-  // Nó KHÔNG nói:
-  //   · rằng chúng đã dev — xưởng chạy trên mock, chưa màn nào chạm vào dữ liệu thật;
-  //   · rằng chúng đã đúng — ba màn (thu lời kể, hàng chờ duyệt, và nửa sau của tự khai) dựng từ
-  //     § IA chứ không từ một hành trình có thật, vì UJ-1 và UJ-3 đã mất khi PRD được viết lại;
-  //   · rằng FR-55 đã xong — cơ chế của nó là KÉO, người không mở web thì không bao giờ biết mình
-  //     đã bị đưa vào phả, mà đó đúng là nhóm FR-55 sinh ra để bảo vệ (PRD §12 đã tự thú).
+  // ⚠️ ĐỌC ĐÚNG DANH SÁCH NÀY. Nó nói: những yêu cầu này thuộc phạm vi Đợt 1 và chưa có hình dạng
+  // để nhìn. Nó KHÔNG nói rằng chúng chưa từng được thiết kế — hầu hết đã có một bản dựng, và bản
+  // đó nằm trong lịch sử git. Đây là danh sách CHỜ ĐẾN LƯỢT, không phải danh sách trắng.
+  //
+  // Thứ tự giữ đúng thứ tự của prd.md §5 (Gieo mồi → Vòng lặp người dùng → Thu lời kể → Nền dữ
+  // liệu → Không làm hại ai), vì đó là thứ tự khiến dữ liệu bắt đầu chảy vào.
+  //
+  // Làm xong một view thì gỡ FR tương ứng khỏi đây và tạo `ReqGroup` ở trên — MỘT lúc một cái.
+  { fr: 'FR-51', title: 'Gieo mồi — nạp khung dòng họ', epic: 'Đợt 1' },
+  { fr: 'FR-48', title: 'Chặn bản trùng tại nguồn — tìm trước khi thêm', epic: 'Đợt 1' },
+  { fr: 'FR-11', title: 'Tự khai — bốn câu, ghi ngay', epic: 'Đợt 1' },
+  { fr: 'FR-15', title: 'Cây gia tộc — zoom theo chi, collapse theo đời', epic: 'Đợt 1' },
+  { fr: 'FR-1', title: 'Khẳng định mang nguồn', epic: 'Đợt 1' },
+  { fr: 'FR-2', title: 'Ba mức tin cậy', epic: 'Đợt 1' },
+  { fr: 'FR-3', title: 'Duyệt lên Tầng chính thức', epic: 'Đợt 1' },
+  { fr: 'FR-47', title: 'Thu lời kể', epic: 'Đợt 1' },
+  { fr: 'FR-49', title: 'Đồng thuận của người kể', epic: 'Đợt 1' },
+  { fr: 'FR-37', title: 'Bán kính riêng tư', epic: 'Đợt 1' },
+  { fr: 'FR-55', title: 'Quyền của người sống với phần về mình', epic: 'Đợt 1' },
+  { fr: 'FR-64', title: 'Đăng nhập & nhận chỗ của mình trên phả', epic: 'Đợt 1' },
   //
   // FR của "Sau này" (prd.md §7) vẫn KHÔNG liệt kê ở đây — kể cả hai ô còn thiếu của màn chủ
   // (FR-22 lời giáo huấn, FR-41 sự kiện sắp tới). Đợt 1 cố ý dựng hai trong bốn ô.

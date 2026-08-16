@@ -69,7 +69,11 @@
   --secondary: #fbf6e9;
   --secondary-foreground: #6b5a44;
   --muted: #efe5cc;
-  --muted-foreground: #7d6c55;
+  /* Nhãn phụ. DESIGN.md ghi #7d6c55, nhưng trên nền giấy dó nó chỉ đạt tương phản
+   * 4.30 — DƯỚI sàn 4.5 mà chính DESIGN.md § Accessibility Floor đặt ra (nhãn phụ
+   * là chữ, và sàn áp cho MỌI chữ). Hạ 4 điểm mỗi kênh, giữ nguyên sắc, đạt 4.51
+   * trên giấy dó và 4.92 trên ô nổi. Lệch này phải chép ngược về DESIGN.md. */
+  --muted-foreground: #796952;
   --accent: #efe5cc;
   --accent-foreground: #3a2f24;
   /* Lỗi KHÔNG dùng son: nếu lỗi cũng đỏ thì "đỏ" mất nghĩa.

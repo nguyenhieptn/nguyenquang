@@ -4,9 +4,12 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:vpn": "next dev -H \"$(tailscale ip -4)\"",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "start:vpn": "next start -H \"$(tailscale ip -4)\"",
+    "lint": "eslint",
+    "test:so-khop": "tsc core/so-khop/*.ts --outDir .test-out --module commonjs --target es2022 --moduleResolution node --strict --skipLibCheck --esModuleInterop && node --test .test-out/so-khop.test.js"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",

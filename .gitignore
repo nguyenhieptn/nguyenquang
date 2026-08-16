@@ -39,3 +39,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# đầu ra biên dịch của npm run test:so-khop
+/.test-out

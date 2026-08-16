@@ -439,6 +439,16 @@ export const TOI_ID = 'n-007';
  * duyệt là Hiệp, còn màn của người trong họ kể hành trình của Khánh. Cùng một `TOI_ID` cho cả hai
  * thì bán kính riêng tư vẽ sai người.
  */
+/**
+ * Tên dòng họ — NGUỒN DUY NHẤT cho mọi màn của bề mặt "Người trong họ".
+ *
+ * Nằm ở mock chứ không nằm trong `components/pha/*`: `AD-14` bắt không hardcode gì của một dòng
+ * họ cụ thể vào mã sản phẩm. Component nhận qua prop; bản thật lấy từ cấu hình dòng họ, xưởng lấy
+ * từ đây. Để mỗi màn tự dùng mặc định của component là cách chắc chắn để chúng hiện tên khác nhau
+ * — và đó đúng là chuyện đã xảy ra: 12 màn hiện "Tộc phả", riêng trang chủ hiện "Nguyễn Quang".
+ */
+export const TEN_PHA = 'Nguyễn Quang';
+
 export const KHANH_ID = 'n-010';
 
 /**

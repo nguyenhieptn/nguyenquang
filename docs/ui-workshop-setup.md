@@ -129,6 +129,103 @@ mà `.next/` không được chuyển từ thư mục tạm sang. `npx next type
 
 ---
 
+## Chạy qua VPN (Tailscale)
+
+Xưởng cần xem được từ máy khác — điện thoại, máy của người trong họ — nhưng **không** phơi ra wifi
+quán cà phê. Tailnet giải đúng việc đó: chỉ thiết bị đã đăng nhập cùng tailnet mới tới được.
+
+```
+npm run dev:vpn        # xưởng UI, qua VPN
+npm run start:vpn      # bản production, qua VPN (cần `npm run build` trước)
+```
+
+Hai script bind thẳng vào IP Tailscale — `next dev -H "$(tailscale ip -4)"`. Lấy IP **động** chứ
+không viết cứng, vì IP tailnet có thể đổi khi rời/nhập lại mạng.
+
+Máy này: `edgexpert-cd08` → `100.94.148.68` → `http://edgexpert-cd08.tail5d6a1b.ts.net:3000`.
+
+### Ba điều phải biết trước khi dùng
+
+**1. `dev:vpn` bind riêng IP VPN ⇒ `localhost:3000` không còn mở được.** Đó là chủ ý — bind riêng
+mới là thứ chặn LAN. Ngồi làm ngay tại máy này thì dùng `npm run dev` như cũ (Next mặc định bind
+`0.0.0.0`, cả localhost lẫn Tailscale lẫn wifi đều tới được).
+
+**2. Origin mới phải khai trong `allowedDevOrigins`.** Next chặn cross-origin tới asset dev nếu
+origin không phải hostname khởi tạo server. `next.config.ts` đang liệt kê IP Tailscale, tên
+MagicDNS, và IP LAN. Thêm thiết bị/tên mới thì thêm vào đây, không thì trang mở ra nhưng CSS/JS
+im lặng không nạp.
+
+**3. `start:vpn` **không** phục vụ `/uiworkshop`.** `app/uiworkshop/layout.tsx` gọi `notFound()`
+khi `NODE_ENV === 'production'` (xem Bước 6). Muốn khoe xưởng cho người khác thì phải là
+`dev:vpn`; `start:vpn` chỉ để xem bản thật.
+
+---
+
+## Thu phạm vi — 16/08/2026
+
+Xưởng đã có **18 màn** phủ kín 15 FR của Đợt 1. Đã **xoá 16**, còn đúng một: **`trang-chu`**.
+
+Lý do không phải là chúng sai. Là vì mười tám màn dựng song song thì không màn nào được làm tới
+nơi, và chi phí giữ chúng đồng bộ với nhau đã lớn hơn giá trị chúng trả về. Cách làm từ đây:
+**một view một lúc, xong mới mở view sau** — và **dựng bề ngang (desktop) trước**.
+
+### Còn lại
+
+| | |
+|---|---|
+| View | `trang-chu` · `design-system` (bảng token, tầng FOUNDATION) |
+| Plumbing giữ nguyên | `(shell)` · `_components` · `_mock` · `_registry` |
+| `components/pha` | `chan-trang` · `khung` · `o-tim` · `tam-phim` · `thanh-dieu-huong` · `tin-cay` · `vach` |
+
+Đã xoá khỏi `components/pha`: `cay-ca-toc`, `cay-gia-pha`, `cay-tai-dong`, `thanh-ban-duyet`,
+`khung-cay` — hết người dùng sau khi các màn cây và bàn duyệt biến mất.
+
+### Bốn chỗ phải vá theo, không chỗ nào là tuỳ chọn
+
+**1. `ChamTinCay` tách khỏi `khung-cay.tsx` → `components/pha/tin-cay.tsx`.** `khung-cay` import
+`@xyflow/react` **và stylesheet của nó**; `trang-chu` chỉ mượn ở đó đúng một cái chấm 10px. Để
+nguyên là bắt màn duy nhất còn lại tải cả thư viện đồ thị. Mức tin cậy vốn là khái niệm của **dữ
+liệu**, không phải của cây — sau khi cây mất, `tin-cay.tsx` mới là chỗ đúng của nó.
+
+**2. `href` → `null`, không phải xoá mục.** `ThanhDieuHuong` (4/5 mục) và `ChanTrang` (7 đường)
+trỏ vào màn đã xoá. Cả hai component **vốn đã nhận `href: string | null`** và render mục thành chữ
+trơ — dùng đúng cơ chế có sẵn, không phải cách lách.
+
+> Giữ **nguyên năm mục** thay vì cắt xuống một. Thanh điều hướng khai báo **hình dạng** của sản
+> phẩm; cắt còn một mục thì `trang-chu` đọc ra như một trang lẻ, và mọi quyết định bố cục lấy trên
+> nó — chiều cao thanh, khoảng chừa dưới, sức nặng của "Thêm" ở giữa — đều sai.
+
+**3. `FLOWS = []`.** Năm hành trình cũ dựng trên 16 màn đã xoá; giữ lại thì bản đồ vẽ ra một chuỗi
+ô trống và `gapCount` báo "chưa dựng" cho những màn thật ra đã dựng xong — sai kiểu đó tệ hơn
+không có bản đồ. Sidebar tự ẩn mục "Luồng" khi rỗng. **Một màn thì chưa có luồng**: hành trình cần
+ít nhất hai bước. Toàn bộ máy móc (`flowById`, `layoutFlow`, `viewChuaCoLuong`…) giữ nguyên và
+chạy đúng trên mảng rỗng.
+
+**4. `PLANNED_REQS` đầy lại — 12 FR.** Danh sách này từng rỗng vì mọi FR đã có màn. Giờ các FR
+quay về đó. Đây là danh sách **chờ đến lượt**, không phải danh sách trắng: hầu hết đã từng có một
+bản dựng, và bản đó nằm trong git.
+
+### Desktop-first
+
+`trang-chu` khai `viewport: 'web'`, **đè** mặc định `mobile` của bề mặt `app`. Bề mặt vẫn khai
+đúng — sản phẩm thật sống trên trình duyệt điện thoại (NFR §6). Nhưng **thứ tự dựng** thì ngược:
+bố cục hai cột (cột đời | ghi chú lề) là quyết định phải chốt trước, và nó chỉ tồn tại ở khung
+rộng. Bản hẹp là bản xếp chồng của nó, không phải ngược lại.
+
+### Lấy lại màn đã xoá
+
+15/16 nằm trong git:
+
+```
+git log --diff-filter=D --name-only -- app/uiworkshop
+git checkout <sha>^ -- app/uiworkshop/<slug>
+```
+
+**Một ngoại lệ: `tim-vi-tri` (Máy tìm vị trí hộ, 243 dòng) chưa từng được commit — mất hẳn.** Đây
+là lựa chọn có ý thức, không phải tai nạn. Cần lại thì phải dựng lại từ đầu.
+
+---
+
 ## Còn phải làm — nội dung, không phải hạ tầng
 
 | File | Trạng thái |
