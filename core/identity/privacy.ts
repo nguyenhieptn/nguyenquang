@@ -11,7 +11,9 @@
  *  - the living, outside the radius or for guests: name + tree position + birth YEAR only;
  *  - hiddenFromPublic (FR-55 "được ẩn"): outside the radius the person becomes anonymous —
  *    a placeholder that keeps the genealogical link ("được ẩn, không được xóa");
- *  - minors: treated as hidden outside the radius, always — no opt-out;
+ *  - minors: treated as hidden outside the radius, always — no opt-out (a living person with NO
+ *    birth date is NOT a minor: the decision, and its cost on capture flows, is argued at
+ *    `isMinor` below);
  *  - admin / branch-head hold the approval right (FR-3) and therefore see full detail —
  *    one cannot approve what one cannot read.
  */
@@ -32,6 +34,30 @@ export type PrivacyViewer = {
   personId: string | null;
 };
 
+/**
+ * Minority is decided from the birth date alone. The interesting case is the one the data
+ * usually has: a LIVING person with NO birth date — and the answer is deliberately `false`.
+ *
+ * AD-13 says the default is the restrictive branch, so the choice is argued, not assumed:
+ *  - a genealogy is overwhelmingly adults, and a missing birth year is the NORMAL state of an
+ *    old record ("cụ sinh năm nào không ai nhớ"), not a signal of youth. Treating unknown as
+ *    minor would turn most of the living tree anonymous for everyone outside 3 bậc — the
+ *    placeholder "Một người trong họ" would become the tree, and the phả would stop being a
+ *    phả for exactly the people it is written for;
+ *  - the restrictive default is not lost, only carried by the other branch: an unknown-birth
+ *    living person outside the radius is already 'limited' — name + tree position + birth YEAR
+ *    (which is null here anyway), no contact, no notes, no assertion history. What minority
+ *    would add is anonymity of the NAME, and a name inside the clan tree is the one thing FR-55
+ *    hands to the subject themself via `hiddenFromPublic`, which IS honoured with no age test;
+ *  - the restrictive branch stays automatic wherever the fact is actually known: a birth date
+ *    under 18 years old is anonymous outside the radius, always, with no opt-out.
+ *
+ * The cost of the decision lands on capture, not on reading: every flow that adds a CHILD must
+ * ask for a birth year (2-3/2-5 tự khai + thêm người thân), because that year is what arms this
+ * protection. A child entered with no year is protected only by `hiddenFromPublic`.
+ *
+ * A death date makes the question moot — the dead are 'full' to everyone before this is called.
+ */
 export function isMinor(subject: PrivacySubject, today = new Date()): boolean {
   if (!subject.isLiving || !subject.birthDate) return false;
   const birth = new Date(subject.birthDate);

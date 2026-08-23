@@ -320,3 +320,27 @@ describe('assertion ops', () => {
     });
   });
 });
+
+describe('malformed ids (Postgres 22P02)', () => {
+  it('treats a non-uuid assertion id as not-found instead of throwing a driver error', async () => {
+    await withClanContext(clanId, async (tx) => {
+      for (const bad of ['khong-phai-uuid', '', "'; DROP TABLE assertion; --"]) {
+        const res = await promoteAssertionOp(tx, admin, { assertionId: bad });
+        expect(res.ok === false && res.error.code).toBe('not-found');
+        const hidden = await hideAssertionOp(tx, admin, { assertionId: bad, reason: 'x' });
+        expect(hidden.ok === false && hidden.error.code).toBe('not-found');
+        const restored = await restoreAssertionOp(tx, admin, { assertionId: bad });
+        expect(restored.ok === false && restored.error.code).toBe('not-found');
+        const rejected = await rejectAssertionOp(tx, admin, { assertionId: bad, note: 'x' });
+        expect(rejected.ok === false && rejected.error.code).toBe('not-found');
+      }
+      // and the person ref of a write: a non-uuid subject is nobody, not a 500
+      const added = await addAssertionOp(tx, member, {
+        personId: 'khong-phai-uuid',
+        spec: { kind: 'name', fullName: 'S12 Không Ai' },
+        source: { kind: 'self' },
+      });
+      expect(added.ok === false && added.error.code).toBe('not-found');
+    });
+  });
+});

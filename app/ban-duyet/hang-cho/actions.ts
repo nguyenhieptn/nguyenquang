@@ -25,6 +25,12 @@ export async function duyetKhangDinh(assertionId: string): Promise<Result<void>>
 /**
  * Duyệt hàng loạt — bề mặt B được phép chọn nhiều dòng (EXPERIENCE.md § Interaction Primitives).
  * Mỗi khẳng định vẫn đi qua đúng một đường promoteAssertion; dòng hỏng không chặn dòng lành.
+ *
+ * Phiên hết GIỮA CHỪNG thì dừng vòng lặp chứ không `redirect` ngay: những dòng trước đó đã
+ * commit thật vào phả, mà `redirect` ném ra ngoài sẽ vứt mất con số ấy — người vận hành quay
+ * lại không biết đợt vừa rồi đi tới đâu và duyệt lại từ đầu. Chỉ khi CHƯA nâng được dòng nào
+ * (không có gì để mất) mới đưa thẳng về màn đăng nhập; còn lại trả `{ daNang, loi }`, mỗi
+ * dòng chưa duyệt một câu — để con số ở đầu khối lỗi vẫn đúng bằng số dòng không nâng được.
  */
 export async function duyetHangLoat(
   assertionIds: string[],
@@ -32,15 +38,19 @@ export async function duyetHangLoat(
   if (assertionIds.length === 0) return err('invalid', 'chưa chọn dòng nào');
   let daNang = 0;
   const loi: string[] = [];
-  for (const id of assertionIds) {
+  for (const [viTri, id] of assertionIds.entries()) {
     const ketQua = await promoteAssertion(id);
     if (ketQua.ok) {
       daNang += 1;
-    } else if (ketQua.error.code === 'unauthenticated') {
-      redirect('/dang-nhap');
-    } else {
-      loi.push(ketQua.error.message);
+      continue;
     }
+    if (ketQua.error.code === 'unauthenticated') {
+      if (daNang === 0) redirect('/dang-nhap');
+      for (let con = viTri; con < assertionIds.length; con += 1)
+        loi.push('phiên đã hết giữa chừng — đăng nhập lại rồi duyệt tiếp dòng này');
+      break;
+    }
+    loi.push(ketQua.error.message);
   }
   if (daNang > 0) revalidatePath(DUONG);
   return ok({ daNang, loi });

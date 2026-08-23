@@ -29,10 +29,11 @@ import {
   source,
 } from '@/db/schema';
 import { writeRevision } from '@/core/revision';
-import { chuanHoa } from '@/core/so-khop';
-import { err, ok, type Result } from '@/core/types';
+import { err, isUuid, ok, type Result } from '@/core/types';
+import { PRIVACY_RADIUS, visibilityFor } from '@/core/identity/privacy';
 import type { SessionContext, ViewerContext } from '@/core/identity/session';
-import { lookupAccountNames } from '@/core/assertion/ops';
+import { lookupAccountNames, projectPerson } from '@/core/assertion/ops';
+import { bfsDistances, loadTreeData } from '@/core/tree/ops';
 
 /** Trigram floor for duplicate candidates (AD-16: folded comparison, never bare ILIKE). */
 export const SIMILARITY_THRESHOLD = 0.5;
@@ -82,7 +83,8 @@ export type RepointEntry = {
    * 'dropped-duplicate'     — recording_subject row deleted because the winner already was a
    *                           subject of the same recording; `row` keeps the full row for restore
    * 'closed-proposal'       — another open proposal referencing the loser, closed as rejected
-   * 'projection'            — a projected value slot on the winner filled from the loser
+   * 'projection'            — a projected column (AD-19) whose value the winner's
+   *                           re-projection changed; `from`/`to` are the exact column values
    */
   kind?: 'repoint' | 'dropped-duplicate' | 'closed-proposal' | 'projection';
   row?: Record<string, unknown>;
@@ -254,6 +256,58 @@ export async function suggestDuplicatesOp(
   );
 }
 
+// ── proposer visibility (AD-13/AD-21) ────────────────────────────────────────
+
+/** What the privacy radius needs about a person, and nothing more. */
+type PrivacyRow = {
+  id: string;
+  isLiving: boolean;
+  birthDate: string | null;
+  hiddenFromPublic: boolean;
+};
+
+/**
+ * Distances from the viewer's node over core/tree's canonical adjacency, capped at
+ * PRIVACY_RADIUS (same delegation as core/audit) — null means unknown or beyond the radius,
+ * which is exactly what visibilityFor expects.
+ */
+async function viewerDistances(
+  tx: Tx,
+  viewerPersonId: string,
+): Promise<{ get(personId: string): number | null }> {
+  const data = await loadTreeData(tx);
+  const from = data.redirect(viewerPersonId);
+  const dist = from ? bfsDistances(data, from, PRIVACY_RADIUS) : new Map<string, number>();
+  return {
+    get(personId: string): number | null {
+      const to = data.redirect(personId);
+      return to !== null ? (dist.get(to) ?? null) : null;
+    },
+  };
+}
+
+/** True when EVERY person is at least 'limited' to this viewer — nobody is anonymous to them. */
+async function allVisible(tx: Tx, ctx: SessionContext, rows: PrivacyRow[]): Promise<boolean> {
+  const viewer = { role: ctx.role, personId: ctx.personId };
+  const privileged = ctx.role === 'admin' || ctx.role === 'branch-head';
+  const needsDistance =
+    !privileged && ctx.personId !== null && rows.some((r) => r.isLiving && r.id !== ctx.personId);
+  const distances = needsDistance && ctx.personId !== null ? await viewerDistances(tx, ctx.personId) : null;
+  return rows.every(
+    (r) =>
+      visibilityFor(
+        viewer,
+        {
+          personId: r.id,
+          isLiving: r.isLiving,
+          birthDate: r.birthDate,
+          hiddenFromPublic: r.hiddenFromPublic,
+        },
+        distances?.get(r.id) ?? null,
+      ) !== 'anonymous',
+  );
+}
+
 // ── proposeMerge (AD-22: proposing is open to any attached member) ───────────
 
 export async function proposeMergeOp(
@@ -268,9 +322,20 @@ export async function proposeMergeOp(
   if (args.winnerId === args.loserId) {
     return err('invalid', 'winner and loser must be different persons');
   }
+  // Postgres `uuid` columns throw 22P02 on a malformed literal — guard before the query so a
+  // bad id reads as an id nobody holds (see core/types.isUuid).
+  if (!isUuid(args.winnerId) || !isUuid(args.loserId)) {
+    return err('not-found', 'winner or loser not found in this clan');
+  }
 
   const persons = await tx
-    .select({ id: person.id, mergedInto: person.mergedInto })
+    .select({
+      id: person.id,
+      mergedInto: person.mergedInto,
+      isLiving: person.isLiving,
+      birthDate: person.birthDate,
+      hiddenFromPublic: person.hiddenFromPublic,
+    })
     .from(person)
     .where(inArray(person.id, [args.winnerId, args.loserId]));
   const winner = persons.find((p) => p.id === args.winnerId);
@@ -301,7 +366,14 @@ export async function proposeMergeOp(
     .limit(1);
   if (open) return err('conflict', 'an open proposal for this pair already exists');
 
-  const evidence = await pairEvidence(tx, args.winnerId, args.loserId);
+  // AD-13/AD-21: proposing is open to any attached member, so the stored evidence must not
+  // become an inference oracle about someone the proposer cannot see. Unless BOTH persons are
+  // at least 'limited' to them, the proposal carries no evidence at all — no similarity, no
+  // birth-year delta, no relative count. The approver-only listing shows what was stored.
+  const stored: DuplicateEvidence | Record<string, never> = (await allVisible(tx, sctx, [winner, loser]))
+    ? await pairEvidence(tx, args.winnerId, args.loserId)
+    : {};
+  const evidence = evidenceOf(stored);
   const proposalId = uuidv7();
   await tx.insert(mergeProposal).values({
     id: proposalId,
@@ -309,7 +381,7 @@ export async function proposeMergeOp(
     winnerPersonId: args.winnerId,
     loserPersonId: args.loserId,
     reason: args.reason,
-    evidence,
+    evidence: stored,
     status: 'open',
     proposedByAccountId: sctx.accountId,
   });
@@ -321,7 +393,7 @@ export async function proposeMergeOp(
     entityId: proposalId,
     action: 'create',
     note: args.reason,
-    after: { winnerId: args.winnerId, loserId: args.loserId, evidence },
+    after: { winnerId: args.winnerId, loserId: args.loserId, evidence: stored },
   });
 
   return ok({ proposalId, evidence });
@@ -338,6 +410,7 @@ export async function rejectProposalOp(
   if (!approver.ok) return approver;
   const sctx = approver.value;
 
+  if (!isUuid(args.proposalId)) return err('not-found', 'merge proposal not found');
   const [proposal] = await tx
     .select()
     .from(mergeProposal)
@@ -369,22 +442,43 @@ export async function rejectProposalOp(
 
 // ── executeMerge (AD-3: one transaction, every repointing recorded) ──────────
 
-/** Person columns whose values may appear in projection repoint entries. */
-type PersonPatch = Partial<{
-  fullName: string;
-  nameFolded: string;
-  nameTier: 'tentative' | 'official' | null;
-  nameConfidence: 'chac-chan' | 'theo-loi-ke' | 'ton-nghi' | null;
-  gender: 'male' | 'female' | 'other' | null;
-  genderTier: 'tentative' | 'official' | null;
-  birthDate: string | null;
-  birthPrecision: 'exact' | 'year' | 'approximate' | 'unknown' | null;
-  birthTier: 'tentative' | 'official' | null;
-  deathDate: string | null;
-  deathPrecision: 'exact' | 'year' | 'approximate' | 'unknown' | null;
-  deathTier: 'tentative' | 'official' | null;
-  isLiving: boolean;
-}>;
+/**
+ * The projected columns of `person` (AD-19), DB name paired with the drizzle field. Exactly the
+ * set core/assertion.projectPerson writes; the diff across a re-projection is what the merge
+ * records as 'projection' repoint entries, and what unmerge replays back.
+ */
+type ProjectedRow = Pick<
+  typeof person.$inferSelect,
+  | 'fullName'
+  | 'nameFolded'
+  | 'nameTier'
+  | 'nameConfidence'
+  | 'gender'
+  | 'genderTier'
+  | 'birthDate'
+  | 'birthPrecision'
+  | 'birthTier'
+  | 'deathDate'
+  | 'deathPrecision'
+  | 'deathTier'
+  | 'isLiving'
+>;
+
+const PROJECTED_COLUMNS = [
+  ['full_name', 'fullName'],
+  ['name_folded', 'nameFolded'],
+  ['name_tier', 'nameTier'],
+  ['name_confidence', 'nameConfidence'],
+  ['gender', 'gender'],
+  ['gender_tier', 'genderTier'],
+  ['birth_date', 'birthDate'],
+  ['birth_precision', 'birthPrecision'],
+  ['birth_tier', 'birthTier'],
+  ['death_date', 'deathDate'],
+  ['death_precision', 'deathPrecision'],
+  ['death_tier', 'deathTier'],
+  ['is_living', 'isLiving'],
+] as const satisfies ReadonlyArray<readonly [string, keyof ProjectedRow]>;
 
 export async function executeMergeOp(
   tx: Tx,
@@ -395,6 +489,7 @@ export async function executeMergeOp(
   if (!approver.ok) return approver;
   const sctx = approver.value;
 
+  if (!isUuid(args.proposalId)) return err('not-found', 'merge proposal not found');
   const [proposal] = await tx
     .select()
     .from(mergeProposal)
@@ -577,61 +672,19 @@ export async function executeMergeOp(
     });
   }
 
-  // Minimal winner re-projection: fill EMPTY projected slots on the winner from the loser's
-  // last projected values. (Workaround, noted in the story report: AD-19 gives core/assertion
-  // the projection write; its ops do not exist yet — story 1-2. Every column written here is
-  // recorded as a 'projection' repoint entry, so unmerge restores it exactly.)
-  const patch: PersonPatch = {};
-  const pushProjection = (column: string, from: unknown, to: unknown) => {
-    repointed.push({ table: 'person', rowId: winnerId, column, from, to, kind: 'projection' });
-  };
-  if (winner.fullName === '' && loser.fullName !== '') {
-    const folded = chuanHoa(loser.fullName);
-    patch.fullName = loser.fullName;
-    pushProjection('full_name', winner.fullName, loser.fullName);
-    patch.nameFolded = folded;
-    pushProjection('name_folded', winner.nameFolded, folded);
-    patch.nameTier = loser.nameTier;
-    pushProjection('name_tier', winner.nameTier, loser.nameTier);
-    patch.nameConfidence = loser.nameConfidence;
-    pushProjection('name_confidence', winner.nameConfidence, loser.nameConfidence);
-  }
-  if (winner.gender == null && loser.gender != null) {
-    patch.gender = loser.gender;
-    pushProjection('gender', winner.gender, loser.gender);
-    patch.genderTier = loser.genderTier;
-    pushProjection('gender_tier', winner.genderTier, loser.genderTier);
-  }
-  if (
-    winner.birthDate == null &&
-    winner.birthPrecision == null &&
-    (loser.birthDate != null || loser.birthPrecision != null)
-  ) {
-    patch.birthDate = loser.birthDate;
-    pushProjection('birth_date', winner.birthDate, loser.birthDate);
-    patch.birthPrecision = loser.birthPrecision;
-    pushProjection('birth_precision', winner.birthPrecision, loser.birthPrecision);
-    patch.birthTier = loser.birthTier;
-    pushProjection('birth_tier', winner.birthTier, loser.birthTier);
-  }
-  if (
-    winner.deathDate == null &&
-    winner.deathPrecision == null &&
-    (loser.deathDate != null || loser.deathPrecision != null)
-  ) {
-    patch.deathDate = loser.deathDate;
-    pushProjection('death_date', winner.deathDate, loser.deathDate);
-    patch.deathPrecision = loser.deathPrecision;
-    pushProjection('death_precision', winner.deathPrecision, loser.deathPrecision);
-    patch.deathTier = loser.deathTier;
-    pushProjection('death_tier', winner.deathTier, loser.deathTier);
-    if (loser.isLiving === false && winner.isLiving) {
-      patch.isLiving = false;
-      pushProjection('is_living', true, false);
+  // AD-19: the projected columns belong to core/assertion. The loser's claims now hang off the
+  // winner, so the winner is RE-PROJECTED by its single writer — no hand-rolled slot filling.
+  // Every column the re-projection moved is recorded as a 'projection' repoint entry carrying
+  // the before/after values, which is what lets unmerge restore the winner exactly (AD-3).
+  await projectPerson(tx, winnerId);
+  const [reprojected] = await tx.select().from(person).where(eq(person.id, winnerId)).limit(1);
+  const projectedAfter: ProjectedRow = reprojected ?? winner;
+  for (const [column, field] of PROJECTED_COLUMNS) {
+    const from = winner[field];
+    const to = projectedAfter[field];
+    if (from !== to) {
+      repointed.push({ table: 'person', rowId: winnerId, column, from, to, kind: 'projection' });
     }
-  }
-  if (Object.keys(patch).length > 0) {
-    await tx.update(person).set({ ...patch, updatedAt: now }).where(eq(person.id, winnerId));
   }
 
   // Tombstone: loser redirects to winner; its projected values are KEPT for the record.
@@ -647,8 +700,7 @@ export async function executeMergeOp(
 
   // AD-15: projected values about a living person changed → notification in the SAME tx.
   const projectionChanged = repointed.some((e) => e.kind === 'projection');
-  const stillLiving = patch.isLiving === undefined ? winner.isLiving : patch.isLiving;
-  if (projectionChanged && stillLiving) {
+  if (projectionChanged && projectedAfter.isLiving) {
     await tx.insert(notification).values({
       id: uuidv7(),
       clanId: sctx.clanId,
@@ -714,6 +766,7 @@ export async function unmergeOp(
   if (!approver.ok) return approver;
   const sctx = approver.value;
 
+  if (!isUuid(args.proposalId)) return err('not-found', 'merge proposal not found');
   const [proposal] = await tx
     .select()
     .from(mergeProposal)
@@ -745,6 +798,44 @@ export async function unmergeOp(
   const [loser] = await tx.select().from(person).where(eq(person.id, recorded.loserId)).limit(1);
   if (!loser || loser.mergedInto !== recorded.winnerId) {
     return err('conflict', 'loser is no longer the tombstone of this merge');
+  }
+
+  // Chained merges unmerge NEWEST FIRST. If a later merge that is still applied touched this
+  // winner (L→W, then W→V), the rows this revision would move back no longer belong to W —
+  // reversing out of order would tear both merges apart. Ordering is the (createdAt, id) pair
+  // the revision log is read by everywhere in this module.
+  const laterMerges = await tx
+    .select({ proposalId: revision.entityId })
+    .from(revision)
+    .where(
+      and(
+        eq(revision.entity, 'merge'),
+        eq(revision.action, 'merge'),
+        sql`(${revision.createdAt}, ${revision.id}) >
+            (SELECT later.created_at, later.id FROM revision later WHERE later.id = ${mergeRevision.id}::uuid)`,
+        or(
+          sql`${revision.after} ->> 'winnerId' = ${recorded.winnerId}`,
+          sql`${revision.after} ->> 'loserId' = ${recorded.winnerId}`,
+        ),
+      ),
+    );
+  if (laterMerges.length > 0) {
+    const [stillApplied] = await tx
+      .select({ id: mergeProposal.id })
+      .from(mergeProposal)
+      .where(
+        and(
+          inArray(mergeProposal.id, [...new Set(laterMerges.map((r) => r.proposalId))]),
+          eq(mergeProposal.status, 'accepted'),
+        ),
+      )
+      .limit(1);
+    if (stillApplied) {
+      return err(
+        'conflict',
+        'a later merge on this winner is still applied — unmerge the newest one first',
+      );
+    }
   }
 
   for (const entry of [...recorded.repointed].reverse()) {
@@ -811,6 +902,7 @@ export async function unmergeOp(
  * Exported for other core modules to call inside their own transaction.
  */
 export async function resolveAliasOp(tx: Tx, personId: string): Promise<Result<string>> {
+  if (!isUuid(personId)) return err('not-found', 'person not found in this clan');
   const seen = new Set<string>();
   let current = personId;
   for (;;) {

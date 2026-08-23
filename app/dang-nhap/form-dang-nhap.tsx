@@ -63,7 +63,15 @@ function ONhap({
   );
 }
 
-export function FormDangNhap() {
+export function FormDangNhap({
+  /**
+   * Chỗ đang dở mà luồng thêm gửi kèm qua `?tiep=` — trang server đã lọc chỉ còn đường nội bộ
+   * (xem page.tsx § duongTiep). Có thì vào xong đi thẳng về đấy, phần vừa khai còn nguyên.
+   */
+  tiep,
+}: {
+  tiep?: string;
+}) {
   const router = useRouter();
   const [cheDo, setCheDo] = useState<CheDo>('dang-nhap');
   const [dangGui, setDangGui] = useState(false);
@@ -94,8 +102,12 @@ export function FormDangNhap() {
         return;
       }
 
-      // Phiên đã có — hỏi server xem tài khoản này đã có chỗ trong phả chưa, rồi đi tiếp.
-      const dich = await dichSauDangNhap();
+      // Phiên đã có. Có chỗ đang dở thì về thẳng đấy — kể cả khi tài khoản chưa gắn vào phả:
+      // màn đang dở tự bày lời mời nhận chỗ, và bày ngay tại chỗ người ta đang đứng. Không có
+      // thì hỏi server tài khoản này đã có chỗ trong phả chưa, rồi đi tiếp.
+      // Lọc lại một lượt ở đây (chỉ đường nội bộ) — đây là chỗ duy nhất gọi router.push.
+      const dich =
+        tiep && tiep.startsWith('/') && !tiep.startsWith('//') ? tiep : await dichSauDangNhap();
       router.push(dich);
       router.refresh();
     } catch {

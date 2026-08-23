@@ -12,9 +12,11 @@ import { and, eq } from 'drizzle-orm';
 import { withClanContext, ownerPool, type Tx } from '@/db';
 import { clan, person, revision } from '@/db/schema';
 import { chuanHoa } from '@/core/so-khop';
+import { ANONYMOUS_LABEL } from '@/core/identity/privacy';
 import type { SessionContext } from '@/core/identity/session';
 import {
   MAX_RECORDING_BYTES,
+  checkPlaybackOp,
   listRecordingsOp,
   requestPlaybackOp,
   saveRecordingOp,
@@ -32,6 +34,7 @@ const clanId = uuidv7();
 const tellerId = uuidv7();
 const subjectId = uuidv7();
 const recorderPersonId = uuidv7();
+const hiddenTellerId = uuidv7();
 const memberPersonId = uuidv7();
 const adminPersonId = uuidv7();
 
@@ -104,6 +107,16 @@ beforeAll(async () => {
     await tx.insert(person).values(
       people.map((p) => ({ id: p.id, clanId, fullName: p.name, nameFolded: chuanHoa(p.name) })),
     );
+    // AD-13 "được ẩn": a LIVING teller who asked to be hidden. No edges anywhere in this clan,
+    // so every other member sits outside the 3-bậc radius from them.
+    await tx.insert(person).values({
+      id: hiddenTellerId,
+      clanId,
+      fullName: '1-5 Cụ Xin Giữ Kín',
+      nameFolded: chuanHoa('1-5 Cụ Xin Giữ Kín'),
+      isLiving: true,
+      hiddenFromPublic: true,
+    });
   });
 });
 
@@ -319,7 +332,7 @@ describe('playback token (AD-12)', () => {
     if (!minted.ok) return;
 
     const verified = verifyPlaybackToken(minted.value.token);
-    expect(verified).toEqual({ recordingId: id });
+    expect(verified).toEqual({ recordingId: id, clanId });
 
     // The verified id opens the bytes — the stream route's exact path.
     const stored = await storage.get(verified!.recordingId);
@@ -333,7 +346,61 @@ describe('playback token (AD-12)', () => {
     expect(verifyPlaybackToken('rác-không-phải-vé')).toBeNull();
 
     // Expired (exp in the past) → null.
-    expect(verifyPlaybackToken(mintPlaybackToken(id, -60_000))).toBeNull();
+    expect(verifyPlaybackToken(mintPlaybackToken(id, clanId, -60_000))).toBeNull();
+  });
+
+  it('a ticket minted before a withdrawal opens nothing: the spend re-checks the row (FR-49)', async () => {
+    const saved = await save(recorderCtx, { accessTier: 'public', title: '1-5 Rút sau khi cấp vé' });
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+    const id = saved.value.recordingId;
+
+    const minted = await inClan((tx) => requestPlaybackOp(tx, memberCtx, id));
+    expect(minted.ok).toBe(true);
+    if (!minted.ok) return;
+    const verified = verifyPlaybackToken(minted.value.token);
+    expect(verified).toEqual({ recordingId: id, clanId });
+
+    // The teller withdraws while the ticket is still well inside its ten minutes.
+    const withdrawn = await inClan((tx) => withdrawRecordingOp(tx, tellerCtx, id));
+    expect(withdrawn.ok).toBe(true);
+
+    // The ticket still VERIFIES — it is signed and unexpired — but the gate that
+    // openPlaybackStream runs before touching storage now refuses. No byte leaves.
+    expect(verifyPlaybackToken(minted.value.token)).toEqual({ recordingId: id, clanId });
+    const gate = await inClan((tx) => checkPlaybackOp(tx, memberCtx, verified!.recordingId));
+    expect(gate.ok).toBe(false);
+    if (!gate.ok) expect(gate.error.code).toBe('forbidden');
+  });
+});
+
+describe('teller privacy in the metadata list (AD-13/AD-21)', () => {
+  it("a hidden living teller's name never reaches an out-of-radius member; admin still reads it", async () => {
+    const saved = await save(recorderCtx, {
+      accessTier: 'public',
+      title: '1-5 Chuyện cụ giữ kín',
+      toldByPersonId: hiddenTellerId,
+    });
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) return;
+    const id = saved.value.recordingId;
+
+    const metaFor = async (ctx: SessionContext) => {
+      const list = await inClan((tx) => listRecordingsOp(tx, ctx));
+      expect(list.ok).toBe(true);
+      return list.ok ? list.value.find((m) => m.recordingId === id) : undefined;
+    };
+
+    const forMember = await metaFor(memberCtx);
+    expect(forMember).toBeTruthy();
+    expect(forMember!.toldByName).toBe(ANONYMOUS_LABEL);
+    expect(forMember!.toldByName).not.toContain('Giữ Kín');
+    // The genealogical link stays — "được ẩn, không được xóa".
+    expect(forMember!.toldByPersonId).toBe(hiddenTellerId);
+
+    // Admin holds the approval right, so admin reads the real name (FR-3).
+    const forAdmin = await metaFor(adminCtx);
+    expect(forAdmin!.toldByName).toBe('1-5 Cụ Xin Giữ Kín');
   });
 });
 

@@ -182,7 +182,10 @@ export function ThanhDieuHuong({
             href="/"
             className={`group block transition-colors duration-150 ease-out ${VONG_TIEU_DIEM}`}
           >
-            <span className="block text-[11px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-150 group-hover:text-foreground">
+            {/* Sàn chữ tuyệt đối 15px (DESIGN.md § Typography) — hàng chữ nhỏ giãn rộng của
+                măng-sét cũng không được xuống dưới sàn. Giãn chữ rút 0.22em → 0.12em: ở 15px thì
+                0.22em đẩy hàng này rộng ngang cả tên phả bên dưới và giành mất sức nặng của tên. */}
+            <span className="block text-[15px] uppercase leading-tight tracking-[0.12em] text-muted-foreground transition-colors duration-150 group-hover:text-foreground">
               Gia phả họ
             </span>
             {/* Chữ có chân vì đây là TÊN — DESIGN.md § Typography. Rê chuột chỉ đổi hàng chữ nhỏ
@@ -212,7 +215,9 @@ export function ThanhDieuHuong({
                       href={href}
                       dangMo={dangMo}
                       className={[
-                        'inline-flex h-9 items-center border-b-2 px-3 text-[17px]',
+                        // Vùng chạm 44px KHÔNG có ngoại lệ cho bản máy (Accessibility Floor):
+                        // min-h-11 thay cho h-9, `items-center` giữ nhãn nằm giữa như cũ.
+                        'inline-flex min-h-11 items-center border-b-2 px-3 text-[17px]',
                         'transition-colors duration-150 ease-out',
                         // Mục đang mở gạch chân son — dấu của trang giấy, và đọc được cả khi in
                         // đen trắng, không như trạng thái chỉ-đổi-màu.

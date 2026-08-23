@@ -39,7 +39,15 @@ type BanThu = { blob: Blob; mime: string; giay: number };
 
 type LoiGui =
   | { loai: 'mang' } // fetch ném lỗi — mạng rơi giữa chừng
+  | { loai: 'khong-nhan'; message: string } // chặn tại chỗ, hoặc máy chủ trả thứ không đọc được
   | { loai: 'core'; code: CoreErrorCode; message: string };
+
+/**
+ * Trần 100MB — GƯƠNG của MAX_RECORDING_BYTES trong core/media. Không import: mã này chạy trên
+ * máy người dùng, kéo core vào là kéo cả tầng dữ liệu xuống trình duyệt (AD-1). Core vẫn là
+ * nơi quyết định; con số ở đây chỉ để nói thật sớm, trước khi tải lên 100MB rồi mới biết trượt.
+ */
+const TRAN_BYTE = 100 * 1024 * 1024;
 
 type MucTiepCan = 'public' | 'admin' | 'sealed';
 
@@ -183,6 +191,19 @@ export function ManThu({
   const guiVaoPha = async () => {
     if (!banThu || !duLieuHopLe || tiepCan === null) return;
     setLoiGui(null);
+
+    // Nói trước khi gửi: một bản thu quá dài sẽ bị chặn ở cửa máy chủ, và lúc ấy lời từ chối
+    // thường không đọc được — nên hỏi kích thước ngay tại đây, khi còn nói được tử tế.
+    if (banThu.blob.size > TRAN_BYTE) {
+      setLoiGui({
+        loai: 'khong-nhan',
+        message:
+          'Bản thu này nặng hơn 100MB nên sổ chưa nhận được. Bản thu vẫn nằm trên máy này — ' +
+          'thu lại thành vài bản ngắn hơn thì giữ được trọn câu chuyện.',
+      });
+      return;
+    }
+
     setBuoc('dang-gui');
 
     // TODO(core): chưa có chỗ riêng cho TÊN người kể ngoài phả (SaveRecordingInput chỉ có
@@ -209,14 +230,42 @@ export function ManThu({
 
     try {
       const res = await fetch('/api/media/upload', { method: 'POST', body: fd });
+
+      // Máy chủ (hay một lớp proxy trước nó) có thể từ chối bằng HTML hoặc bằng chỗ trống —
+      // (chữ "máy chủ" chỉ nằm trong chú thích; lời bày ra màn nói bằng tiếng của cái sổ) —
+      // 413 "tệp quá lớn" là ca hay gặp nhất. Đọc JSON lúc ấy sẽ ném, và cái ném ấy rơi vào
+      // nhánh 'mang' bên dưới: màn sẽ báo nhầm "mạng chập chờn" rồi mời gửi lại mãi một tệp
+      // không bao giờ lọt. Nên xem lời đáp có đọc được không trước đã.
+      const laJson = (res.headers.get('content-type') ?? '').includes('application/json');
+      if (!laJson) {
+        setLoiGui({
+          loai: 'khong-nhan',
+          message:
+            res.status === 413
+              ? 'Bản thu này nặng quá nên sổ chưa nhận được. Bản thu vẫn nằm trên máy này — ' +
+                'thu lại thành vài bản ngắn hơn rồi gửi.'
+              : 'Bản thu chưa vào tới sổ. Bản thu vẫn nằm trên máy này — đợi ít phút rồi bấm ' +
+                'gửi lại.',
+        });
+        setBuoc('xem-lai');
+        return;
+      }
+
       const kq = (await res.json()) as
         | { ok: true; value: { recordingId: string } }
         | { ok: false; error: { code: CoreErrorCode; message: string } };
-      if (kq.ok) {
+      if (res.ok && kq.ok) {
         setBuoc('da-luu');
         return;
       }
-      setLoiGui({ loai: 'core', code: kq.error.code, message: kq.error.message });
+      setLoiGui(
+        kq.ok
+          ? {
+              loai: 'khong-nhan',
+              message: 'Chưa có lời xác nhận đã vào sổ. Bấm gửi lại một lần nữa cho chắc.',
+            }
+          : { loai: 'core', code: kq.error.code, message: kq.error.message },
+      );
       setBuoc('xem-lai');
     } catch {
       // Mạng rơi — blob vẫn trong bộ nhớ, chỉ cần bấm gửi lại.
@@ -267,8 +316,9 @@ export function ManThu({
             Đồng hồ chạy là thứ duy nhất động trên màn. Không dạng sóng: dạng sóng đẹp nhưng nó
             kéo mắt người cầm máy xuống màn hình đúng lúc phải nhìn người đang kể. */}
         <div className="flex items-center gap-2.5">
-          <span className="size-3 animate-pulse rounded-full bg-primary" aria-hidden />
-          {/* Trạng thái không bao giờ mã hoá chỉ bằng màu — chấm son đi kèm chữ. */}
+          {/* Chấm mực, KHÔNG son: son chỉ dành cho "đã chốt", mà đang thu thì chưa chốt gì.
+              Trạng thái không bao giờ mã hoá chỉ bằng màu — dòng chữ bên cạnh mới là thứ nói. */}
+          <span className="size-3 animate-pulse rounded-full bg-foreground" aria-hidden />
           <p className="text-[17px] font-semibold" role="status">
             Đang thu
           </p>
@@ -469,6 +519,7 @@ export function ManThu({
               mạng ổn rồi bấm gửi lại là được.
             </p>
           )}
+          {loiGui.loai === 'khong-nhan' && <p className="text-[17px]">{loiGui.message}</p>}
           {loiGui.loai === 'core' && loiGui.code === 'unauthenticated' && (
             <p className="text-[17px]">
               Phiên đã hết trong lúc thu. Bản thu vẫn nằm trên máy này — mở{' '}

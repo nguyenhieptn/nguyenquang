@@ -4,7 +4,8 @@
  * Adapter surface. AD-24: NO identity parameters — every entry point resolves the session
  * itself, then opens the clan context. AD-12: the access tier is enforced here in the core at
  * read time; bytes leave ONLY through a 10-minute HMAC token minted by requestPlayback and
- * spent at app/api/media/stream/[token]. No storage URL is ever public or long-lived.
+ * spent at app/api/media/stream/[token] — where the tier check runs AGAIN, against the row as
+ * it stands then. No storage URL is ever public or long-lived.
  *
  * Recording is browser-side: the client records fully, then uploads the finished file
  * (app/api/media/upload) — there is no intake session to manage.
@@ -13,6 +14,7 @@ import { err, ok, type Result } from '@/core/types';
 import { resolveSession, type SessionContext } from '@/core/identity/session';
 import { withClanContext } from '@/db';
 import {
+  checkPlaybackOp,
   listRecordingsOp,
   requestPlaybackOp,
   saveRecordingOp,
@@ -77,15 +79,27 @@ export async function updateRecordingAccess(
 }
 
 /**
- * Spend a playback token: verify, then read bytes from the storage port. The token IS the
- * authorization (the tier check already ran at mint time, against the session — AD-24/AD-12);
- * its 10-minute life bounds how long a withdrawal or re-seal can lag behind.
+ * Spend a playback token. The ticket is only HALF the authorization: it names one recording in
+ * one clan and proves the tier check passed once — it does not stand in for the current state
+ * of the row. So the spend re-opens that clan, reloads the recording and re-runs the SAME gate
+ * against the CURRENT session (AD-24/AD-12) before a byte is read. Withdrawing or re-sealing a
+ * recording therefore stops playback at once (FR-49), not whenever the ticket happens to lapse.
  */
 export async function openPlaybackStream(
   token: string,
 ): Promise<Result<{ data: Buffer; mime: string }>> {
   const verified = verifyPlaybackToken(token);
   if (!verified) return err('forbidden', 'Vé nghe không hợp lệ hoặc đã quá hạn.');
+  const session = await requireSession();
+  if (!session.ok) return err(session.error.code, session.error.message);
+  // A ticket is good only inside the clan it was minted in — never a lever into another one.
+  if (session.value.clanId !== verified.clanId) {
+    return err('forbidden', 'Vé nghe không dùng được ở đây.');
+  }
+  const gate = await withClanContext(verified.clanId, (tx) =>
+    checkPlaybackOp(tx, session.value, verified.recordingId),
+  );
+  if (!gate.ok) return err(gate.error.code, gate.error.message);
   const stored = await getStorage().get(verified.recordingId);
   if (!stored) return err('not-found', 'Không thấy tệp ghi âm.');
   return ok(stored);

@@ -11,7 +11,7 @@ import { v7 as uuidv7 } from 'uuid';
 import type { Tx } from '@/db';
 import { attachment, notification, person } from '@/db/schema';
 import { writeRevision } from '@/core/revision';
-import { err, ok, type Result } from '@/core/types';
+import { err, isUuid, ok, type Result } from '@/core/types';
 import type { SessionContext } from './session';
 
 export type AttachmentRole = 'admin' | 'branch-head' | 'member';
@@ -42,6 +42,9 @@ export async function requestAttachmentOp(
   ctx: SessionContext,
   args: { personId: string },
 ): Promise<Result<{ attachmentId: string }>> {
+  // `person.id` is a Postgres uuid column: a malformed literal throws 22P02 instead of
+  // returning nothing (core/types.isUuid). A bad id is simply an id nobody holds.
+  if (!isUuid(args.personId)) return err('not-found', 'Không thấy người này trong phả.');
   const [node] = await tx.select().from(person).where(eq(person.id, args.personId));
   if (!node) return err('not-found', 'Không thấy người này trong phả.');
   if (node.mergedInto) return err('conflict', 'Người này đã được gộp vào một bản ghi khác.');
@@ -136,6 +139,7 @@ export async function approveAttachmentOp(
     return err('forbidden', 'Chỉ quản trị mới trao được vai trên thành viên thường.');
   }
 
+  if (!isUuid(args.attachmentId)) return err('not-found', 'Không thấy yêu cầu gắn này.');
   const [target] = await tx.select().from(attachment).where(eq(attachment.id, args.attachmentId));
   if (!target) return err('not-found', 'Không thấy yêu cầu gắn này.');
   if (target.status === 'active') return err('conflict', 'Yêu cầu này đã được duyệt rồi.');
@@ -263,6 +267,7 @@ export async function markNotificationSeenOp(
   args: { notificationId: string },
 ): Promise<Result<{ seenAt: Date }>> {
   if (!ctx.personId) return err('unattached', 'Chưa gắn với ai trong phả.');
+  if (!isUuid(args.notificationId)) return err('not-found', 'Không thấy thông báo này.');
   const [row] = await tx
     .select()
     .from(notification)

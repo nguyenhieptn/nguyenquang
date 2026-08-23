@@ -16,6 +16,11 @@
  *   withdrawn      → FR-49 right of withdrawal, survives the teller's death: playback for
  *                    NOBODY, ever; metadata stays visible to admin marked "đã rút lại".
  *
+ * AD-21 binds media metadata too: the teller's name is person data, so it leaves this module
+ * only through the privacy radius (visibilityFor over core/tree's canonical graph), exactly
+ * like a tree card. A living teller who is hidden or a minor reads as ANONYMOUS_LABEL to
+ * anyone outside 3 bậc — the recording and its link stay, the person does not leak.
+ *
  * saveRecording is the one op that manages its own transaction (exception to the (tx, …)
  * shape, documented here on purpose): bytes must be in storage BEFORE the row exists —
  * a row pointing at nothing is corruption, an orphaned object is garbage — so the flow is
@@ -27,7 +32,9 @@ import { withClanContext, type Tx } from '@/db';
 import { person, recording, recordingSubject } from '@/db/schema';
 import { writeRevision } from '@/core/revision';
 import { ok, err, type Result } from '@/core/types';
+import { ANONYMOUS_LABEL, PRIVACY_RADIUS, visibilityFor } from '@/core/identity/privacy';
 import type { SessionContext } from '@/core/identity/session';
+import { bfsDistances, loadTreeData } from '@/core/tree/ops';
 import { getStorage } from './storage';
 import { mintPlaybackToken } from './token';
 
@@ -63,7 +70,9 @@ export type SaveRecordingInput = {
 export type RecordingMeta = {
   recordingId: string;
   title: string;
+  /** The teller's node — kept even when the name is withheld: the link is not the name. */
   toldByPersonId: string | null;
+  /** Privacy-filtered (AD-13/AD-21): ANONYMOUS_LABEL when this viewer may not know who. */
   toldByName: string | null;
   recordedOn: string;
   durationSeconds: number | null;
@@ -75,7 +84,6 @@ export type RecordingMeta = {
   /** UI status string: 'niêm phong tới …' | 'đã rút lại' | null. */
   statusLabel: string | null;
   subjectPersonIds: string[];
-  recordedByAccountId: string;
   createdAt: string;
 };
 
@@ -249,16 +257,71 @@ export async function saveRecordingOp(
   return result;
 }
 
+// ── AD-13/AD-21: the teller is a person, so the teller's name goes through the radius ───────
+
+/**
+ * Distances from the viewer's node over core/tree's canonical AD-13 graph (live parent-child +
+ * union edges of any tier, tombstones redirected), capped at PRIVACY_RADIUS; `get` returns null
+ * for unknown or beyond — exactly what visibilityFor expects. Same helper shape as core/audit;
+ * cross-module ops calls inside one transaction are the sanctioned core layering.
+ */
+async function viewerDistances(
+  tx: Tx,
+  viewerPersonId: string,
+): Promise<{ get(personId: string): number | null }> {
+  const data = await loadTreeData(tx);
+  const from = data.redirect(viewerPersonId);
+  const dist = from ? bfsDistances(data, from, PRIVACY_RADIUS) : new Map<string, number>();
+  return {
+    get(personId: string): number | null {
+      const to = data.redirect(personId);
+      return to !== null ? (dist.get(to) ?? null) : null;
+    },
+  };
+}
+
 // ── FR-47: list (tier-filtered metadata, AD-12) ─────────────────────────────────────────────
 
 export async function listRecordingsOp(tx: Tx, ctx: SessionContext): Promise<Result<RecordingMeta[]>> {
   const rows = await tx
-    .select({ rec: recording, tellerName: person.fullName })
+    .select({
+      rec: recording,
+      tellerName: person.fullName,
+      tellerIsLiving: person.isLiving,
+      tellerBirthDate: person.birthDate,
+      tellerHidden: person.hiddenFromPublic,
+    })
     .from(recording)
     .leftJoin(person, eq(recording.toldByPersonId, person.id))
     .orderBy(desc(recording.createdAt), desc(recording.id));
 
   const visible = rows.filter((r) => canSeeMetadata(ctx, r.rec));
+
+  // The walk is the expensive part, so it runs only when it can change an answer: the dead and
+  // privileged viewers are 'full' regardless, and a viewer with no node is outside every radius.
+  const privileged = ctx.role === 'admin' || ctx.role === 'branch-head';
+  const viewerNode = ctx.personId;
+  const dist =
+    !privileged && viewerNode !== null && visible.some((r) => r.tellerIsLiving === true)
+      ? await viewerDistances(tx, viewerNode)
+      : null;
+
+  const tellerNameOf = (r: (typeof visible)[number]): string | null => {
+    const id = r.rec.toldByPersonId;
+    // No teller node (the teller is not in the tree), or the row is gone: no name to filter.
+    if (id === null || r.tellerIsLiving === null) return null;
+    const vis = visibilityFor(
+      { role: ctx.role, personId: viewerNode },
+      {
+        personId: id,
+        isLiving: r.tellerIsLiving,
+        birthDate: r.tellerBirthDate,
+        hiddenFromPublic: r.tellerHidden ?? false,
+      },
+      dist ? dist.get(id) : null,
+    );
+    return vis === 'anonymous' ? ANONYMOUS_LABEL : r.tellerName;
+  };
 
   const subjectsByRecording = new Map<string, string[]>();
   const ids = visible.map((r) => r.rec.id);
@@ -275,38 +338,56 @@ export async function listRecordingsOp(tx: Tx, ctx: SessionContext): Promise<Res
   }
 
   return ok(
-    visible.map(({ rec, tellerName }) => ({
-      recordingId: rec.id,
-      title: rec.title,
-      toldByPersonId: rec.toldByPersonId,
-      toldByName: rec.toldByPersonId ? tellerName : null,
-      recordedOn: rec.recordedOn,
-      durationSeconds: rec.durationSeconds,
-      accessTier: rec.accessTier,
-      sealedUntil: rec.sealedUntil,
-      withdrawn: rec.withdrawnAt !== null,
-      playable: playbackDenial(ctx, rec) === null,
-      statusLabel: statusLabel(rec),
-      subjectPersonIds: subjectsByRecording.get(rec.id) ?? [],
-      recordedByAccountId: rec.recordedByAccountId,
-      createdAt: rec.createdAt.toISOString(),
-    })),
+    visible.map((r) => {
+      const rec = r.rec;
+      return {
+        recordingId: rec.id,
+        title: rec.title,
+        toldByPersonId: rec.toldByPersonId,
+        toldByName: tellerNameOf(r),
+        recordedOn: rec.recordedOn,
+        durationSeconds: rec.durationSeconds,
+        accessTier: rec.accessTier,
+        sealedUntil: rec.sealedUntil,
+        withdrawn: rec.withdrawnAt !== null,
+        playable: playbackDenial(ctx, rec) === null,
+        statusLabel: statusLabel(rec),
+        subjectPersonIds: subjectsByRecording.get(rec.id) ?? [],
+        createdAt: rec.createdAt.toISOString(),
+      };
+    }),
   );
 }
 
 // ── AD-12: playback token ───────────────────────────────────────────────────────────────────
+
+/**
+ * THE playback gate: reload the row, run playbackDenial against it. Both ends of the ticket go
+ * through here — minting one (requestPlaybackOp) and spending one (index.openPlaybackStream) —
+ * so a withdrawal or a re-seal lands on the very next byte request instead of waiting out the
+ * ticket's ten minutes. FR-49 withdrawal is forever; "forever, in about ten minutes" is not it.
+ */
+export async function checkPlaybackOp(
+  tx: Tx,
+  ctx: SessionContext,
+  recordingId: string,
+): Promise<Result<void>> {
+  if (!UUID_RE.test(recordingId)) return err('invalid', 'Mã lời kể không hợp lệ.');
+  const [row] = await tx.select().from(recording).where(eq(recording.id, recordingId));
+  if (!row) return err('not-found', 'Không thấy lời kể này.');
+  const denial = playbackDenial(ctx, row);
+  if (denial !== null) return err('forbidden', denial);
+  return ok(undefined);
+}
 
 export async function requestPlaybackOp(
   tx: Tx,
   ctx: SessionContext,
   recordingId: string,
 ): Promise<Result<{ token: string }>> {
-  if (!UUID_RE.test(recordingId)) return err('invalid', 'Mã lời kể không hợp lệ.');
-  const [row] = await tx.select().from(recording).where(eq(recording.id, recordingId));
-  if (!row) return err('not-found', 'Không thấy lời kể này.');
-  const denial = playbackDenial(ctx, row);
-  if (denial !== null) return err('forbidden', denial);
-  return ok({ token: mintPlaybackToken(recordingId) });
+  const gate = await checkPlaybackOp(tx, ctx, recordingId);
+  if (!gate.ok) return err(gate.error.code, gate.error.message);
+  return ok({ token: mintPlaybackToken(recordingId, ctx.clanId) });
 }
 
 // ── FR-49: withdrawal — survives death, blocks playback for everyone, forever ───────────────

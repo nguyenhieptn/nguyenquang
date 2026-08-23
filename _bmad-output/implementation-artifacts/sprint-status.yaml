@@ -2,7 +2,7 @@
 # Sinh bởi sprint planning 22/08/2026. Cấu trúc: xem planning-artifacts/epics/epics.md.
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
-last_updated: 2026-08-22
+last_updated: 2026-08-23
 project: Gia phả dòng họ Nguyễn Quang
 project_key: giapha
 tracking_system: sprint-status.yaml
@@ -20,28 +20,28 @@ development_status:
   1-8-nap-khung-csv: done
   epic-1-retrospective: optional
 
-  epic-2: in-progress
-  2-1-trang-chu: in-progress
-  2-2-dang-nhap-gan-node: in-progress
-  2-3-tu-khai-bon-buoc: in-progress
-  2-4-tim-va-khong-tim-thay: in-progress
-  2-5-them-nguoi-than: in-progress
-  2-6-cay-ba-tang: in-progress
-  2-7-trang-nguoi: in-progress
-  2-8-thu-loi-ke: in-progress
-  2-9-toi-va-quyen: in-progress
+  epic-2: done
+  2-1-trang-chu: done
+  2-2-dang-nhap-gan-node: done
+  2-3-tu-khai-bon-buoc: done
+  2-4-tim-va-khong-tim-thay: done
+  2-5-them-nguoi-than: done
+  2-6-cay-ba-tang: done
+  2-7-trang-nguoi: done
+  2-8-thu-loi-ke: done
+  2-9-toi-va-quyen: done
   epic-2-retrospective: optional
 
-  epic-3: in-progress
-  3-1-nap-khung: in-progress
-  3-2-xem-truoc-so-khop: in-progress
-  3-3-hang-cho-duyet: in-progress
-  3-4-hop-nhat-manh: in-progress
+  epic-3: done
+  3-1-nap-khung: done
+  3-2-xem-truoc-so-khop: done
+  3-3-hang-cho-duyet: done
+  3-4-hop-nhat-manh: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-trien-khai-vpn: backlog
-  4-2-sao-luu: backlog
-  4-3-ra-soat-chat-luong: backlog
-  4-4-tai-lieu-van-hanh: backlog
+  epic-4: in-progress
+  4-1-trien-khai-vpn: done
+  4-2-sao-luu: done
+  4-3-ra-soat-chat-luong: in-progress
+  4-4-tai-lieu-van-hanh: done
   epic-4-retrospective: optional

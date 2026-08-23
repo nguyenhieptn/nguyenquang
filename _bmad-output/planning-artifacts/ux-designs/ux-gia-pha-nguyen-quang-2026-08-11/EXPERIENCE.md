@@ -148,6 +148,15 @@ vận hành quyết định về **một dòng cụ thể**, và mọi thứ c�
 trùng, đời + chi của ứng viên — phải nằm trong cùng một tầm mắt. Tách ra màn khác là bắt nhảy
 qua lại và ghép lại trong đầu.
 
+> **Sửa 22/08/2026 — `?loc=can-xem-lai` nằm trên CHÍNH route nạp khung.** Bộ lọc giữ nguyên địa
+> chỉ đã chốt, nhưng địa chỉ ấy không phải một URL thứ hai: **nạp khung — xem trước — ghi là một
+> trang ba pha** (`/ban-duyet/nap-khung`). Lý do là ràng buộc thật, không phải tiện tay — văn bản
+> CSV sống trong state trình duyệt, `core/seed` không có chỗ gửi tệp tạm ở server, nên không URL
+> nào khác đọc lại được bảng đang mở. Chip *Cần xem lại* vì thế soi vào URL bằng
+> `history.replaceState` trên đúng route ấy: chỉ trỏ được, F5 giữ được chỗ đang đứng, mà không
+> điều hướng thật — điều hướng thật sẽ ném mất chính bảng vừa lọc. Mục *Xem trước* trên thanh
+> chrome vẫn còn, làm trang chỉ đường sang bước Nạp khung, không phải nơi bày bảng.
+
 #### Chrome của bề mặt B
 
 Thanh trên cùng, không dính đáy: **Bàn duyệt** + bốn mục *Nạp khung · Xem trước · Hàng chờ duyệt ·
@@ -363,6 +372,16 @@ hơn mức đọc thoải mái.
 | Một chi (tầng 2) | đời là **hàng gập được** | **khung nhìn cây**, zoom/pan được |
 | Không tìm thấy | một cột | **vẫn một cột hẹp** |
 | Cây gia tộc (tầng 3) | một cột | **khung nhìn cây**, zoom/pan được |
+
+> **Sửa 22/08/2026 — hàng "Màn chủ": hai ô cạnh nhau từ `lg`, không phải `md`.** Cột `md`+ của
+> bảng trên nói chung cho cả bề mặt A; riêng màn chủ thì con số không cho phép. Ở `md` khung rộng
+> 768px: trừ 64px lề, 288px cột phải và 48px khe, cột chữ còn **368px** — thấp hơn tầm đọc
+> 510–640px của `components/pha/khung.ts` gần một phần ba. Nên dải 768–1023px giữ **xếp chồng**
+> (một cột 704px, đọc tốt), và lưới hai cột bật từ `lg` (1024px), cột chữ 624px. Đây chính là
+> nguyên tắc ngay dưới bảng đọc ngược lại: nới rộng mà không thêm gì thì thường ra dòng chữ quá
+> dài, còn ở 768px thì nới rộng ra dòng chữ quá **ngắn** — hai lỗi khác nhau của cùng một sai lầm
+> là đổi bố cục theo mốc breakpoint chứ không theo bề rộng còn lại cho chữ. Xem
+> `app/(pha)/page.tsx`.
 
 **Cả ba tầng dùng CHUNG một khung nhìn** (`components/pha/khung-cay.tsx`). Ba tầng khác nhau ở
 **node**, không ở vỏ: tầng 1 node là *khối chi*, tầng 2 và 3 node là *một cặp vợ chồng*. Dựng ba

@@ -359,3 +359,22 @@ describe('detachSelf', () => {
     expect(!again.ok && again.error.code === 'not-found').toBe(true);
   });
 });
+
+describe('malformed ids (Postgres 22P02)', () => {
+  it('reads a non-uuid id as not-found rather than throwing a driver error', async () => {
+    const bad = 'khong-phai-uuid';
+    const someone = ctx(member1AccountId, 'member', adminPersonId);
+    await withClanContext(clanId, async (tx) => {
+      const requested = await requestAttachmentOp(tx, someone, { personId: bad });
+      expect(!requested.ok && requested.error.code === 'not-found').toBe(true);
+
+      const approved = await approveAttachmentOp(tx, ctx(adminAccountId, 'admin', adminPersonId), {
+        attachmentId: bad,
+      });
+      expect(!approved.ok && approved.error.code === 'not-found').toBe(true);
+
+      const seen = await markNotificationSeenOp(tx, someone, { notificationId: bad });
+      expect(!seen.ok && seen.error.code === 'not-found').toBe(true);
+    });
+  });
+});

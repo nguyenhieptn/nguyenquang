@@ -44,7 +44,10 @@ export function TuaMuc({
   return (
     <div className={className}>
       <div className="flex items-baseline justify-between gap-4">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+        {/* 15px là SÀN TUYỆT ĐỐI (DESIGN.md § Typography) — chữ tựa mục không được xuống dưới,
+            kể cả khi nó là chữ nhỏ giãn rộng của ấn phẩm. Giãn chữ rút từ 0.18em xuống 0.1em:
+            ở 15px thì 0.18em kéo tựa dài quá bề ngang mục và rời ra thành từng chữ cái. */}
+        <h2 className="text-[15px] font-bold uppercase leading-tight tracking-[0.1em] text-muted-foreground">
           {children}
         </h2>
         {phu && <span className="text-[15px] text-muted-foreground">{phu}</span>}

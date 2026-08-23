@@ -22,7 +22,8 @@ Bản đồ thi công cho mọi story. **Đọc trước khi viết dòng code n
 - **`core/revision.ts`** `writeRevision(tx, …)` — AD-10, gọi trong CÙNG transaction với mutation.
 - **`core/identity/session.ts`** — `resolveSession()` / `resolveViewer()` (AD-24). Story 1-4 sẽ
   cấp `core/identity/auth.ts` với `resolveSessionImpl(headers)` + `guestContextImpl()`.
-- **ESLint AD-1**: `app/`, `components/`, `lib/` bị CẤM import `@/db`, `drizzle-orm`, `pg`.
+- **ESLint AD-1 + AD-24**: `app/`, `components/`, `lib/` bị CẤM import `@/db`, `drizzle-orm`, `pg`,
+  **và** cả dạng tương đối (`../../db`) lẫn ruột core (`@/core/*/ops`) — chỉ gọi `@/core/<module>`.
 - **Test**: vitest (`npm test`), chạy tuần tự, `.env` tự nạp. UUIDv7 qua `uuid` (`v7 as uuidv7`).
 - Sinh migration mới: `npm run db:generate -- --name <tên>` rồi `npm run db:migrate`
   (cần `set -a; . ./.env; set +a` hoặc dotenv đã lo trong script).
@@ -47,8 +48,19 @@ Server Action đặt tại `app/**/actions.ts` (`'use server'`), gọi core, tr�
   bảng cạnh nào khác (AD-18).
 - **Giá trị chiếu trên `person`** (fullName, nameTier, birth…, isLiving) do DUY NHẤT
   `core/assertion` ghi (AD-19). Module khác đọc, không ghi.
+  Hợp nhất cũng theo lối đó: repoint xong thì gọi `projectPerson(winner)`, rồi ghi chênh lệch
+  từng cột thành mục `projection` trong revision để tách lại khôi phục đúng nguyên trạng (AD-3).
 - **Mọi mutation** → `writeRevision` cùng tx (AD-10). Thêm người sống / đổi giá trị đã duyệt về
   người sống → chèn `notification` cùng tx (AD-15).
+  - **Ngoại lệ AD-10 đã chốt — đúng hai chỗ, đừng thêm chỗ thứ ba:**
+    1. `ensureClan` (`core/identity/bootstrap.ts`) chèn hàng `clan`. `revision.clanId` tham chiếu
+       chính hàng vừa tạo, `revision.accountId` là NOT NULL mà lúc ấy chưa có tài khoản nào, và
+       `revision.entity` cố ý không có thành viên `'clan'` — sự kiện khai sinh dòng họ nằm ngoài
+       nhật ký của dòng họ đó.
+    2. `markNotificationSeen` (`core/identity/ops.ts`) đặt `seenAt`. Đây là sổ giao nhận, không
+       phải sự kiện phả hệ: `revision.entity` cũng không có `'notification'`, và AD-15 giữ bản
+       thân sự kiện bất biến — chỉ dấu "đã đọc" đổi.
+  - Thêm ngoại lệ mới ⇒ sửa cả `revision.entity` trong schema và mục này, kèm lý do.
 - **Bán kính riêng tư** (AD-13/21): mặc định — trong 3 bậc (đường máu + hôn nhân) thấy đủ; ngoài:
   người sống chỉ tên + vị trí + NĂM sinh (không ngày/tháng), ẩn liên hệ; vị thành niên chặt hơn;
   `hiddenFromPublic` ⇒ với khách/ngoài bán kính, ẩn cả tên (giữ chỗ "một người con") — vẫn giữ

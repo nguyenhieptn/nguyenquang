@@ -54,3 +54,28 @@ Log web: `var/log/giapha.log`. PID: `var/run/giapha.pid`.
 - **Đăng nhập lỗi** → kiểm `BETTER_AUTH_URL` trong `.env` phải đúng `http://<tailscale-ip>:3000`.
 - **Trang trắng / lỗi quyền** → kiểm `GIAPHA_CLAN_ID` trong `.env` (sinh bởi bootstrap script).
 - **Cổng 3000 bị chiếm** → `./scripts/deploy.sh` tự dọn; nếu vẫn kẹt: `ss -tlnp | grep 3000`.
+
+---
+
+## Nhật ký triển khai lần đầu — 22–23/08/2026
+
+| Việc | Kết quả |
+|---|---|
+| Dòng họ khởi tạo | `Dòng họ Nguyễn Quang`, id nằm ở `GIAPHA_CLAN_ID` trong `.env` |
+| Tài khoản quản trị đầu | `nguyenquanghiep@gmail.com` (vai `admin`, đã gắn node) — mật khẩu do người tạo giữ, **không nằm trong repo** |
+| Dữ liệu mẫu | 12 người gieo qua đúng luồng FR-51 (`npx tsx scripts/demo-seed.ts`) — nhân vật demo, xoá được |
+| Diễn tập khôi phục | ✅ đã chạy `./scripts/backup.sh --restore` — khôi phục 13 dòng `person` |
+| Web | `http://100.94.148.68:3000` (IP Tailscale), `/uiworkshop` trả 404 đúng chuẩn production |
+
+**Node của quản trị đang là một mảnh chưa nối.** Bootstrap tạo node cho Hiệp mà chưa gắn vào cây
+nào — đúng trạng thái trung thực của FR-48. Cách nối: đăng nhập → **Thêm** → tự khai người thân
+gần nhất, hoặc nạp khung có tên mình. Đây chính là vòng lặp sản phẩm sinh ra để phục vụ.
+
+**Xoá sạch dữ liệu demo trước khi mở cho dòng họ:**
+```bash
+./scripts/deploy.sh --stop
+docker compose down -v          # xoá volume ⇒ mất TOÀN BỘ dữ liệu
+docker compose up -d && npm run db:migrate
+npx tsx scripts/bootstrap-clan.ts --admin <email> '<mật khẩu>' '<Họ tên>'
+./scripts/deploy.sh
+```

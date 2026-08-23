@@ -34,49 +34,53 @@ type Duong = { nhan: string; href: string | null };
 /**
  * Đường KHÔNG có chỗ trên thanh năm mục — thanh chính đã chốt trần ở năm.
  *
- * ⚠️ TẤT CẢ `href` LÀ `null` TỪ 16/08/2026 — thu phạm vi xưởng còn một màn, các màn đích đã bị
- * xoá. `Duong.href` vốn nhận `null` (mục thành chữ trơ), nên đây không phải cách lách.
+ * Bốn màn đích đã dựng (promote Đợt 1), nên bốn mục là ĐƯỜNG THẬT. Cơ chế `href: null` (mục
+ * thành chữ trơ) giữ nguyên trong `Duong` cho lần thu phạm vi sau, nếu có.
  */
 const DI_TIEP: Duong[] = [
-  { nhan: 'Cả tộc', href: null },
-  { nhan: 'Cây gia tộc', href: null },
-  { nhan: 'Mảnh chưa nối', href: null },
-  { nhan: 'Bàn duyệt', href: null },
+  { nhan: 'Cả tộc', href: '/gia-pha/ca-toc' },
+  { nhan: 'Cây gia tộc', href: '/gia-pha/duong-cua-toi' },
+  // "Mảnh chưa nối" (FR-48) sống trên màn hợp nhất của ban duyệt — đó là chỗ duy nhất nối được.
+  { nhan: 'Mảnh chưa nối', href: '/ban-duyet/hop-nhat' },
+  { nhan: 'Bàn duyệt', href: '/ban-duyet' },
 ];
 
 /**
  * FR-55 — ba quyền BÀY NGANG NHAU. Thứ tự không hàm ý cái nào chính.
  *
- * GIỮ LẠI cả ba dù `href` đã null. Ba dòng này là cam kết của sản phẩm với người sống, không phải
- * điều hướng: xoá chúng đi thì màn duy nhất còn lại đọc ra như một phả không có lối từ chối. Chữ
- * trơ nói đúng sự thật hiện tại — quyền đã được tuyên, màn thực thi chưa dựng.
+ * Cả ba dẫn về trang Tôi: đó là màn thực thi quyền của người trong phả (FR-55). Vẫn bày thành
+ * BA dòng chứ không gộp một, vì "quyền từ chối mà khó tìm hơn quyền sửa thì không còn là quyền"
+ * — mỗi quyền phải đọc được thành lời ngay ở đây, trước khi mở màn.
  */
 const QUYEN: Duong[] = [
-  { nhan: 'Sửa thông tin về mình', href: null },
-  { nhan: 'Ẩn khỏi phần công khai', href: null },
-  { nhan: 'Từ chối xuất hiện trong bản in', href: null },
+  { nhan: 'Sửa thông tin về mình', href: '/toi' },
+  { nhan: 'Ẩn khỏi phần công khai', href: '/toi' },
+  { nhan: 'Từ chối xuất hiện trong bản in', href: '/toi' },
 ];
 
 function Cot({ tua, duong }: { tua: string; duong: Duong[] }) {
   return (
     <div>
-      <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-muted-foreground">
+      {/* Sàn chữ tuyệt đối 15px (DESIGN.md § Typography). Giãn chữ rút 0.18em → 0.1em: ở 15px
+          thì 0.18em kéo tựa cột rời ra thành từng chữ cái. */}
+      <h2 className="text-[15px] font-bold uppercase leading-tight tracking-[0.1em] text-muted-foreground">
         {tua}
       </h2>
-      <ul className="mt-3 space-y-2">
+      <ul className="mt-3 space-y-1">
         {duong.map((d) => (
           <li key={d.nhan}>
             {d.href ? (
               <Link
                 href={d.href}
                 // Gạch chân mảnh, đậm lên khi rê: đường dẫn trong một cuốn sách là chú dẫn, không
-                // phải nút. Vùng chạm 44px lo bằng `py` chứ không bằng nền màu.
-                className="inline-block py-1.5 text-[17px] underline decoration-border underline-offset-4 outline-none hover:decoration-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
+                // phải nút. Vùng chạm 44px lo bằng `min-h-11` (không bằng nền màu) — `py` một
+                // mình không bảo đảm được sàn ấy khi nhãn xuống một dòng.
+                className="inline-flex min-h-11 items-center text-[17px] underline decoration-border underline-offset-4 outline-none hover:decoration-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-ring"
               >
                 {d.nhan}
               </Link>
             ) : (
-              <span className="inline-block py-1.5 text-[17px] text-muted-foreground">
+              <span className="inline-flex min-h-11 items-center text-[17px] text-muted-foreground">
                 {d.nhan}
               </span>
             )}
@@ -98,7 +102,9 @@ export function ChanTrang({ tenPha = 'Tộc phả' }: { tenPha?: string }) {
         <div className="pt-8 md:grid md:grid-cols-[minmax(0,1fr)_auto_auto] md:gap-12 lg:gap-16">
           {/* ── Phả này là gì ─────────────────────────────────────────── */}
           <div className="max-w-sm">
-            <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+            {/* Sàn 15px: hàng chữ nhỏ giãn rộng của măng-sét cũng không được xuống dưới sàn.
+                Giãn chữ 0.22em → 0.12em cho hai chữ vẫn tách ra mà không rã. */}
+            <p className="text-[15px] uppercase leading-tight tracking-[0.12em] text-muted-foreground">
               Gia phả họ
             </p>
             <p className="mt-1 font-[family-name:var(--font-pha)] text-[22px] font-semibold leading-none">

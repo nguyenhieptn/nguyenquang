@@ -40,7 +40,7 @@
 import { and, asc, desc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Tx } from '@/db';
 import { assertion, person, revision, type Tier } from '@/db/schema';
-import { err, ok, type Result } from '@/core/types';
+import { err, isUuid, ok, type Result } from '@/core/types';
 import { ANONYMOUS_LABEL, PRIVACY_RADIUS, visibilityFor } from '@/core/identity/privacy';
 import type { ViewerContext } from '@/core/identity/session';
 import { lookupAccountNames } from '@/core/assertion/ops';
@@ -211,6 +211,10 @@ export async function getPersonHistory(
   ctx: ViewerContext,
   personId: string,
 ): Promise<Result<HistoryEntry[]>> {
+  // Route params arrive as raw strings: a non-uuid would make Postgres throw 22P02 instead of
+  // returning nothing. An id nobody holds and an id nobody could hold read the same here.
+  if (!isUuid(personId)) return err('not-found', 'person not found');
+
   const [subject] = await tx
     .select({
       isLiving: person.isLiving,
@@ -553,12 +557,15 @@ export async function attributionFor(
   _ctx: ViewerContext,
   personIds: string[],
 ): Promise<Result<Record<string, Attribution>>> {
-  if (personIds.length === 0) return ok({});
+  // Non-uuid ids are dropped rather than refused: this is a batch helper, and one bad id in a
+  // caller's list must not cost the whole card row its attribution (nor throw 22P02).
+  const ids = personIds.filter(isUuid);
+  if (ids.length === 0) return ok({});
   const rows = await tx
     .select({ personId: revision.entityId, accountId: revision.accountId, at: revision.createdAt })
     .from(revision)
     .where(
-      and(eq(revision.entity, 'person'), eq(revision.action, 'create'), inArray(revision.entityId, personIds)),
+      and(eq(revision.entity, 'person'), eq(revision.action, 'create'), inArray(revision.entityId, ids)),
     )
     .orderBy(asc(revision.createdAt), asc(revision.id));
 

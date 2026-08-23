@@ -123,7 +123,9 @@ export function ManChi({
             <div>
               <Link
                 href="/gia-pha/ca-toc"
-                className="inline-block py-1.5 text-[15px] text-muted-foreground underline underline-offset-4"
+                // Vùng chạm 44px (Accessibility Floor): min-h-11, không phải py — nhãn một dòng
+                // 15px với py-1.5 mới được ~34px.
+                className="inline-flex min-h-11 items-center text-[15px] text-muted-foreground underline underline-offset-4"
               >
                 ← Xem cả tộc
               </Link>

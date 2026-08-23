@@ -41,6 +41,25 @@ const LOI_NHAN: Partial<Record<string, string>> = {
 };
 const LOI_CHUNG = 'Chưa gửi được — thử lại, hoặc quay lại sau ít phút.';
 
+/**
+ * Thời gian tương đối tiếng Việt cho dòng ghi công (FR-39) — cùng cách đọc với dòng ghi công
+ * trên trang chủ: đếm theo NGÀY LỊCH, không theo 24 giờ tròn ("hôm qua" là chuyện của tờ lịch).
+ * Bản sao nhỏ tại chỗ: dòng ghi công trên trang chủ ở trong một màn khác, và một cái mốc thời
+ * gian không đáng để đẻ ra một mô-đun dùng chung. Chuỗi ISO trần thì KHÔNG được lên bề mặt A —
+ * "2026-08-21T09:12:44.512Z" là giọng kỹ thuật (DESIGN.md § Do's and Don'ts).
+ */
+function thoiGianTuongDoi(luc: string, bayGio = new Date()): string {
+  const at = new Date(luc);
+  if (Number.isNaN(at.getTime())) return '';
+  const ngayCua = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const chenh = Math.round((ngayCua(bayGio) - ngayCua(at)) / 86_400_000);
+  if (chenh <= 0) return 'hôm nay';
+  if (chenh === 1) return 'hôm qua';
+  if (chenh < 30) return `${chenh} ngày trước`;
+  if (chenh < 365) return `${Math.floor(chenh / 30)} tháng trước`;
+  return `${Math.floor(chenh / 365)} năm trước`;
+}
+
 /** Dòng ngữ cảnh đời + chi + năm — cái phân biệt hai người trùng tên. */
 function dongNguCanh(h: SearchHit): string {
   return [
@@ -67,10 +86,17 @@ export type NguoiDangCho = { fullName: string; nguCanh: string };
 export function NhanCho({
   /** Lời nhận chỗ đang 'pending' từ trước (server đọc getMyAttachment) — mở thẳng màn chờ. */
   choSan = null,
+  /**
+   * Chỗ đang dở của luồng thêm (`?tiep=`, trang server đã lọc chỉ còn đường nội bộ). Chỉ dùng
+   * cho đường quay về màn đăng nhập: phiên rơi giữa chừng thì vào lại xong vẫn về đúng chỗ ấy.
+   */
+  tiep,
 }: {
   choSan?: NguoiDangCho | null;
+  tiep?: string;
 }) {
   const router = useRouter();
+  const duongDangNhap = tiep ? `/dang-nhap?tiep=${encodeURIComponent(tiep)}` : '/dang-nhap';
   const [tuKhoa, setTuKhoa] = useState('');
   const [dangTim, setDangTim] = useState(false);
   const [daTim, setDaTim] = useState(false);
@@ -92,7 +118,7 @@ export function NhanCho({
       const kq = await timChinhMinh(chuoi);
       if (!kq.ok) {
         if (kq.error.code === 'unauthenticated') {
-          router.push('/dang-nhap');
+          router.push(duongDangNhap);
           return;
         }
         setLoi(LOI_TIM[kq.error.code] ?? LOI_CHUNG);
@@ -115,7 +141,7 @@ export function NhanCho({
       const kq = await nhanChoTrongPha(nguoi.personId);
       if (!kq.ok) {
         if (kq.error.code === 'unauthenticated') {
-          router.push('/dang-nhap');
+          router.push(duongDangNhap);
           return;
         }
         setLoi(LOI_NHAN[kq.error.code] ?? LOI_CHUNG);
@@ -225,7 +251,7 @@ export function NhanCho({
                       {/* Ai ghi tên này vào — phải thấy TRƯỚC khi bấm (FR-39/FR-55). */}
                       {h.attribution && (
                         <p className="mt-1 text-[15px] italic text-primary">
-                          {h.attribution.byName} ghi · {h.attribution.at}
+                          {h.attribution.byName} ghi · {thoiGianTuongDoi(h.attribution.at)}
                         </p>
                       )}
                     </>

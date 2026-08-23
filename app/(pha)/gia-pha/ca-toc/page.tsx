@@ -81,22 +81,26 @@ export default async function Page() {
     <>
       <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
         <div className={KHUNG}>
-          {/* ── Đề từ. Trên máy mở hết cỡ; Hán-Nôm LUÔN kèm phiên âm (NFR-9).
+          {/* ── Đề từ. Trên máy mở hết cỡ; chữ Hán đặt bằng `--font-han-nom` (stack CJK hệ
+              thống), KHÔNG bằng `--font-pha` — serif Latin không phủ CJK nên trình duyệt tự
+              rơi về một font tuỳ máy. NFR-9 là điều kiện của cả khối, không phải của riêng
+              dòng phiên âm: thiếu phiên âm thì chữ Hán KHÔNG hiện — đề từ không đọc được ra
+              tiếng thì là hoa văn, không phải câu chữ của dòng họ.
               Tên họ + đề từ đọc từ clan.settings qua getClanInfo (AD-14) — phả chưa khai đề từ
               thì khối đề từ vắng, không bịa. */}
           <header className="mb-7 md:mb-12 md:border-b md:border-border md:pb-10 md:text-center">
             <p className="text-[15px] uppercase tracking-[0.16em] text-muted-foreground">
               {tenPha}
             </p>
-            {caiDat.motto && (
-              <p className="mt-2 font-[family-name:var(--font-pha)] text-[23px] text-primary md:mt-4 md:text-[44px]">
-                {caiDat.motto}
-              </p>
-            )}
             {caiDat.motto && caiDat.mottoPhonetic && (
-              <p className="text-[15px] italic text-muted-foreground md:mt-1 md:text-[17px]">
-                {caiDat.mottoPhonetic}
-              </p>
+              <>
+                <p className="mt-2 font-[family-name:var(--font-han-nom)] text-[23px] text-primary md:mt-4 md:text-[44px]">
+                  {caiDat.motto}
+                </p>
+                <p className="text-[15px] italic text-muted-foreground md:mt-1 md:text-[17px]">
+                  {caiDat.mottoPhonetic}
+                </p>
+              </>
             )}
             <h1 className="mt-4 font-[family-name:var(--font-pha)] text-[23px] md:mt-8 md:text-[28px]">
               Cả tộc

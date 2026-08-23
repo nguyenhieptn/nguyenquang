@@ -21,3 +21,15 @@ export const err = <T = never>(code: CoreErrorCode, message: string): Result<T> 
   ok: false,
   error: { code, message },
 });
+
+/**
+ * Every clan id column is Postgres `uuid`: a malformed literal makes the driver THROW 22P02
+ * (invalid_text_representation) instead of returning an empty set — a thrown error where the
+ * core owes a `Result`, and a 500 where the adapter owes a "không thấy" page. Ids reach the
+ * core straight from route params, so every id-taking op guards with this BEFORE the query
+ * and treats a non-uuid the same as an id nobody holds: `err('not-found', …)`.
+ */
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export const isUuid = (value: unknown): value is string =>
+  typeof value === 'string' && UUID_RE.test(value);

@@ -36,6 +36,34 @@ import { ghiVaoPha, xemTruoc, type DongXemTruoc, type KetQuaXemTruoc } from './a
 
 type Loc = 'tat-ca' | 'nguoi-moi' | 'khop' | 'can-xem-lai';
 
+const MOI_LOC: readonly Loc[] = ['tat-ca', 'nguoi-moi', 'khop', 'can-xem-lai'];
+
+/**
+ * BỘ LỌC SOI VÀO URL — `?loc=can-xem-lai` (EXPERIENCE.md § Bề mặt B, "Cảnh báo không có màn
+ * riêng"). Spec đặt cho "Bảng cảnh báo" một địa chỉ chứ không đặt cho nó một màn: cùng route,
+ * cùng bảng, lọc lại. Không có địa chỉ thì không chỉ trỏ được cho người khác, và F5 mất chỗ
+ * đang đứng.
+ *
+ * `history.replaceState` chứ không `router.push`: luồng nạp khung sống trọn trong state client
+ * (văn bản tệp không rời trình duyệt — xem ghi chú đầu file), nên điều hướng thật sẽ NÉM MẤT cả
+ * bảng xem trước. Đổi bộ lọc cũng không đáng một mục lịch sử riêng: nút Back phải quay về chỗ
+ * trước khi nạp tệp, không phải lùi qua từng lần bấm chip.
+ */
+function docLocTuUrl(): Loc {
+  if (typeof window === 'undefined') return 'tat-ca';
+  const tham = new URLSearchParams(window.location.search).get('loc');
+  return MOI_LOC.find((l) => l === tham) ?? 'tat-ca';
+}
+
+function soiLocVaoUrl(loc: Loc): void {
+  if (typeof window === 'undefined') return;
+  const dia = new URL(window.location.href);
+  // 'tat-ca' là mặc định — để nó ra khỏi URL, đường dẫn trần vẫn là đường dẫn đúng.
+  if (loc === 'tat-ca') dia.searchParams.delete('loc');
+  else dia.searchParams.set('loc', loc);
+  window.history.replaceState(null, '', `${dia.pathname}${dia.search}`);
+}
+
 // ── Chữ dùng chung ───────────────────────────────────────────────────────────
 
 function nhanNam(d: Pick<DongXemTruoc, 'namSinh' | 'namMat'>): string {
@@ -565,9 +593,16 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
 
   // Quyết định người vận hành đã đụng tay; dòng chưa đụng dùng mặc định của macDinhCua.
   const [daChon, setDaChon] = useState<Record<number, SeedDecision>>({});
-  const [loc, setLoc] = useState<Loc>('tat-ca');
+  // Đọc lúc dựng (khối này chỉ dựng ở client, sau khi action trả bảng xem trước — không có
+  // bản HTML từ server để lệch nhau), rồi mỗi lần đổi lại soi ngược ra URL.
+  const [loc, setLoc] = useState<Loc>(docLocTuUrl);
   const [ketQuaGhi, setKetQuaGhi] = useState<Result<SeedCommitResult> | null>(null);
   const [dangGhi, batDauGhi] = useTransition();
+
+  const datLoc = (moi: Loc) => {
+    setLoc(moi);
+    soiLocVaoUrl(moi);
+  };
 
   const quyetDinhCua = (d: DongXemTruoc): SeedDecision | null => daChon[d.index] ?? macDinhCua(d);
   const datQuyetDinh = (index: number, qd: SeedDecision) =>
@@ -643,7 +678,7 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
       ) : null}
 
       <div className="mt-6">
-        <ChipLoc dong={dong} loc={loc} datLoc={setLoc} />
+        <ChipLoc dong={dong} loc={loc} datLoc={datLoc} />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-md border border-ban-vien bg-ban-o">
@@ -765,7 +800,12 @@ export function NapKhungClient() {
       <PhaXemTruoc
         key={ketQua.value.nonce}
         ketQua={ketQua.value}
-        boTep={() => setNonceDaBo(ketQua.value.nonce)}
+        boTep={() => {
+          // Bỏ tệp là rời khỏi bảng — bộ lọc của bảng cũ không được bám lại trên URL, kẻo
+          // tệp sau vừa mở đã bị lọc sẵn bởi một lần bấm chip của tệp trước.
+          soiLocVaoUrl('tat-ca');
+          setNonceDaBo(ketQua.value.nonce);
+        }}
       />
     );
   }

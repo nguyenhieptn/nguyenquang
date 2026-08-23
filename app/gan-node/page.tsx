@@ -33,12 +33,32 @@ import { NhanCho } from './nhan-cho';
 
 export const metadata: Metadata = { title: 'Nhận chỗ của mình' };
 
-export default async function Page() {
+/**
+ * `?tiep=` — chỗ đang dở mà luồng thêm gửi kèm khi nó rẽ qua đây (app/(pha)/them/noi và
+ * them/xac-nhan gửi cả hai). Màn này nằm GIỮA luồng ấy, nên nó phải chuyền tiếp tham số chứ
+ * không được nuốt: nuốt một lần là người ta mất chỗ đang dở đúng lúc vừa làm xong việc.
+ *
+ * Chỉ nhận đường nội bộ ('/' mở đầu, không phải '//'). Bản sao của phép kiểm này nằm ở
+ * app/dang-nhap/page.tsx — giữ hai bên khớp nhau.
+ */
+function duongTiep(tho: string | string[] | undefined): string | undefined {
+  const s = Array.isArray(tho) ? tho[0] : tho;
+  return s && s.startsWith('/') && !s.startsWith('//') ? s : undefined;
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ tiep?: string | string[] }>;
+}) {
+  const tiep = duongTiep((await searchParams).tiep);
+
   const session = await resolveSession();
-  // Chưa có tài khoản thì chưa có gì để gắn — về màn đăng nhập (err-map của build contract).
-  if (!session) redirect('/dang-nhap');
-  // Đã gắn rồi thì màn này hết việc.
-  if (session.personId) redirect('/');
+  // Chưa có tài khoản thì chưa có gì để gắn — về màn đăng nhập (err-map của build contract),
+  // mang theo chỗ đang dở để cả hai chặng đều dẫn về đúng một đích.
+  if (!session) redirect(tiep ? `/dang-nhap?tiep=${encodeURIComponent(tiep)}` : '/dang-nhap');
+  // Đã gắn rồi thì màn này hết việc: về thẳng chỗ đang dở, không có thì về trang chủ.
+  if (session.personId) redirect(tiep ?? '/');
 
   // Một lời nhận chỗ đang chờ bảo lãnh (AD-8: getMyAttachment đọc được cả trạng thái pending):
   // mở lại màn này thì gặp NGAY màn chờ, không phải màn tìm — kẻo tưởng lời cũ đã rơi mất và
@@ -52,7 +72,7 @@ export default async function Page() {
   return (
     <div className="flex min-h-dvh flex-col">
       <main className={`${DOC} flex-1 pb-28 pt-7 md:pb-16 md:pt-28`}>
-        <NhanCho choSan={dangCho} />
+        <NhanCho choSan={dangCho} tiep={tiep} />
       </main>
       <ThanhDieuHuong hienTai="toi" />
     </div>

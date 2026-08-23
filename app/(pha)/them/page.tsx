@@ -39,7 +39,20 @@ const LUA_CHON: { qh: QuanHe; nhan: string; phu?: string }[] = [
   { qh: 'anh-chi-em', nhan: 'Anh, chị hoặc em', phu: 'cùng bố mẹ' },
 ];
 
-export default function Page() {
+/**
+ * `ten` đến từ đường tạo của màn tìm (`/them?ten=…`, app/(pha)/tim): người vừa gõ một cái tên,
+ * không thấy ai, và bấm "thêm người này". Cái tên ấy phải sống qua bước 1 sang bước 2 — bắt gõ
+ * lại đúng cái vừa gõ là chỗ người ta bỏ dở, và nó phá luôn ngân sách 3 phút của NFR-5.
+ */
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ ten?: string | string[] }>;
+}) {
+  const sp = await searchParams;
+  const thoTen = Array.isArray(sp.ten) ? sp.ten[0] : sp.ten;
+  const ten = thoTen?.trim() || undefined;
+
   return (
     <KhungThem>
       <section>
@@ -47,7 +60,7 @@ export default function Page() {
         <CauHoi>Người muốn thêm là ai?</CauHoi>
         <div className="mt-5 grid gap-2.5">
           {LUA_CHON.map((c) => (
-            <OChonDuong key={c.qh} href={duongBuoc('/them/ten', { qh: c.qh })} phu={c.phu}>
+            <OChonDuong key={c.qh} href={duongBuoc('/them/ten', { qh: c.qh, ten })} phu={c.phu}>
               {c.nhan}
             </OChonDuong>
           ))}

@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { v7 as uuidv7 } from 'uuid';
-import { eq, and } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { withClanContext, ownerPool } from '@/db';
 import {
   assertion,
@@ -53,6 +53,13 @@ const l3 = uuidv7();
 const chainA = uuidv7();
 const chainB = uuidv7();
 const chainC = uuidv7();
+const hidW = uuidv7(); // hiddenFromPublic pair — evidence must not leak to a distant proposer
+const hidL = uuidv7();
+const sW = uuidv7(); // winner with a TENTATIVE name; the loser brings the OFFICIAL one
+const sL = uuidv7();
+const oL = uuidv7(); // chained merges: oL → oW, then oW → oV
+const oW = uuidv7();
+const oV = uuidv7();
 
 // claims / fixtures
 const src1 = uuidv7();
@@ -70,6 +77,15 @@ const r2 = uuidv7();
 const rs3 = uuidv7(); // r2 speaks about l2  (duplicate of rs4 after merge)
 const rs4 = uuidv7(); // r2 speaks about w2
 const n1 = uuidv7(); // notification owed to l1
+// name claims — projection is core/assertion's (AD-19), so the fixtures carry real assertions
+const nameW1 = uuidv7();
+const nameL1 = uuidv7();
+const nameL2 = uuidv7();
+const nameSW = uuidv7();
+const nameSL = uuidv7();
+const nameOL = uuidv7();
+const nameOW = uuidv7();
+const nameOV = uuidv7();
 const att3w = uuidv7();
 const att3l = uuidv7();
 
@@ -110,8 +126,8 @@ beforeAll(async () => {
       seedPerson(parent, `${STORY} Cha Chung`, { isLiving: false }),
       seedPerson(twinA, `${STORY} Người Trùng Tên`, { birthDate: '1950-01-01', birthPrecision: 'exact' }),
       seedPerson(twinB, `${STORY} Người Trùng Tên`, { birthDate: '1951-06-01', birthPrecision: 'exact' }),
-      seedPerson(w1, `${STORY} Một Thắng`),
-      seedPerson(l1, `${STORY} Một Thua`),
+      seedPerson(w1, `${STORY} Một Thắng`, { nameTier: 'official', nameConfidence: 'chac-chan' }),
+      seedPerson(l1, `${STORY} Một Thua`, { nameTier: 'tentative', nameConfidence: 'theo-loi-ke' }),
       seedPerson(childX, `${STORY} Con Của Thua`),
       // w2 starts with an EMPTY projection so the merge fills it from l2:
       { id: w2, clanId, fullName: '', nameFolded: '' },
@@ -122,6 +138,13 @@ beforeAll(async () => {
       seedPerson(chainA, `${STORY} Chuỗi A`),
       seedPerson(chainB, `${STORY} Chuỗi B`),
       seedPerson(chainC, `${STORY} Chuỗi C`),
+      seedPerson(sW, `${STORY} Chiếu Cũ`, { nameTier: 'tentative', nameConfidence: 'theo-loi-ke' }),
+      seedPerson(sL, `${STORY} Chiếu Mới`, { nameTier: 'official', nameConfidence: 'chac-chan' }),
+      seedPerson(hidW, `${STORY} Kín Thắng`, { hiddenFromPublic: true }),
+      seedPerson(hidL, `${STORY} Kín Thua`, { hiddenFromPublic: true }),
+      seedPerson(oL, `${STORY} Nối Một`, { nameTier: 'tentative', nameConfidence: 'theo-loi-ke' }),
+      seedPerson(oW, `${STORY} Nối Hai`, { nameTier: 'official', nameConfidence: 'chac-chan' }),
+      seedPerson(oV, `${STORY} Nối Ba`, { nameTier: 'official', nameConfidence: 'chac-chan' }),
     ]);
     await tx.insert(source).values([
       { id: src1, clanId, kind: 'seed-import', description: `${STORY} seed`, createdByAccountId: adminAcc },
@@ -134,6 +157,15 @@ beforeAll(async () => {
       { id: aObj, clanId, subjectPersonId: childX, kind: 'parent-child', objectPersonId: l1, value: { relation: 'blood' }, sourceId: src1, createdByAccountId: adminAcc },
       { id: bSubj, clanId, subjectPersonId: l2, kind: 'note', value: { text: `${STORY} ghi chú hai` }, sourceId: src1, createdByAccountId: adminAcc },
       { id: bObj, clanId, subjectPersonId: childY, kind: 'parent-child', objectPersonId: l2, value: { relation: 'blood' }, sourceId: src1, createdByAccountId: adminAcc },
+      // AD-19: `person` projections come from these, so the merge's re-projection has real input
+      { id: nameW1, clanId, subjectPersonId: w1, kind: 'name', value: { fullName: `${STORY} Một Thắng` }, sourceId: src1, confidence: 'chac-chan', tier: 'official', createdByAccountId: adminAcc },
+      { id: nameL1, clanId, subjectPersonId: l1, kind: 'name', value: { fullName: `${STORY} Một Thua` }, sourceId: src1, confidence: 'theo-loi-ke', tier: 'tentative', createdByAccountId: adminAcc },
+      { id: nameL2, clanId, subjectPersonId: l2, kind: 'name', value: { fullName: `${STORY} Hai Thua` }, sourceId: src1, confidence: 'theo-loi-ke', tier: 'tentative', createdByAccountId: adminAcc },
+      { id: nameSW, clanId, subjectPersonId: sW, kind: 'name', value: { fullName: `${STORY} Chiếu Cũ` }, sourceId: src1, confidence: 'theo-loi-ke', tier: 'tentative', createdByAccountId: adminAcc },
+      { id: nameSL, clanId, subjectPersonId: sL, kind: 'name', value: { fullName: `${STORY} Chiếu Mới` }, sourceId: src1, confidence: 'chac-chan', tier: 'official', createdByAccountId: adminAcc },
+      { id: nameOL, clanId, subjectPersonId: oL, kind: 'name', value: { fullName: `${STORY} Nối Một` }, sourceId: src1, confidence: 'theo-loi-ke', tier: 'tentative', createdByAccountId: adminAcc },
+      { id: nameOW, clanId, subjectPersonId: oW, kind: 'name', value: { fullName: `${STORY} Nối Hai` }, sourceId: src1, confidence: 'chac-chan', tier: 'official', createdByAccountId: adminAcc },
+      { id: nameOV, clanId, subjectPersonId: oV, kind: 'name', value: { fullName: `${STORY} Nối Ba` }, sourceId: src1, confidence: 'chac-chan', tier: 'official', createdByAccountId: adminAcc },
     ]);
     await tx.insert(recording).values([
       { id: r1, clanId, toldByPersonId: l1, recordedByAccountId: adminAcc, recordedOn: '2020-01-01', storageKey: `${STORY}/r1`, mimeType: 'audio/mp4' },
@@ -326,7 +358,7 @@ describe('unmerge', () => {
 
     // snapshots before the merge
     const before = await withClanContext(clanId, async (tx) => {
-      const claims = await tx.select().from(assertion).where(eq(assertion.subjectPersonId, l2));
+      const claims = await tx.select().from(assertion).where(eq(assertion.subjectPersonId, l2)).orderBy(assertion.id);
       const pcs = await tx.select().from(assertion).where(eq(assertion.id, bObj));
       const persons = (
         await Promise.all(
@@ -343,10 +375,28 @@ describe('unmerge', () => {
       p2 = unwrap(await proposeMergeOp(tx, memberCtx, { winnerId: w2, loserId: l2, reason: `${STORY} trùng` })).proposalId;
       unwrap(await executeMergeOp(tx, adminCtx, { proposalId: p2 }));
 
-      // merged state: projection filled onto w2 (empty slots only), AD-15 notification emitted
+      // merged state: w2 re-projected (AD-19) from the claims that moved, AD-15 notification sent
       const [winner] = await tx.select().from(person).where(eq(person.id, w2));
       expect(winner?.fullName).toBe(`${STORY} Hai Thua`);
       expect(winner?.nameFolded).toBe(chuanHoa(`${STORY} Hai Thua`));
+      expect(winner?.nameTier).toBe('tentative');
+      expect(winner?.nameConfidence).toBe('theo-loi-ke');
+
+      // AD-3: the re-projection is recorded column by column, with the exact before/after values
+      const [mergeRev] = await tx
+        .select()
+        .from(revision)
+        .where(and(eq(revision.entity, 'merge'), eq(revision.entityId, p2), eq(revision.action, 'merge')));
+      const projected = (mergeRev!.after as { repointed: RepointEntry[] }).repointed.filter(
+        (e) => e.kind === 'projection',
+      );
+      expect(projected).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ table: 'person', rowId: w2, column: 'full_name', from: '', to: `${STORY} Hai Thua` }),
+          expect.objectContaining({ table: 'person', rowId: w2, column: 'name_tier', from: null, to: 'tentative' }),
+          expect.objectContaining({ table: 'person', rowId: w2, column: 'name_confidence', from: null, to: 'theo-loi-ke' }),
+        ]),
+      );
       const notifs = await tx
         .select()
         .from(notification)
@@ -361,7 +411,7 @@ describe('unmerge', () => {
       const reversed = unwrap(await unmergeOp(tx, adminCtx, { proposalId: p2 }));
       expect(reversed.reversed).toBeGreaterThan(0);
 
-      const claims = await tx.select().from(assertion).where(eq(assertion.subjectPersonId, l2));
+      const claims = await tx.select().from(assertion).where(eq(assertion.subjectPersonId, l2)).orderBy(assertion.id);
       const pcs = await tx.select().from(assertion).where(eq(assertion.id, bObj));
       const persons = (
         await Promise.all(
@@ -431,5 +481,152 @@ describe('resolveAlias', () => {
       expect(res.ok).toBe(true);
       await tx.update(person).set({ mergedInto: null }).where(eq(person.id, chainC));
     });
+  });
+});
+
+describe('malformed ids (Postgres 22P02)', () => {
+  it('reads a non-uuid person or proposal id as not-found, never a thrown driver error', async () => {
+    await withClanContext(clanId, async (tx) => {
+      const bad = 'khong-phai-uuid';
+      expect(unwrapErr(await proposeMergeOp(tx, memberCtx, { winnerId: bad, loserId: twinA, reason: 'x' })).code).toBe('not-found');
+      expect(unwrapErr(await proposeMergeOp(tx, memberCtx, { winnerId: twinA, loserId: bad, reason: 'x' })).code).toBe('not-found');
+      expect(unwrapErr(await executeMergeOp(tx, adminCtx, { proposalId: bad })).code).toBe('not-found');
+      expect(unwrapErr(await rejectProposalOp(tx, adminCtx, { proposalId: bad, note: 'x' })).code).toBe('not-found');
+      expect(unwrapErr(await unmergeOp(tx, adminCtx, { proposalId: bad })).code).toBe('not-found');
+      expect(unwrapErr(await resolveAliasOp(tx, bad)).code).toBe('not-found');
+    });
+  });
+});
+
+describe('proposeMerge evidence (AD-13/AD-21)', () => {
+  it('withholds the evidence when a person is anonymous to the proposer, keeps it for an approver', async () => {
+    await withClanContext(clanId, async (tx) => {
+      // hidW/hidL are hiddenFromPublic and living; the member proposing is outside their radius
+      const withheld = unwrap(
+        await proposeMergeOp(tx, memberCtx, { winnerId: hidW, loserId: hidL, reason: `${STORY} nghi trùng` }),
+      );
+      expect(withheld.evidence).toEqual({ nameSimilarity: 0, birthYearDelta: null, sharedRelatives: 0 });
+      const [stored] = await tx.select().from(mergeProposal).where(eq(mergeProposal.id, withheld.proposalId));
+      expect(stored?.evidence).toEqual({});
+      const [createRev] = await tx
+        .select()
+        .from(revision)
+        .where(
+          and(
+            eq(revision.entity, 'merge'),
+            eq(revision.entityId, withheld.proposalId),
+            eq(revision.action, 'create'),
+          ),
+        );
+      expect((createRev!.after as { evidence: unknown }).evidence).toEqual({});
+
+      unwrap(await rejectProposalOp(tx, adminCtx, { proposalId: withheld.proposalId, note: `${STORY} khép lại` }));
+
+      // the same pair proposed by an approver (full visibility, AD-13) keeps its evidence
+      const seen = unwrap(
+        await proposeMergeOp(tx, adminCtx, { winnerId: hidW, loserId: hidL, reason: `${STORY} nghi trùng` }),
+      );
+      expect(seen.evidence.nameSimilarity).toBeGreaterThan(0);
+      const [seenRow] = await tx.select().from(mergeProposal).where(eq(mergeProposal.id, seen.proposalId));
+      expect((seenRow?.evidence as { nameSimilarity: number }).nameSimilarity).toBeGreaterThan(0);
+    });
+  });
+});
+
+describe('unmerge of chained merges', () => {
+  it('refuses an older merge while a later one on the same winner is applied, then unwinds newest-first', async () => {
+    type PersonRow = typeof person.$inferSelect;
+    const stripVolatile = (row: PersonRow) => {
+      const copy: Record<string, unknown> = { ...row };
+      delete copy.updatedAt;
+      return copy;
+    };
+    const snapshot = () =>
+      withClanContext(clanId, async (tx) => {
+        const persons = (
+          await Promise.all(
+            [oL, oW, oV].map(async (id) => (await tx.select().from(person).where(eq(person.id, id)))[0]!),
+          )
+        ).map(stripVolatile);
+        const claims = await tx
+          .select()
+          .from(assertion)
+          .where(inArray(assertion.id, [nameOL, nameOW, nameOV]))
+          .orderBy(assertion.id);
+        return { persons, claims };
+      });
+
+    const before = await snapshot();
+
+    // two merges, one transaction each so the revision log orders them apart: oL → oW, then oW → oV
+    let pChainA = '';
+    let pChainB = '';
+    await withClanContext(clanId, async (tx) => {
+      pChainA = unwrap(
+        await proposeMergeOp(tx, memberCtx, { winnerId: oW, loserId: oL, reason: `${STORY} nối một` }),
+      ).proposalId;
+      unwrap(await executeMergeOp(tx, adminCtx, { proposalId: pChainA }));
+    });
+    await withClanContext(clanId, async (tx) => {
+      pChainB = unwrap(
+        await proposeMergeOp(tx, memberCtx, { winnerId: oV, loserId: oW, reason: `${STORY} nối hai` }),
+      ).proposalId;
+      unwrap(await executeMergeOp(tx, adminCtx, { proposalId: pChainB }));
+    });
+
+    await withClanContext(clanId, async (tx) => {
+      // out of order: oL's rows now sit on oV, so reversing the older merge first is refused
+      expect(unwrapErr(await unmergeOp(tx, adminCtx, { proposalId: pChainA })).code).toBe('conflict');
+      const [stillTombstoned] = await tx.select().from(person).where(eq(person.id, oL));
+      expect(stillTombstoned?.mergedInto).toBe(oW);
+
+      unwrap(await unmergeOp(tx, adminCtx, { proposalId: pChainB }));
+      unwrap(await unmergeOp(tx, adminCtx, { proposalId: pChainA }));
+
+      const proposals = await tx
+        .select()
+        .from(mergeProposal)
+        .where(inArray(mergeProposal.id, [pChainA, pChainB]));
+      expect(proposals.map((p) => p.status)).toEqual(['open', 'open']);
+    });
+
+    // unwound in the right order, both merges restore exactly (AD-3)
+    expect(await snapshot()).toEqual(before);
+  });
+});
+
+describe('winner re-projection (AD-19)', () => {
+  it('takes the official claim that moved off the loser, and unmerge puts the old projection back', async () => {
+    type PersonRow = typeof person.$inferSelect;
+    const stripVolatile = (row: PersonRow) => {
+      const copy: Record<string, unknown> = { ...row };
+      delete copy.updatedAt;
+      return copy;
+    };
+    const winnerRow = () =>
+      withClanContext(clanId, async (tx) =>
+        stripVolatile((await tx.select().from(person).where(eq(person.id, sW)))[0]!),
+      );
+
+    const before = await winnerRow();
+    let pProj = '';
+    await withClanContext(clanId, async (tx) => {
+      pProj = unwrap(
+        await proposeMergeOp(tx, memberCtx, { winnerId: sW, loserId: sL, reason: `${STORY} chiếu lại` }),
+      ).proposalId;
+      unwrap(await executeMergeOp(tx, adminCtx, { proposalId: pProj }));
+
+      // the winner's own name claim is tentative; the one that just moved is official and leads
+      const [winner] = await tx.select().from(person).where(eq(person.id, sW));
+      expect(winner?.fullName).toBe(`${STORY} Chiếu Mới`);
+      expect(winner?.nameFolded).toBe(chuanHoa(`${STORY} Chiếu Mới`));
+      expect(winner?.nameTier).toBe('official');
+      expect(winner?.nameConfidence).toBe('chac-chan');
+    });
+
+    await withClanContext(clanId, async (tx) => {
+      unwrap(await unmergeOp(tx, adminCtx, { proposalId: pProj }));
+    });
+    expect(await winnerRow()).toEqual(before);
   });
 });

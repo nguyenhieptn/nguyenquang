@@ -31,7 +31,7 @@ import {
 } from '@/db/schema';
 import { chuanHoa } from '@/core/so-khop';
 import { writeRevision } from '@/core/revision';
-import { err, ok, type Result } from '@/core/types';
+import { err, isUuid, ok, type Result } from '@/core/types';
 import type { ViewerContext } from '@/core/identity/session';
 import type { AssertionSpec, GenealogicalDate, SourceSpec } from './index';
 
@@ -75,12 +75,20 @@ export function invalidGenealogicalDate(d: GenealogicalDate): string | null {
   return null;
 }
 
+/**
+ * Both loaders guard the id first: these columns are Postgres `uuid`, so a malformed literal
+ * (a hand-typed route param, a stale link) makes the driver THROW 22P02 rather than return an
+ * empty set. Guarding here covers every caller — promote / hide / restore / reject and the
+ * person refs of addAssertionOp — with one check: unparseable id ⇒ null ⇒ err('not-found').
+ */
 export async function loadPerson(tx: Tx, personId: string) {
+  if (!isUuid(personId)) return null;
   const rows = await tx.select().from(person).where(eq(person.id, personId)).limit(1);
   return rows[0] ?? null;
 }
 
 async function loadAssertion(tx: Tx, assertionId: string) {
+  if (!isUuid(assertionId)) return null;
   const rows = await tx.select().from(assertion).where(eq(assertion.id, assertionId)).limit(1);
   return rows[0] ?? null;
 }
@@ -338,6 +346,7 @@ export async function addAssertionOp(
     }
     case 'union-partner': {
       if (spec.unionId) {
+        if (!isUuid(spec.unionId)) return err('not-found', 'union not found in this clan');
         const rows = await tx.select().from(union).where(eq(union.id, spec.unionId)).limit(1);
         if (!rows[0]) return err('not-found', 'union not found in this clan');
       } else {

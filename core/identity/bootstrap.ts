@@ -5,11 +5,18 @@
  * arguments; the script carries the Nguyễn Quang defaults as configuration.
  *
  * The first admin is a chicken-and-egg exception, taken deliberately:
- *  - person + name/source/assertion rows are inserted directly instead of via core/assertion
- *    (story 1-2), because bootstrap must not depend on a later story — but they are written
- *    HONESTLY: source kind 'self', assertion kind 'name', tier 'tentative' (AD-9);
+ *  - person + name/source/assertion rows are inserted directly instead of through
+ *    core/assertion's write path (createPersonOp needs an attached writer, which is exactly
+ *    what does not exist yet) — but they are written HONESTLY, in the same shapes that path
+ *    produces: a BARE person row, source kind 'self', assertion kind 'name', tier 'tentative'
+ *    (AD-9), and full-row revision images the point-in-time replay can read (core/audit);
  *  - the attachment is born 'active' with role 'admin' and no voucher — someone has to be
  *    first; every later attachment goes through requestAttachment → approveAttachment.
+ *
+ * AD-19 is NOT excepted: the projected columns on `person` (fullName, nameFolded, nameTier…)
+ * are never hand-filled here — `projectPerson` from core/assertion recomputes them from the
+ * name assertion, keeping core/assertion the single writer of those columns.
+ *
  * Every insert still writes its revision in the same transaction (AD-10), and the new living
  * person gets their 'added-to-tree' notification (AD-15).
  */
@@ -18,7 +25,7 @@ import { v7 as uuidv7 } from 'uuid';
 import { dbGlobal, withClanContext } from '@/db';
 import { assertion, attachment, authUser, clan, notification, person, source } from '@/db/schema';
 import { writeRevision } from '@/core/revision';
-import { chuanHoa } from '@/core/so-khop';
+import { projectPerson } from '@/core/assertion/ops';
 import { auth } from './ba';
 
 export type EnsureClanArgs = {
@@ -97,21 +104,17 @@ export async function createAdmin(args: CreateAdminArgs): Promise<CreatedAdmin> 
     const assertionId = uuidv7();
     const attachmentId = uuidv7();
 
-    await tx.insert(person).values({
-      id: personId,
-      clanId: args.clanId,
-      fullName: args.name,
-      nameFolded: chuanHoa(args.name),
-      nameTier: 'tentative',
-      nameConfidence: 'chac-chan',
-    });
+    // Bare identity row — projected columns stay at their defaults until projectPerson fills
+    // them from the name assertion below (AD-19). Same shape core/person/ops writes, so the
+    // revision image core/audit replays is the documented one: { id, clanId }, no name.
+    await tx.insert(person).values({ id: personId, clanId: args.clanId });
     await writeRevision(tx, {
       clanId: args.clanId,
       accountId,
       entity: 'person',
       entityId: personId,
       action: 'create',
-      after: { fullName: args.name },
+      after: { id: personId, clanId: args.clanId },
       note: 'bootstrap: người quản trị đầu tiên',
     });
 
@@ -131,25 +134,31 @@ export async function createAdmin(args: CreateAdminArgs): Promise<CreatedAdmin> 
       after: { kind: 'self' },
     });
 
-    await tx.insert(assertion).values({
+    const nameAssertion = {
       id: assertionId,
       clanId: args.clanId,
       subjectPersonId: personId,
-      kind: 'name',
+      kind: 'name' as const,
       value: { fullName: args.name },
       sourceId,
-      confidence: 'chac-chan',
-      tier: 'tentative', // AD-9: everything enters tentative, the first admin included.
+      confidence: 'chac-chan' as const,
+      tier: 'tentative' as const, // AD-9: everything enters tentative, the first admin included.
+      status: 'live' as const,
       createdByAccountId: accountId,
-    });
+    };
+    await tx.insert(assertion).values(nameAssertion);
     await writeRevision(tx, {
       clanId: args.clanId,
       accountId,
       entity: 'assertion',
       entityId: assertionId,
       action: 'create',
-      after: { kind: 'name', value: { fullName: args.name }, tier: 'tentative' },
+      after: nameAssertion, // FULL row — core/audit's replay reads the image, not the table.
     });
+
+    // AD-19: core/assertion owns every projected column on `person`. Bootstrap only supplies
+    // the claim; the projection derives fullName / nameFolded / nameTier / isLiving from it.
+    await projectPerson(tx, personId);
 
     if (existing) {
       // A pending request from this account exists — promote it onto the fresh person row.

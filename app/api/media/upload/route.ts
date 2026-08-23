@@ -3,10 +3,18 @@
  *
  * Adapter only (AD-1): đọc multipart, gọi core/media.saveRecording — danh tính do core tự
  * lấy từ session (AD-24), route không nói mình là ai. Trả nguyên Result JSON cho UI.
+ *
+ * Trần kích thước soát HAI lần, cố ý: Content-Length ở đây (từ chối trước khi nuốt cả trăm
+ * megabyte vào bộ nhớ, và trả lời bằng JSON đọc được thay vì để một lớp nào đó cắt ngang bằng
+ * HTML), rồi MAX_RECORDING_BYTES trong core — core mới là nơi quyết định, header thì nói dối
+ * được. Header thiếu hoặc sai chỉ làm mất cái lọc rẻ; nó không mở được cửa nào.
  */
 import type { NextRequest } from 'next/server';
-import { saveRecording, type AccessTier } from '@/core/media';
+import { MAX_RECORDING_BYTES, saveRecording, type AccessTier } from '@/core/media';
 import type { CoreErrorCode } from '@/core/types';
+
+/** Phong bì multipart (biên, tên trường, mấy dòng chữ đi kèm) — rộng tay, core chốt phần bytes. */
+const PHONG_BI_BYTE = 64 * 1024;
 
 const STATUS: Record<CoreErrorCode, number> = {
   'not-found': 404,
@@ -18,6 +26,14 @@ const STATUS: Record<CoreErrorCode, number> = {
 };
 
 export async function POST(req: NextRequest): Promise<Response> {
+  const khaiBao = Number(req.headers.get('content-length'));
+  if (Number.isFinite(khaiBao) && khaiBao > MAX_RECORDING_BYTES + PHONG_BI_BYTE) {
+    return Response.json(
+      { ok: false, error: { code: 'invalid', message: 'Tệp ghi âm vượt quá 100MB.' } },
+      { status: 413, headers: { 'Cache-Control': 'private, no-store' } },
+    );
+  }
+
   const form = await req.formData();
 
   const file = form.get('file');

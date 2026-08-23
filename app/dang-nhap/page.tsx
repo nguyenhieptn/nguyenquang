@@ -35,10 +35,39 @@ import { FormDangNhap } from './form-dang-nhap';
 
 export const metadata: Metadata = { title: 'Đăng nhập' };
 
-export default async function Page() {
-  // Đã có phiên thì màn này hết việc: đã gắn → trang chủ; chưa gắn → thẳng tới màn nhận chỗ.
+/**
+ * `?tiep=` — CHỖ ĐANG DỞ mà luồng thêm gửi kèm khi nó phải rẽ qua đây (app/(pha)/them/noi và
+ * them/xac-nhan/actions.ts đều đặt tham số này). Không đọc nó thì lời hứa in ngay trên màn kia
+ * — *"phần vừa khai vẫn còn nguyên, vào xong là tiếp ngay"* — thành lời hứa suông: người vừa
+ * đăng nhập rơi về trang chủ và phải khai lại từ đầu.
+ *
+ * CHỈ nhận ĐƯỜNG NỘI BỘ: bắt đầu bằng '/' và không phải '//' (dạng '//nơi-khác' là địa chỉ
+ * tuyệt đối trá hình). Một tham số dán vào thanh địa chỉ không được đẩy người vừa đăng nhập ra
+ * khỏi phả. Bản sao nhỏ của phép kiểm này nằm ở app/gan-node/page.tsx — giữ hai bên khớp nhau.
+ */
+function duongTiep(tho: string | string[] | undefined): string | undefined {
+  const s = Array.isArray(tho) ? tho[0] : tho;
+  return s && s.startsWith('/') && !s.startsWith('//') ? s : undefined;
+}
+
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ tiep?: string | string[] }>;
+}) {
+  const tiep = duongTiep((await searchParams).tiep);
+
+  // Đã có phiên thì màn này hết việc: đã gắn → chỗ đang dở (hoặc trang chủ); chưa gắn → thẳng
+  // tới màn nhận chỗ, MANG THEO chỗ đang dở để nhận xong còn về đúng chỗ ấy.
   const session = await resolveSession();
-  if (session) redirect(session.personId ? '/' : '/gan-node');
+  if (session)
+    redirect(
+      session.personId
+        ? (tiep ?? '/')
+        : tiep
+          ? `/gan-node?tiep=${encodeURIComponent(tiep)}`
+          : '/gan-node',
+    );
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -54,7 +83,7 @@ export default async function Page() {
             ghi sẽ nằm luôn trên phả, cạnh người được ghi.
           </p>
 
-          <FormDangNhap />
+          <FormDangNhap tiep={tiep} />
 
           {/* Lối ra cho khách: FR-11, xem không cần đăng ký. Vùng chạm ≥44px nhờ py-3. */}
           <p className="mt-6 text-[15px] text-muted-foreground">

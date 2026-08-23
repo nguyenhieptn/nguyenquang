@@ -36,7 +36,6 @@ export type {
   ExecuteMergeOutcome,
   RepointEntry,
 } from './ops';
-export { resolveAliasOp } from './ops';
 
 /**
  * Duplicate-candidate pairs for the bàn duyệt surface: same folded name or trigram-similar

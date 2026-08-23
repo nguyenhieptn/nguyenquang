@@ -336,3 +336,21 @@ describe('attributionFor', () => {
     if (empty.ok) expect(empty.value).toEqual({});
   });
 });
+
+describe('malformed ids (Postgres 22P02)', () => {
+  it('1-6 a non-uuid person id reads as not-found, never a thrown driver error', async () => {
+    for (const bad of ['khong-phai-uuid', '', "'; DROP TABLE person; --", '../../etc/passwd']) {
+      const res = await withClanContext(clanId, (tx) => ops.getPersonHistory(tx, admin, bad));
+      expect(res.ok).toBe(false);
+      if (!res.ok) expect(res.error.code).toBe('not-found');
+    }
+  });
+
+  it('1-6 attributionFor drops non-uuid ids instead of failing the whole batch', async () => {
+    const res = await withClanContext(clanId, (tx) =>
+      ops.attributionFor(tx, admin, ['khong-phai-uuid', pChild]),
+    );
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(Object.keys(res.value)).toEqual([pChild]);
+  });
+});
