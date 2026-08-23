@@ -16,10 +16,11 @@
  * Lỗi hiện bằng khối CHÀM (destructive/canh-bao-nen) viền trái đặc — son để dành cho "đã
  * chốt", lỗi mà cũng đỏ thì đỏ mất nghĩa (DESIGN.md § Colors › Cảnh báo).
  */
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { authClient } from '@/lib/auth-client';
+import { boDau } from '@/core/so-khop';
 import { dichSauDangNhap } from './actions';
 
 type CheDo = 'dang-nhap' | 'tao-tai-khoan';
@@ -33,6 +34,9 @@ const LOI: Record<string, string> = {
   INVALID_EMAIL_OR_PASSWORD: 'Tên đăng nhập hoặc mật khẩu chưa đúng.',
   USERNAME_IS_ALREADY_TAKEN: 'Tên đăng nhập này đã có người dùng — chọn một tên khác.',
   USER_ALREADY_EXISTS: 'Email này đã có tài khoản — chuyển sang đăng nhập.',
+  // Mã thật Better Auth trả về khi email trùng (kiểm 23/08/2026, HTTP 422). Thiếu dòng này thì
+  // người gõ lại email cũ chỉ nhận được câu chung chung và không biết đường nào mà lần.
+  USER_ALREADY_EXISTS_USE_ANOTHER_EMAIL: 'Email này đã có tài khoản — chuyển sang đăng nhập.',
   USERNAME_TOO_SHORT: 'Tên đăng nhập cần ít nhất 3 ký tự.',
   USERNAME_TOO_LONG: 'Tên đăng nhập dài quá — rút ngắn lại.',
   INVALID_USERNAME: 'Tên đăng nhập chỉ gồm chữ không dấu, số, dấu chấm hoặc gạch dưới.',
@@ -42,24 +46,57 @@ const LOI: Record<string, string> = {
 };
 const LOI_CHUNG = 'Chưa vào được — thử lại, hoặc quay lại sau ít phút.';
 
+/**
+ * TÊN ĐĂNG NHẬP PHẢI LÀ ASCII — và người dùng KHÔNG phải là người phát hiện ra điều đó.
+ *
+ * Better Auth từ chối dấu tiếng Việt và dấu cách bằng `INVALID_USERNAME` (HTTP 400). Với sản
+ * phẩm mà người đo chuẩn là bà bác ~70 tuổi ở quê, để họ gõ tên mình rồi bị máy gạt là hỏng —
+ * và câu báo lỗi dù có dịch sang tiếng Việt vẫn tới SAU khi đã hỏng.
+ *
+ * Nên chặn ở hai lớp, không lớp nào bắt người dùng học luật trước:
+ *   1. Gõ tới đâu gấp tới đó — bỏ dấu bằng `boDau` (chính hàm AD-16 dùng để so tên), hạ thường,
+ *      dấu cách thành chấm, ký tự lạ rơi ra. Gõ "Nguyễn Hiệp" thì ô hiện "nguyen.hiep".
+ *   2. Gợi ý sẵn từ Họ tên đã gõ, chừng nào chưa ai sửa tay ô này.
+ * Kết quả: một tên đăng nhập sai không gửi đi được, nên `INVALID_USERNAME` không còn đường xảy ra.
+ */
+function gapTenDangNhap(s: string): string {
+  return boDau(s)
+    .toLowerCase()
+    .replace(/\s+/g, '.')
+    .replace(/[^a-z0-9._-]/g, '')
+    .replace(/\.{2,}/g, '.')
+    .slice(0, 32);
+}
+
 /** Ô nhập của prototype, nay là input thật: nhãn 15px trên, chữ gõ 17px dưới, cùng một viền. */
 function ONhap({
   id,
   nhan,
+  goiY,
   ...propsInput
-}: { id: string; nhan: string } & React.InputHTMLAttributes<HTMLInputElement>) {
+}: { id: string; nhan: string; goiY?: string } & React.InputHTMLAttributes<HTMLInputElement>) {
   return (
-    <label
-      htmlFor={id}
-      className="block rounded-md border border-input bg-card px-4 py-3 focus-within:border-ring"
-    >
-      <span className="block text-[15px] text-muted-foreground">{nhan}</span>
-      <input
-        id={id}
-        className="mt-0.5 block w-full bg-transparent text-[17px] text-foreground outline-none placeholder:text-muted-foreground"
-        {...propsInput}
-      />
-    </label>
+    <div>
+      <label
+        htmlFor={id}
+        className="block rounded-md border border-input bg-card px-4 py-3 focus-within:border-ring"
+      >
+        <span className="block text-[15px] text-muted-foreground">{nhan}</span>
+        <input
+          id={id}
+          aria-describedby={goiY ? `${id}-goi-y` : undefined}
+          className="mt-0.5 block w-full bg-transparent text-[17px] text-foreground outline-none placeholder:text-muted-foreground"
+          {...propsInput}
+        />
+      </label>
+      {/* Luật của ô nằm DƯỚI ô và ở lại đó — placeholder biến mất ngay khi gõ chữ đầu, tức là
+          biến mất đúng lúc người ta cần nó nhất. */}
+      {goiY && (
+        <p id={`${id}-goi-y`} className="mt-1.5 px-1 text-[15px] text-muted-foreground">
+          {goiY}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -76,6 +113,10 @@ export function FormDangNhap({
   const [cheDo, setCheDo] = useState<CheDo>('dang-nhap');
   const [dangGui, setDangGui] = useState(false);
   const [loi, setLoi] = useState<string | null>(null);
+  // Hai ô liên động: Họ tên gợi ý Tên đăng nhập, cho tới khi có người sửa tay ô sau.
+  const [hoTen, setHoTen] = useState('');
+  const [tenDangNhap, setTenDangNhap] = useState('');
+  const daSuaTay = useRef(false);
 
   async function guiForm(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -84,17 +125,23 @@ export function FormDangNhap({
     setDangGui(true);
     try {
       const duLieu = new FormData(e.currentTarget);
-      const tenDangNhap = String(duLieu.get('tenDangNhap') ?? '').trim();
       const matKhau = String(duLieu.get('matKhau') ?? '');
+      const nhanDang = tenDangNhap.trim();
 
+      // ĐĂNG NHẬP NHẬN CẢ HAI: email hay tên đăng nhập, tuỳ người nhớ cái nào. Không phải chiều
+      // chuộng — là sửa một đường cụt: tài khoản tạo bằng Google (sau này) hoặc bằng script
+      // bootstrap KHÔNG có tên đăng nhập, nên một form chỉ nhận tên đăng nhập là khoá cửa chính
+      // chủ ngoài nhà. Có '@' thì đi đường email.
       const ketQua =
         cheDo === 'dang-nhap'
-          ? await authClient.signIn.username({ username: tenDangNhap, password: matKhau })
+          ? nhanDang.includes('@')
+            ? await authClient.signIn.email({ email: nhanDang, password: matKhau })
+            : await authClient.signIn.username({ username: nhanDang, password: matKhau })
           : await authClient.signUp.email({
               email: String(duLieu.get('email') ?? '').trim(),
               password: matKhau,
-              name: String(duLieu.get('hoTen') ?? '').trim(),
-              username: tenDangNhap,
+              name: hoTen.trim(),
+              username: gapTenDangNhap(nhanDang),
             });
 
       if (ketQua.error) {
@@ -120,6 +167,10 @@ export function FormDangNhap({
   function doiCheDo(moi: CheDo) {
     setCheDo(moi);
     setLoi(null);
+    // Luật của ô đổi theo chế độ (đăng nhập nhận email, tạo tài khoản thì không) — giữ lại chữ
+    // gõ dở là bày ra một giá trị vừa hợp lệ ở chế độ cũ vừa sai ở chế độ mới.
+    setTenDangNhap('');
+    daSuaTay.current = false;
   }
 
   return (
@@ -168,6 +219,12 @@ export function FormDangNhap({
                 placeholder="Nguyễn Quang Khánh"
                 autoComplete="name"
                 required
+                value={hoTen}
+                onChange={(e) => {
+                  setHoTen(e.target.value);
+                  if (!daSuaTay.current) setTenDangNhap(gapTenDangNhap(e.target.value));
+                }}
+                goiY="Tên này sẽ nằm trên phả, cạnh người được ghi."
               />
               <ONhap
                 id="email"
@@ -183,11 +240,27 @@ export function FormDangNhap({
           <ONhap
             id="ten-dang-nhap"
             name="tenDangNhap"
-            nhan="Tên đăng nhập"
-            placeholder="chữ không dấu, không cách"
+            nhan={cheDo === 'dang-nhap' ? 'Tên đăng nhập hoặc email' : 'Tên đăng nhập'}
+            placeholder="nguyenquangkhanh"
             autoComplete="username"
+            autoCapitalize="none"
+            spellCheck={false}
             minLength={3}
             required
+            value={tenDangNhap}
+            onChange={(e) => {
+              daSuaTay.current = true;
+              // Gấp dấu CHỈ khi đang tạo tài khoản: ở chế độ đăng nhập ô này còn nhận email,
+              // mà gấp thì '@' rơi mất.
+              setTenDangNhap(
+                cheDo === 'tao-tai-khoan' ? gapTenDangNhap(e.target.value) : e.target.value,
+              );
+            }}
+            goiY={
+              cheDo === 'tao-tai-khoan'
+                ? 'Chữ không dấu, số, dấu chấm — dấu tự bỏ khi gõ.'
+                : undefined
+            }
           />
           <ONhap
             id="mat-khau"

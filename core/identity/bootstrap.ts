@@ -27,6 +27,7 @@ import { assertion, attachment, authUser, clan, notification, person, source } f
 import { writeRevision } from '@/core/revision';
 import { projectPerson } from '@/core/assertion/ops';
 import { auth } from './ba';
+import { boDau } from '@/core/so-khop';
 
 export type EnsureClanArgs = {
   name: string;
@@ -59,6 +60,8 @@ export type CreateAdminArgs = {
   email: string;
   password: string;
   name: string;
+  /** Bỏ trống thì suy từ `name` (bỏ dấu, thường hoá, cách → chấm). */
+  username?: string;
 };
 
 export type CreatedAdmin = {
@@ -84,8 +87,24 @@ export async function createAdmin(args: CreateAdminArgs): Promise<CreatedAdmin> 
   if (existingUser) {
     accountId = existingUser.id;
   } else {
+    // TÊN ĐĂNG NHẬP LÀ BẮT BUỘC, không phải tuỳ chọn: form đăng nhập nhận cả email lẫn tên đăng
+    // nhập, nhưng một tài khoản quản trị KHÔNG có tên đăng nhập là một tài khoản chỉ vào được
+    // bằng đúng một đường — và người dựng hệ thống là người ít có cơ hội thử nhất trước khi
+    // dòng họ vào. Suy từ họ tên qua chính hàm bỏ dấu của AD-16.
+    const tenDangNhap =
+      args.username?.trim() ||
+      boDau(args.name)
+        .toLowerCase()
+        .replace(/\s+/g, '.')
+        .replace(/[^a-z0-9._-]/g, '')
+        .slice(0, 32);
     const res = await auth.api.signUpEmail({
-      body: { email: args.email, password: args.password, name: args.name },
+      body: {
+        email: args.email,
+        password: args.password,
+        name: args.name,
+        username: tenDangNhap,
+      },
     });
     accountId = res.user.id;
   }
