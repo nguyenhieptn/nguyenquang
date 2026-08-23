@@ -163,8 +163,9 @@ export function ThanhDieuHuong({
           kiểu viền — đó chính là chỗ menu "chưa thuần nhất". */}
       <header className="fixed inset-x-0 top-0 z-10 hidden bg-background md:block">
         <div className={`${KHUNG} flex items-end justify-between gap-8 pb-3.5 pt-5`}>
+          {/* 22/08/2026 — trỏ về route thật '/' (promote 2-1); trước đó còn trỏ bản xưởng. */}
           <Link
-            href="/uiworkshop/trang-chu"
+            href="/"
             className={`group block transition-colors duration-150 ease-out ${VONG_TIEU_DIEM}`}
           >
             <span className="block text-[11px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-150 group-hover:text-foreground">

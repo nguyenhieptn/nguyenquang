@@ -52,6 +52,7 @@ describe('Gate 1 — schema: RLS enabled + forced + policy on every partitioned 
     for (const tbl of ['clan', ...PARTITIONED_TABLES]) {
       const row = byName.get(tbl);
       expect(row, `table ${tbl} missing`).toBeTruthy();
+      if (!row) continue;
       expect(row.rls, `${tbl}: RLS not enabled`).toBe(true);
       expect(row.forced, `${tbl}: RLS not FORCED`).toBe(true);
       expect(row.policies, `${tbl}: no policy`).toBeGreaterThanOrEqual(1);

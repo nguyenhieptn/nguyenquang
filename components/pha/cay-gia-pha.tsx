@@ -1,20 +1,25 @@
 'use client';
 
 /**
- * CÂY NGƯỜI — dùng cho TẦNG 2 (một chi) và TẦNG 3 (đường huyết thống).
+ * CÂY NGƯỜI — dùng cho TẦNG 2 (một chi) trên màn rộng.
  *
  * Spine chi phối:
  *   · EXPERIENCE.md § Responsive & Platform — cây vẽ từ TRÊN XUỐNG
  *   · EXPERIENCE.md § Accessibility Floor (sàn 17px, không mã hoá chỉ bằng màu)
  *   · DESIGN.md § Components — Node người, § Do's and Don'ts (cấm làm mờ tồn nghi)
  *
- * Tầng 3 KHÔNG cần component riêng: một đường huyết thống chỉ là cây mà mỗi node có đúng một con.
- * Dựng riêng thì hai màn lệch nhau lúc nào không biết, và thẻ người phải sửa hai chỗ.
- *
  * ── VÌ SAO TỪ TRÊN XUỐNG ───────────────────────────────────────────────────────────────────
  * Trái-sang-phải là hướng đọc của một BẢNG. Trên phả, XUỐNG là đi về phía sau — hướng đọc tự nó
  * mang nghĩa. Xem EXPERIENCE.md § Responsive, sửa 11/08/2026.
+ *
+ * ── PROMOTE 22/08/2026 — thẻ đổi theo dữ liệu THẬT của core/tree ────────────────────────────
+ * Prototype nuôi thẻ bằng mock (`gioiTinh`, `namSinh`, `huy`…). Core trả `PersonCard` đã lọc
+ * bán kính riêng tư (AD-13): năm tháng về dưới dạng MỘT chuỗi hiển thị (`lifespan`), tầng và
+ * mức tin cậy tách đôi (tier ⇒ chất liệu tồn nghi, confidence ⇒ chip), và không có giới tính
+ * nên nhãn bạn đời là "vợ/chồng" chung. Component này KHÔNG import core — trang server ánh xạ
+ * PersonCard → NguoiTrenCay rồi truyền xuống, để thẻ vẫn là client thuần không kéo theo db.
  */
+import Link from 'next/link';
 import { useMemo } from 'react';
 import {
   KhungCay,
@@ -33,22 +38,25 @@ import {
 export type NguoiTrenCay = {
   id: string;
   hoTen: string;
-  gioiTinh: 'nam' | 'nu';
-  namSinh?: number;
-  namMat?: number;
+  /** Chuỗi hiển thị từ core — "1941–2019" / "sinh 1985" / "" (FR-37: người sống chỉ NĂM). */
+  doiSong: string;
+  /** Chip ba mức (FR-2). */
   tinCay: MucTinCayCay;
-  /** Tên thật của người đã khuất, kiêng gọi thẳng (PRD §4) — chỉ tầng 3 bày ra. */
-  huy?: string;
+  /** Tầng tồn nghi (FR-3) ⇒ chất liệu nét đứt + vân giấy. KHÁC với chip `tinCay`. */
+  tonNghi: boolean;
+  /** Chạm → mở trang một người (EXPERIENCE § Node người). Không có thì thẻ trơ. */
+  href?: string;
+  /** Dòng ghi công FR-39 — đã định dạng sẵn ở server. */
   nguoiThem?: string;
   ngayThem?: string;
 };
 
 export type CapCay = {
   nguoi: NguoiTrenCay;
-  /** Vợ/chồng — hiện TRONG cùng một thẻ, không phải node riêng. */
-  banDoi?: NguoiTrenCay;
+  /** Vợ/chồng — hiện TRONG cùng một thẻ, không phải node riêng. Core cho phép nhiều hơn một. */
+  banDoi?: NguoiTrenCay[];
   chaId: string | null;
-  /** Dòng phụ do màn quyết định, vd "đời 3 · chi 1.2". */
+  /** Dòng phụ do màn quyết định, vd "đời 3". */
   moTa?: string;
 };
 
@@ -56,50 +64,38 @@ const RONG = 264;
 const HO_NGANG = 24;
 const CAO_HANG = 210;
 
-function DongNam({ n }: { n: NguoiTrenCay }) {
-  return (
-    <p className="mt-0.5 text-[15px] text-muted-foreground">
-      {n.namSinh ? `sinh ${n.namSinh}` : 'chưa rõ năm sinh'}
-      {n.namMat ? ` · mất ${n.namMat}` : ''}
-    </p>
-  );
+function DongDoiSong({ n }: { n: NguoiTrenCay }) {
+  // Chuỗi rỗng thì KHÔNG vẽ gì: ngoài bán kính riêng tư, năm tháng vắng mặt như không tồn tại
+  // (EXPERIENCE § Accessibility Floor — phần bị ẩn không phải ô bị che).
+  if (!n.doiSong) return null;
+  return <p className="mt-0.5 text-[15px] text-muted-foreground">{n.doiSong}</p>;
 }
 
 type DuLieuThe = { cap: CapCay; laMinh?: boolean; tren?: boolean };
 
 function TheNguoi({ data }: NodeProps<Node<DuLieuThe>>) {
   const { cap, laMinh, tren } = data;
-  const { nguoi: n, banDoi, moTa } = cap;
-  const tonNghi = n.tinCay === 'ton-nghi';
+  const { nguoi: n, banDoi = [], moTa } = cap;
+  const tonNghi = n.tonNghi;
 
-  return (
-    <div
-      className={`w-[264px] ${lopThe({ tonNghi, toSon: tren })}`}
-      style={tonNghi ? vienTonNghi : undefined}
-    >
-      <Handle type="target" position={Position.Top} className="!border-0 !bg-transparent" />
-
+  const ruot = (
+    <>
       <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">
         {n.hoTen}
-        {n.huy && (
-          <span className="ml-2 text-[15px] font-normal text-muted-foreground">huý {n.huy}</span>
-        )}
         {laMinh && <span className="ml-2 text-[15px] font-semibold text-primary">mình</span>}
       </p>
       {moTa && <p className="mt-0.5 text-[15px] text-muted-foreground">{moTa}</p>}
-      <DongNam n={n} />
+      <DongDoiSong n={n} />
 
       {/* VỢ/CHỒNG trong cùng một thẻ. Trong phả, hai người đứng chung một ô và con cái treo dưới
           cả hai — tách ra thành node riêng là làm người bạn đời biến mất khỏi nhánh. */}
-      {banDoi && (
-        <div className="mt-2.5 border-t border-border pt-2">
-          <p className="text-[15px] text-muted-foreground">
-            {banDoi.gioiTinh === 'nu' ? 'vợ' : 'chồng'}
-          </p>
-          <p className="font-[family-name:var(--font-pha)] text-[17px]">{banDoi.hoTen}</p>
-          <DongNam n={banDoi} />
+      {banDoi.map((b) => (
+        <div key={b.id} className="mt-2.5 border-t border-border pt-2">
+          <p className="text-[15px] text-muted-foreground">vợ/chồng</p>
+          <p className="font-[family-name:var(--font-pha)] text-[17px]">{b.hoTen}</p>
+          <DongDoiSong n={b} />
         </div>
-      )}
+      ))}
 
       <div className="mt-2">
         <ChamTinCay muc={n.tinCay} />
@@ -111,7 +107,23 @@ function TheNguoi({ data }: NodeProps<Node<DuLieuThe>>) {
           {n.nguoiThem} ghi · {n.ngayThem}
         </p>
       )}
+    </>
+  );
 
+  const lop = `block w-[264px] ${lopThe({ tonNghi, toSon: tren })}`;
+  return (
+    <div className="relative">
+      <Handle type="target" position={Position.Top} className="!border-0 !bg-transparent" />
+      {/* Chạm → mở trang một người. Không menu ngữ cảnh, không nhấn-giữ (EXPERIENCE § Node người). */}
+      {n.href ? (
+        <Link href={n.href} className={lop} style={tonNghi ? vienTonNghi : undefined}>
+          {ruot}
+        </Link>
+      ) : (
+        <div className={lop} style={tonNghi ? vienTonNghi : undefined}>
+          {ruot}
+        </div>
+      )}
       <Handle type="source" position={Position.Bottom} className="!border-0 !bg-transparent" />
     </div>
   );
@@ -133,8 +145,8 @@ export function CayGiaPha({
   /**
    * Có tô vòng son quanh từng node trên đường không.
    *
-   * Tầng 2 thì CÓ: đường của mình phải nổi lên giữa một chi đông người. Tầng 3 thì KHÔNG: ở đó
-   * cả cây LÀ đường ấy, tô hết thành ra không tô gì — chỉ còn nhánh son và nhãn "mình".
+   * Tầng 2 thì CÓ: đường của mình phải nổi lên giữa một chi đông người. Màn nào cả cây LÀ đường
+   * ấy thì tắt đi — tô hết thành ra không tô gì.
    */
   vongSonTrenDuong?: boolean;
   chieuCao?: string;

@@ -20,8 +20,7 @@ export type MucBanDuyet = 'nap-khung' | 'xem-truoc' | 'hang-cho' | 'manh-chua-no
 type Muc = {
   key: MucBanDuyet;
   label: string;
-  /** Màn đã dựng trong xưởng; `null` = chưa dựng, mục thành nút trơ. */
-  href: string | null;
+  href: string;
 };
 
 /**
@@ -30,15 +29,29 @@ type Muc = {
  *
  * "Bảng cảnh báo" KHÔNG có mặt ở đây: nó là một bộ lọc của màn Xem trước, không phải một màn.
  * Xem EXPERIENCE.md § Bề mặt B — "Cảnh báo không có màn riêng".
+ *
+ * Href trỏ route production (docs/build-contract.md § Bản đồ route) — bản xưởng đã thu phạm vi,
+ * các màn bàn duyệt giờ sống ở `/ban-duyet/*`.
  */
 const MUC: Muc[] = [
-  { key: 'nap-khung', label: 'Nạp khung', href: '/uiworkshop/nap-khung' },
-  { key: 'xem-truoc', label: 'Xem trước', href: '/uiworkshop/xem-truoc-so-khop' },
-  { key: 'hang-cho', label: 'Hàng chờ duyệt', href: '/uiworkshop/hang-cho-duyet' },
-  { key: 'manh-chua-noi', label: 'Mảnh chưa nối', href: '/uiworkshop/hop-nhat-manh' },
+  { key: 'nap-khung', label: 'Nạp khung', href: '/ban-duyet/nap-khung' },
+  { key: 'xem-truoc', label: 'Xem trước', href: '/ban-duyet/xem-truoc' },
+  { key: 'hang-cho', label: 'Hàng chờ duyệt', href: '/ban-duyet/hang-cho' },
+  { key: 'manh-chua-noi', label: 'Mảnh chưa nối', href: '/ban-duyet/hop-nhat' },
 ];
 
-export function ThanhBanDuyet({ hienTai }: { hienTai: MucBanDuyet }) {
+export function ThanhBanDuyet({
+  hienTai,
+  nguoiVanHanh,
+}: {
+  hienTai: MucBanDuyet;
+  /**
+   * Nhãn "ai đang vận hành" — ví dụ "Nguyễn Quang Hiệp · quản trị". FR-39 ghi công theo người,
+   * nên bàn duyệt phải nói rõ việc sắp ghi sẽ mang tên ai. Trang production đọc từ phiên đăng
+   * nhập rồi truyền vào; không truyền thì thanh bỏ trống góc phải (không bịa tên).
+   */
+  nguoiVanHanh?: string | null;
+}) {
   return (
     <header className="border-b border-ban-vien bg-ban-o">
       <div className="mx-auto flex max-w-[1280px] items-center gap-8 px-6">
@@ -60,19 +73,9 @@ export function ThanhBanDuyet({ hienTai }: { hienTai: MucBanDuyet }) {
 
               return (
                 <li key={key}>
-                  {href ? (
-                    <a href={href} className={lop} aria-current={dangMo ? 'page' : undefined}>
-                      {label}
-                    </a>
-                  ) : (
-                    <button
-                      type="button"
-                      className={lop}
-                      aria-current={dangMo ? 'page' : undefined}
-                    >
-                      {label}
-                    </button>
-                  )}
+                  <a href={href} className={lop} aria-current={dangMo ? 'page' : undefined}>
+                    {label}
+                  </a>
                 </li>
               );
             })}
@@ -81,9 +84,9 @@ export function ThanhBanDuyet({ hienTai }: { hienTai: MucBanDuyet }) {
 
         {/* Người vận hành hiện tên — FR-39 ghi công theo người, nên bàn duyệt phải nói rõ
             việc sắp ghi sẽ mang tên ai. */}
-        <span className="ml-auto text-[15px] text-muted-foreground">
-          Nguyễn Quang Hiệp · quản trị
-        </span>
+        {nguoiVanHanh ? (
+          <span className="ml-auto text-[15px] text-muted-foreground">{nguoiVanHanh}</span>
+        ) : null}
       </div>
     </header>
   );

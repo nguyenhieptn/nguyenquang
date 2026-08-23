@@ -18,7 +18,12 @@
  * VÌ SAO MẢNH CHƯA NỐI KHÔNG CÓ NHÁNH NÀO: vì chưa ai tìm ra chỗ nối. Vẽ một nét mờ nối tạm là
  * nói dối đúng cái điều FR-48 sinh ra để chống. Trên khung nhìn kéo–thả được, khoảng trắng ấy
  * còn nói rõ hơn: mảnh rời nằm tách hẳn ra một bên, và người xem phải kéo tới mới thấy.
+ *
+ * PROMOTE 22/08/2026 — khối chi theo `ClanOverview` của core/tree: bỏ `soDoi` (core không trả số
+ * đời từng chi, và EXPERIENCE chốt khối chi mang ĐÚNG HAI CON SỐ), bỏ `tenHem` của gốc tạm (chưa
+ * có trong PersonCard). Khối chi và mảnh rời nhận `href` — chạm là đi xem chi đó (Luồng 3 bước 3).
  */
+import Link from 'next/link';
 import { useMemo } from 'react';
 import {
   KhungCay,
@@ -33,22 +38,22 @@ import {
 export type GocTamCay = {
   id: string;
   hoTen: string;
-  tenHem?: string;
 };
 
 export type KhoiChiCay = {
   id: string;
   ten: string;
   nguoiDungDau: string;
-  soDoi: number;
   soNguoi: number;
   soTonNghi: number;
+  href?: string;
 };
 
 export type ManhRoiCay = {
   id: string;
   nhan: string;
   soNguoi: number;
+  href?: string;
 };
 
 const RONG = 264;
@@ -69,12 +74,9 @@ function OSoLieu({ nhan, so }: { nhan: string; so: number }) {
 function TheGocTam({ data }: NodeProps<Node<{ goc: GocTamCay }>>) {
   const { goc } = data;
   return (
-    // Gốc tạm LUÔN là tồn nghi về bản chất: FR-63 nói rõ đây không phải khẳng định đã là Thuỷ tổ.
+    // Gốc tạm LUÔN là tạm về bản chất: FR-63 nói rõ đây không phải khẳng định đã là Thuỷ tổ.
     <div className={`w-[264px] ${lopThe({ tonNghi: false })} text-center`}>
       <p className="font-[family-name:var(--font-pha)] text-[19px] font-semibold">{goc.hoTen}</p>
-      {goc.tenHem && (
-        <p className="mt-0.5 text-[15px] text-muted-foreground">tên hèm {goc.tenHem}</p>
-      )}
       <p className="mt-1 text-[15px] text-muted-foreground">cụ xa nhất hiện biết · đời 1</p>
       <Handle type="source" position={Position.Bottom} className="!border-0 !bg-transparent" />
     </div>
@@ -83,34 +85,52 @@ function TheGocTam({ data }: NodeProps<Node<{ goc: GocTamCay }>>) {
 
 function TheKhoiChi({ data }: NodeProps<Node<{ chi: KhoiChiCay; cuaMinh?: boolean }>>) {
   const { chi, cuaMinh } = data;
-  return (
-    <div className={`w-[264px] ${lopThe({ tonNghi: false, toSon: cuaMinh })} text-center`}>
-      <Handle type="target" position={Position.Top} className="!border-0 !bg-transparent" />
+  const ruot = (
+    <>
       <p className="font-[family-name:var(--font-pha)] text-[19px] font-semibold">{chi.ten}</p>
       {cuaMinh && <p className="mt-0.5 text-[15px] font-semibold text-primary">chi của mình</p>}
-      <p className="mt-1 text-[15px] text-muted-foreground">
-        {chi.nguoiDungDau} · {chi.soDoi} đời
-      </p>
+      <p className="mt-1 text-[15px] text-muted-foreground">{chi.nguoiDungDau}</p>
       {/* Đúng HAI con số. Con số thứ hai lộ ra chi nào cần người đi xác minh; con số thứ ba thì
           bảng chỉ số bắt đầu dài, và bảng càng dài càng không ai đọc. */}
       <div className="mt-3 flex justify-center gap-6 border-t border-border pt-2.5">
         <OSoLieu nhan="đã ghi" so={chi.soNguoi} />
         <OSoLieu nhan="còn tồn nghi" so={chi.soTonNghi} />
       </div>
+    </>
+  );
+  const lop = `block w-[264px] ${lopThe({ tonNghi: false, toSon: cuaMinh })} text-center`;
+  return (
+    <div className="relative">
+      <Handle type="target" position={Position.Top} className="!border-0 !bg-transparent" />
+      {chi.href ? (
+        <Link href={chi.href} className={lop}>
+          {ruot}
+        </Link>
+      ) : (
+        <div className={lop}>{ruot}</div>
+      )}
     </div>
   );
 }
 
 function TheManhRoi({ data }: NodeProps<Node<{ manh: ManhRoiCay }>>) {
   const { manh } = data;
-  return (
-    // Mảnh rời toàn bộ ở tồn nghi — và KHÔNG có Handle nào, vì không có nhánh nào để nối.
-    <div className={`w-[264px] ${lopThe({ tonNghi: true })}`}>
+  const ruot = (
+    <>
       <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">{manh.nhan}</p>
       <p className="mt-0.5 text-[15px] text-muted-foreground">
         {manh.soNguoi} người · chưa ai tìm ra chỗ nối
       </p>
-    </div>
+    </>
+  );
+  const lop = `block w-[264px] ${lopThe({ tonNghi: true })}`;
+  // Mảnh rời toàn bộ ở tồn nghi — và KHÔNG có Handle nào, vì không có nhánh nào để nối.
+  return manh.href ? (
+    <Link href={manh.href} className={lop}>
+      {ruot}
+    </Link>
+  ) : (
+    <div className={lop}>{ruot}</div>
   );
 }
 
