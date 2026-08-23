@@ -81,3 +81,23 @@ Mỗi màn theo `EXPERIENCE.md § IA bề mặt A`. Nhiều màn đã có bản 
 - Object storage off-host (R2): cổng lưu trữ trừu tượng hoá sẵn, adapter local cho tới khi có credentials — **chưa đạt AD-11 đầy đủ**, ghi ở story 4-2.
 - Huy hiệu React Flow: giữ (không mua Pro).
 - TypeScript giữ 5.9 (spine pin 7.0.2 — lệch ghi nhận tại `specs/frontend-stack.md` §6, chốt 5.9 cho Đợt 1).
+
+---
+
+## Kết quả Đợt 1 — chốt 23/08/2026
+
+Cả bốn epic **done**. 108 test xanh · `tsc` + `eslint` sạch · build production sạch ·
+đang chạy tại `http://100.94.148.68:3000` (IP Tailscale).
+
+**Chất lượng:** một vòng review đối kháng 4 lăng kính (kiến trúc · rò rỉ riêng tư · UX spine ·
+bug hunt) + một lượt thẩm phán xác minh từng finding trên mã thật → 26 findings được xác nhận
+(4 HIGH), tất cả đã sửa kèm test hồi quy. Các finding không xác minh được bị loại bỏ, không sửa mù.
+
+**Nợ kỹ thuật mang sang Đợt 2** (đầy đủ ở `docs/van-hanh.md § Việc còn nợ`):
+
+| Nợ | Vì sao chưa làm | Chặn cái gì |
+|---|---|---|
+| Sao lưu + media vẫn nằm **cùng máy** với production | Chưa có bucket S3/R2 của dòng họ (cần quỹ họ) | AD-25 chưa đạt đủ — cổng lưu trữ đã trừu tượng hoá sẵn |
+| Google/Facebook login | Chưa có OAuth credentials | Không chặn gì — tài khoản riêng đã chạy |
+| TLS + tên miền | PRD Q6 chưa chốt tên miền | Ngoài VPN chưa vào được (trong tailnet đã mã hoá) |
+| FR-55 vẫn là cơ chế **kéo** | PRD §12 đã tự thú ở tầng sản phẩm | Người không mở web không biết mình đã vào phả |
