@@ -216,14 +216,15 @@ describe('fragments + provisional roots (FR-63, FR-48)', () => {
 
     expect(o.mainFragment?.rootPersonId).toBe(A);
     expect(o.mainFragment?.rootName).toBe(NAME.A);
-    expect(o.mainFragment?.personCount).toBe(7); // D (merged) not counted
+    // 9 = A,B1,B2,C1,C2,C3,M + W,WF: union edge B1–W pulls the married-in line into the
+    // fragment (sửa 22/08/2026 — spouses are connected, not "mảnh rời"). D (merged) not counted.
+    expect(o.mainFragment?.personCount).toBe(9);
     expect(o.mainFragment?.tentativeCount).toBe(1); // M
 
     expect(o.unconnectedFragments.map((f) => [f.rootPersonId, f.personCount])).toEqual([
-      [WF, 2], // W has a parent edge → WF is the provisional root
-      [X1, 1],
+      [X1, 1], // truly detached — no blood or union path to anyone
     ]);
-    expect(o.unconnectedFragments[1].tentativeCount).toBe(1); // X1 nameTier null
+    expect(o.unconnectedFragments[0].tentativeCount).toBe(1); // X1 nameTier null
   });
 
   it('lists first-generation branches of the MAIN fragment only, in birth order', async () => {
@@ -309,12 +310,21 @@ describe('ancestry path (FR-13)', () => {
   });
 
   it('marks a path inside an unconnected fragment as not reaching the main root', async () => {
+    const res = await run((tx) => getAncestryPathOps(tx, adminCtx, X1));
+    expect(res.ok).toBe(true);
+    if (!res.ok) return;
+    expect(res.value.steps.map((s) => s.personId)).toEqual([X1]);
+    expect(res.value.reachesMainRoot).toBe(false);
+    expect(res.value.fragmentRootName).toBe(NAME.X1);
+  });
+
+  it('a married-in line walks its own blood path but belongs to the main fragment', async () => {
     const res = await run((tx) => getAncestryPathOps(tx, adminCtx, W));
     expect(res.ok).toBe(true);
     if (!res.ok) return;
+    // Blood walk ends at WF (her father) — but the union edge makes the fragment the main one.
     expect(res.value.steps.map((s) => s.personId)).toEqual([W, WF]);
-    expect(res.value.reachesMainRoot).toBe(false);
-    expect(res.value.fragmentRootName).toBe(NAME.WF);
+    expect(res.value.reachesMainRoot).toBe(true);
   });
 });
 
@@ -421,7 +431,7 @@ describe('AD-5 — a parent above the old root shifts everything on the next rea
     expect(o.ok).toBe(true);
     if (!o.ok) return;
     expect(o.value.mainFragment?.rootPersonId).toBe(P);
-    expect(o.value.mainFragment?.personCount).toBe(8);
+    expect(o.value.mainFragment?.personCount).toBe(10); // 9 + P
     expect(o.value.branches).toEqual([
       {
         branchCode: '1',

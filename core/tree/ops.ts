@@ -240,7 +240,12 @@ export function computeStructure(data: TreeData): Structure {
   const seen = new Set<string>();
   const fragments: FragmentInfo[] = [];
 
-  // Connected components over parent-child edges only (both directions).
+  // Connected components over parent-child edges (both directions) AND union co-membership.
+  // Union edges matter here (sửa 22/08/2026): a childless married-in spouse has no blood edge,
+  // but she is NOT an "unconnected fragment" — she stands on her husband's card. FR-48's honest
+  // fragment count is about lines nobody has connected yet, not about spouses. Root election
+  // below still walks blood edges only, so a married-in can join a fragment but never head it
+  // unless truly detached.
   for (const id of data.persons.keys()) {
     if (seen.has(id)) continue;
     const members: string[] = [];
@@ -252,6 +257,7 @@ export function computeStructure(data: TreeData): Structure {
       const neighbours = [
         ...(data.parentsOf.get(x) ?? []).map((e) => e.parentId),
         ...(data.childrenOf.get(x) ?? []).map((e) => e.childId),
+        ...(data.partnersOf.get(x) ?? []),
       ];
       for (const n of neighbours) {
         if (!seen.has(n) && data.persons.has(n)) {

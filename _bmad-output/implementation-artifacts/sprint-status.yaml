@@ -9,34 +9,34 @@ tracking_system: sprint-status.yaml
 story_location: _bmad-output/planning-artifacts/epics/epics.md
 
 development_status:
-  epic-1: in-progress
+  epic-1: done
   1-1-ha-tang-db-rls: done
-  1-2-khang-dinh-va-nguoi: in-progress
-  1-3-cay-dan-xuat: in-progress
-  1-4-danh-tinh-va-quyen: in-progress
-  1-5-loi-ke-va-media: in-progress
-  1-6-nhat-ky-va-tai-hien: in-progress
-  1-7-hop-nhat-manh: in-progress
-  1-8-nap-khung-csv: in-progress
+  1-2-khang-dinh-va-nguoi: done
+  1-3-cay-dan-xuat: done
+  1-4-danh-tinh-va-quyen: done
+  1-5-loi-ke-va-media: done
+  1-6-nhat-ky-va-tai-hien: done
+  1-7-hop-nhat-manh: done
+  1-8-nap-khung-csv: done
   epic-1-retrospective: optional
 
-  epic-2: backlog
-  2-1-trang-chu: backlog
-  2-2-dang-nhap-gan-node: backlog
-  2-3-tu-khai-bon-buoc: backlog
-  2-4-tim-va-khong-tim-thay: backlog
-  2-5-them-nguoi-than: backlog
-  2-6-cay-ba-tang: backlog
-  2-7-trang-nguoi: backlog
-  2-8-thu-loi-ke: backlog
-  2-9-toi-va-quyen: backlog
+  epic-2: in-progress
+  2-1-trang-chu: in-progress
+  2-2-dang-nhap-gan-node: in-progress
+  2-3-tu-khai-bon-buoc: in-progress
+  2-4-tim-va-khong-tim-thay: in-progress
+  2-5-them-nguoi-than: in-progress
+  2-6-cay-ba-tang: in-progress
+  2-7-trang-nguoi: in-progress
+  2-8-thu-loi-ke: in-progress
+  2-9-toi-va-quyen: in-progress
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-nap-khung: backlog
-  3-2-xem-truoc-so-khop: backlog
-  3-3-hang-cho-duyet: backlog
-  3-4-hop-nhat-manh: backlog
+  epic-3: in-progress
+  3-1-nap-khung: in-progress
+  3-2-xem-truoc-so-khop: in-progress
+  3-3-hang-cho-duyet: in-progress
+  3-4-hop-nhat-manh: in-progress
   epic-3-retrospective: optional
 
   epic-4: backlog
