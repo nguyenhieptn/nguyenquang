@@ -36,7 +36,7 @@ export default function Error({
           </div>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="gia-pha" />
     </>
   );
 }

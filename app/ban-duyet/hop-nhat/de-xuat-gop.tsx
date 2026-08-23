@@ -69,8 +69,7 @@ export function DeXuatGop({ a, b }: { a: Ben; b: Ben }) {
       )}
       {ketQua?.ok && (
         <p className="max-w-[70ch] text-[17px]" aria-live="polite">
-          Đã mở đề xuất · mã <code className="font-mono text-[15px]">{ketQua.value.proposalId}</code>{' '}
-          — dùng mã này ở khu “Đề xuất đang mở” để gộp hoặc bác.
+          Đã mở đề xuất — nằm ở khu “Đề xuất đang mở” phía dưới, gộp hoặc bác ở đó.
         </p>
       )}
     </form>

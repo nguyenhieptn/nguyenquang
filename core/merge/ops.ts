@@ -32,6 +32,7 @@ import { writeRevision } from '@/core/revision';
 import { chuanHoa } from '@/core/so-khop';
 import { err, ok, type Result } from '@/core/types';
 import type { SessionContext, ViewerContext } from '@/core/identity/session';
+import { lookupAccountNames } from '@/core/assertion/ops';
 
 /** Trigram floor for duplicate candidates (AD-16: folded comparison, never bare ILIKE). */
 export const SIMILARITY_THRESHOLD = 0.5;
@@ -828,4 +829,207 @@ export async function resolveAliasOp(tx: Tx, personId: string): Promise<Result<s
     if (!row.mergedInto) return ok(current);
     current = row.mergedInto;
   }
+}
+
+// ── listings for the bàn duyệt surface (stories 3-3/3-4) ─────────────────────
+
+/** Display fallback when an account id no longer resolves to an auth user (audit convention). */
+const UNKNOWN_NAME = 'không rõ';
+
+const asRecord = (v: unknown): Record<string, unknown> =>
+  v !== null && typeof v === 'object' && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+
+export type ProposalStatus = 'open' | 'accepted' | 'rejected';
+
+export type ProposalPersonView = {
+  personId: string;
+  fullName: string;
+  /** Year only — the bàn duyệt card never needs more, and year is the AD-13-safe grain. */
+  birthYear?: number;
+  /** Same rule as core/tree: no OFFICIAL name projection yet ⇒ tentative styling. */
+  tentative: boolean;
+};
+
+export type ProposalView = {
+  proposalId: string;
+  status: ProposalStatus;
+  reason: string;
+  evidence: DuplicateEvidence;
+  createdAt: string; // ISO
+  decidedAt?: string; // ISO
+  winner: ProposalPersonView;
+  loser: ProposalPersonView;
+  proposedByName: string;
+  decidedByName?: string;
+};
+
+/** Stored evidence is jsonb — normalize defensively so an old/empty image still has the shape. */
+function evidenceOf(v: unknown): DuplicateEvidence {
+  const o = asRecord(v);
+  return {
+    nameSimilarity: typeof o.nameSimilarity === 'number' ? o.nameSimilarity : 0,
+    birthYearDelta: typeof o.birthYearDelta === 'number' ? o.birthYearDelta : null,
+    sharedRelatives: typeof o.sharedRelatives === 'number' ? o.sharedRelatives : 0,
+  };
+}
+
+function personViewOf(
+  personId: string,
+  row: { fullName: string; birthDate: string | null; nameTier: 'tentative' | 'official' | null } | undefined,
+): ProposalPersonView {
+  const year = row?.birthDate ? Number(row.birthDate.slice(0, 4)) : NaN;
+  return {
+    personId,
+    fullName: row?.fullName ?? '',
+    ...(Number.isFinite(year) ? { birthYear: year } : {}),
+    tentative: !row || row.nameTier !== 'official',
+  };
+}
+
+/**
+ * Every merge proposal (optionally filtered by status), newest first, ready for the bàn duyệt
+ * listing. Approver-only (AD-22 surface), which is also why person names are read directly:
+ * admin | branch-head see full detail under AD-13. Account display names live outside the
+ * clan partition (AD-8) — resolved through dbGlobal via lookupAccountNames.
+ */
+export async function listProposalsOp(
+  tx: Tx,
+  ctx: ViewerContext,
+  args: { status?: ProposalStatus } = {},
+): Promise<Result<ProposalView[]>> {
+  const approver = requireApprover(ctx);
+  if (!approver.ok) return approver;
+
+  const proposals = await tx
+    .select()
+    .from(mergeProposal)
+    .where(args.status ? eq(mergeProposal.status, args.status) : undefined)
+    .orderBy(desc(mergeProposal.createdAt), desc(mergeProposal.id));
+
+  const personIds = [...new Set(proposals.flatMap((p) => [p.winnerPersonId, p.loserPersonId]))];
+  const personRows =
+    personIds.length > 0
+      ? await tx
+          .select({
+            id: person.id,
+            fullName: person.fullName,
+            birthDate: person.birthDate,
+            nameTier: person.nameTier,
+          })
+          .from(person)
+          .where(inArray(person.id, personIds))
+      : [];
+  const personById = new Map(personRows.map((r) => [r.id, r]));
+
+  const names = await lookupAccountNames(
+    proposals.flatMap((p) => [
+      p.proposedByAccountId,
+      ...(p.decidedByAccountId ? [p.decidedByAccountId] : []),
+    ]),
+  );
+
+  return ok(
+    proposals.map((p) => ({
+      proposalId: p.id,
+      status: p.status,
+      reason: p.reason,
+      evidence: evidenceOf(p.evidence),
+      createdAt: p.createdAt.toISOString(),
+      ...(p.decidedAt ? { decidedAt: p.decidedAt.toISOString() } : {}),
+      winner: personViewOf(p.winnerPersonId, personById.get(p.winnerPersonId)),
+      loser: personViewOf(p.loserPersonId, personById.get(p.loserPersonId)),
+      proposedByName: names.get(p.proposedByAccountId) ?? UNKNOWN_NAME,
+      ...(p.decidedByAccountId
+        ? { decidedByName: names.get(p.decidedByAccountId) ?? UNKNOWN_NAME }
+        : {}),
+    })),
+  );
+}
+
+export type MergeEvent = {
+  proposalId: string;
+  action: 'merge' | 'unmerge';
+  at: string; // ISO
+  byName: string;
+  winnerName: string;
+  loserName: string;
+  repointedCount: number;
+};
+
+/**
+ * The executed merge/unmerge trail, straight from the AD-10 revision log (entity 'merge',
+ * actions 'merge' | 'unmerge'), newest first. Names come from the person images the merge
+ * revision recorded in `before` when present, else from the current person rows; a name that
+ * is recoverable from neither degrades to '' rather than failing the listing. Approver-only —
+ * history is a disclosure channel (AD-21), same stance as core/audit.
+ */
+export async function listMergeHistoryOp(
+  tx: Tx,
+  ctx: ViewerContext,
+  args: { limit?: number } = {},
+): Promise<Result<MergeEvent[]>> {
+  const approver = requireApprover(ctx);
+  if (!approver.ok) return approver;
+  const limit = Math.min(Math.max(Math.trunc(args.limit ?? 20), 1), 100);
+
+  const rows = await tx
+    .select()
+    .from(revision)
+    .where(and(eq(revision.entity, 'merge'), inArray(revision.action, ['merge', 'unmerge'])))
+    .orderBy(desc(revision.createdAt), desc(revision.id))
+    .limit(limit);
+
+  const drafts = rows.map((row) => {
+    const after = asRecord(row.after);
+    const before = asRecord(row.before);
+    const beforeWinner = asRecord(before.winner);
+    const beforeLoser = asRecord(before.loser);
+    return {
+      row,
+      winnerId: typeof after.winnerId === 'string' ? after.winnerId : null,
+      loserId: typeof after.loserId === 'string' ? after.loserId : null,
+      winnerName: typeof beforeWinner.fullName === 'string' ? beforeWinner.fullName : null,
+      loserName: typeof beforeLoser.fullName === 'string' ? beforeLoser.fullName : null,
+      repointedCount:
+        row.action === 'merge'
+          ? Array.isArray(after.repointed)
+            ? after.repointed.length
+            : 0
+          : typeof after.reversed === 'number'
+            ? after.reversed
+            : 0,
+    };
+  });
+
+  // Names the revision images could not provide → current person rows (tombstones keep theirs).
+  const missingIds = [
+    ...new Set(
+      drafts.flatMap((d) => [
+        ...(d.winnerName === null && d.winnerId ? [d.winnerId] : []),
+        ...(d.loserName === null && d.loserId ? [d.loserId] : []),
+      ]),
+    ),
+  ];
+  const currentRows =
+    missingIds.length > 0
+      ? await tx
+          .select({ id: person.id, fullName: person.fullName })
+          .from(person)
+          .where(inArray(person.id, missingIds))
+      : [];
+  const currentName = new Map(currentRows.map((r) => [r.id, r.fullName]));
+
+  const names = await lookupAccountNames(rows.map((r) => r.accountId));
+
+  return ok(
+    drafts.map((d) => ({
+      proposalId: d.row.entityId,
+      action: d.row.action as 'merge' | 'unmerge',
+      at: d.row.createdAt.toISOString(),
+      byName: names.get(d.row.accountId) ?? UNKNOWN_NAME,
+      winnerName: d.winnerName ?? (d.winnerId ? (currentName.get(d.winnerId) ?? '') : ''),
+      loserName: d.loserName ?? (d.loserId ? (currentName.get(d.loserId) ?? '') : ''),
+      repointedCount: d.repointedCount,
+    })),
+  );
 }

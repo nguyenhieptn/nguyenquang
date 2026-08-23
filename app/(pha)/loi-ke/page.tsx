@@ -19,9 +19,10 @@ import { redirect } from 'next/navigation';
 import { Mic } from 'lucide-react';
 import { Card, CardBody } from '@/components/ui/card';
 import { DOC } from '@/components/pha/khung';
-import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
 import { listRecordings, type RecordingMeta } from '@/core/media';
-import { resolveSession } from '@/core/identity';
+import { getClanInfo, resolveSession } from '@/core/identity';
+import { getPerson } from '@/core/person';
 import { doDai, ngayVN } from './dinh-dang';
 import { MoiGanVaoPha } from './moi-gan';
 import { NgheLoiKe } from './nghe';
@@ -38,7 +39,7 @@ function nhanTiepCan(l: RecordingMeta): string {
   return 'Cả họ nghe được';
 }
 
-function OLoiKe({ l }: { l: RecordingMeta }) {
+function OLoiKe({ l, tenNguoi }: { l: RecordingMeta; tenNguoi: Map<string, string> }) {
   const niemPhong = l.accessTier === 'sealed' && !l.withdrawn;
   const tenDong = l.title || (l.toldByName ? `${l.toldByName} kể` : 'Lời kể trong họ');
   return (
@@ -57,13 +58,21 @@ function OLoiKe({ l }: { l: RecordingMeta }) {
               .join(' · ')}
           </p>
           <p className="mt-1.5 text-[15px]">{nhanTiepCan(l)}</p>
-          {l.subjectPersonIds.length > 0 && (
-            // TODO(core): danh sách chỉ mang id người được nhắc tới — chưa có API core đọc thẻ
-            // người theo id (core/person chưa có index.ts). Khi có, thay dòng đếm bằng tên thật.
-            <p className="mt-1.5 text-[15px] text-muted-foreground">
-              Nhắc tới {l.subjectPersonIds.length} người trong phả
-            </p>
-          )}
+          {l.subjectPersonIds.length > 0 &&
+            (() => {
+              // Tên thật từ core/person (đã lọc bán kính; người được giữ kín mang nhãn giữ chỗ).
+              // Id không đọc ra được thì rơi về con số — không bịa tên.
+              const ten = l.subjectPersonIds
+                .map((id) => tenNguoi.get(id))
+                .filter((t): t is string => t !== undefined);
+              return (
+                <p className="mt-1.5 text-[15px] text-muted-foreground">
+                  {ten.length > 0
+                    ? `Nhắc tới ${ten.join(', ')}`
+                    : `Nhắc tới ${l.subjectPersonIds.length} người trong phả`}
+                </p>
+              );
+            })()}
           {l.playable ? (
             <NgheLoiKe recordingId={l.recordingId} />
           ) : (
@@ -77,9 +86,18 @@ function OLoiKe({ l }: { l: RecordingMeta }) {
   );
 }
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ ve?: string | string[] }>;
+}) {
   const session = await resolveSession();
   if (!session) redirect('/dang-nhap');
+
+  // "Kể về người này" từ trang một người mang ?ve=<id> — chuyển tiếp nguyên vẹn sang màn thu
+  // để ô "nói về những ai" được chọn sẵn đúng người ấy.
+  const { ve } = await searchParams;
+  const veId = typeof ve === 'string' && ve ? ve : null;
 
   // Lời kể là chất liệu của người trong họ: tài khoản chưa gắn node thì mọi đường ở đây —
   // nghe lẫn thu — đều dẫn về luồng gắn node, không phải màn lỗi. Người trông coi phả
@@ -92,6 +110,19 @@ export default async function Page() {
     const kq = await listRecordings();
     // Lỗi đọc khác 'unauthenticated' (đã chặn trên): vắng lặng — bày sổ rỗng, không banner lỗi.
     if (kq.ok) dsLoiKe = kq.value;
+  }
+
+  // AD-14: tên phả từ `clan.settings`, không phải hằng trong mã.
+  const thongTinPha = await getClanInfo();
+  const tenPha = tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null);
+
+  // Tên người được nhắc tới — đọc từng id duy nhất qua core/person (phả < 300 người, đủ rẻ).
+  // Mỗi thẻ đã lọc bán kính trong core; id chết (đã gộp thì core tự chuyển hướng) rơi khỏi map.
+  const tenNguoi = new Map<string, string>();
+  const idDuyNhat = [...new Set(dsLoiKe.flatMap((l) => l.subjectPersonIds))];
+  for (const id of idDuyNhat) {
+    const nguoi = await getPerson(id);
+    if (nguoi.ok) tenNguoi.set(id, nguoi.value.card.fullName);
   }
 
   const tongGiay = dsLoiKe.reduce((s, l) => s + (l.durationSeconds ?? 0), 0);
@@ -118,7 +149,7 @@ export default async function Page() {
 
             {/* Nút to duy nhất mang son của màn — hành động chính, việc có hạn dùng. */}
             <Link
-              href="/loi-ke/thu"
+              href={veId ? `/loi-ke/thu?ve=${encodeURIComponent(veId)}` : '/loi-ke/thu'}
               className="mt-6 flex min-h-14 w-full items-center justify-center gap-3 rounded-md bg-primary px-6 text-primary-foreground"
             >
               <Mic size={22} strokeWidth={2} aria-hidden />
@@ -129,7 +160,7 @@ export default async function Page() {
               <>
                 <ul className="mt-7 grid gap-3">
                   {dsLoiKe.map((l) => (
-                    <OLoiKe key={l.recordingId} l={l} />
+                    <OLoiKe key={l.recordingId} l={l} tenNguoi={tenNguoi} />
                   ))}
                 </ul>
                 {/* Nói thẳng việc còn lại thay vì im lặng — im lặng khiến người đi thu tưởng
@@ -143,7 +174,7 @@ export default async function Page() {
           </section>
         )}
       </main>
-      <ThanhDieuHuong hienTai="loi-ke" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="loi-ke" tenPha={tenPha} />
     </>
   );
 }

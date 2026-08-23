@@ -26,7 +26,7 @@
  */
 import type { Metadata } from 'next';
 import { redirect } from 'next/navigation';
-import { resolveSession } from '@/core/identity';
+import { getMyAttachment, resolveSession } from '@/core/identity';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
 import { NhanCho } from './nhan-cho';
@@ -37,15 +37,22 @@ export default async function Page() {
   const session = await resolveSession();
   // Chưa có tài khoản thì chưa có gì để gắn — về màn đăng nhập (err-map của build contract).
   if (!session) redirect('/dang-nhap');
-  // Đã gắn rồi thì màn này hết việc. LƯU Ý: một yêu cầu đang chờ xác nhận KHÔNG hiện ở đây
-  // được — core chưa có API đọc trạng thái pending của chính mình (xem TODO trong report);
-  // người có yêu cầu chờ sẽ thấy lại màn tìm, và gửi lại thì core thay yêu cầu cũ (an toàn).
+  // Đã gắn rồi thì màn này hết việc.
   if (session.personId) redirect('/');
+
+  // Một lời nhận chỗ đang chờ bảo lãnh (AD-8: getMyAttachment đọc được cả trạng thái pending):
+  // mở lại màn này thì gặp NGAY màn chờ, không phải màn tìm — kẻo tưởng lời cũ đã rơi mất và
+  // gửi lại từ đầu.
+  const ganKet = await getMyAttachment();
+  const dangCho =
+    ganKet.ok && ganKet.value && ganKet.value.status === 'pending'
+      ? { fullName: ganKet.value.personName, nguCanh: '' }
+      : null;
 
   return (
     <div className="flex min-h-dvh flex-col">
       <main className={`${DOC} flex-1 pb-28 pt-7 md:pb-16 md:pt-28`}>
-        <NhanCho />
+        <NhanCho choSan={dangCho} />
       </main>
       <ThanhDieuHuong hienTai="toi" />
     </div>

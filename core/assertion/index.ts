@@ -13,6 +13,7 @@ import { withClanContext } from '@/db';
 import {
   addAssertionOp,
   hideAssertionOp,
+  listHiddenAssertionsOp,
   listPendingAssertionsOp,
   lookupAccountNames,
   promoteAssertionOp,
@@ -140,6 +141,40 @@ export async function listPendingAssertions(): Promise<Result<PendingAssertion[]
       value: r.value,
       confidence: r.confidence,
       sourceDescription: r.sourceDescription,
+      createdByName: names.get(r.createdByAccountId) ?? r.createdByAccountId,
+      createdAt: r.createdAt.toISOString(),
+    })),
+  );
+}
+
+/** Kho khẳng định đang ẩn (AD-17) — bàn duyệt 3-4 khôi phục từ đây. */
+export type HiddenAssertion = {
+  assertionId: string;
+  personId: string;
+  personName: string;
+  kind: string;
+  /** Human-Vietnamese rendering of the hidden value (surface B shows this, not raw JSON). */
+  valueText: string;
+  /** Note of the latest 'hide' revision; '' when not recoverable. */
+  hiddenReason: string;
+  createdByName: string;
+  createdAt: string;
+};
+export async function listHiddenAssertions(): Promise<Result<HiddenAssertion[]>> {
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  const rows = await withClanContext(viewer.clanId, (tx) => listHiddenAssertionsOp(tx, viewer));
+  if (!rows.ok) return rows;
+  // Auth user names live outside the clan partition (AD-8) — second read through dbGlobal.
+  const names = await lookupAccountNames(rows.value.map((r) => r.createdByAccountId));
+  return ok(
+    rows.value.map((r) => ({
+      assertionId: r.assertionId,
+      personId: r.personId,
+      personName: r.personName,
+      kind: r.kind,
+      valueText: r.valueText,
+      hiddenReason: r.hiddenReason,
       createdByName: names.get(r.createdByAccountId) ?? r.createdByAccountId,
       createdAt: r.createdAt.toISOString(),
     })),

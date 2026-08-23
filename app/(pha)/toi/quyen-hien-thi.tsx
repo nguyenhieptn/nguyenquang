@@ -7,10 +7,8 @@
  * chối mà khó tìm hơn quyền sửa thì không còn là quyền". Nút "Sửa" là Link do trang server
  * render; hai nút này cần useActionState nên tách ra client.
  *
- * ⚠️ TODO(core): core chưa có API đọc trạng thái hiện tại của hai cờ (chỉ có đường ghi
- * updateSelfVisibility). Trước lần bấm đầu tiên, nút coi trạng thái là MẶC ĐỊNH của phả
- * (chưa ẩn, có in — đúng default của dữ liệu); sau mỗi lần ghi thành công thì bám theo kết
- * quả thật từ server. Khi core có API đọc, truyền trạng thái ban đầu vào đây thay cho mặc định.
+ * Trạng thái ban đầu của hai cờ đọc thật từ core (getMyPersonFlags) — trang server truyền vào
+ * `batBanDau`; sau mỗi lần ghi thành công thì bám theo kết quả thật từ server action.
  */
 import { useActionState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -22,13 +20,16 @@ export function NutQuyen({
   nhanBat,
   /** Nhãn khi quyền đang BẬT — bấm để hoàn tác ("Hiện lại với cả họ"). */
   nhanTat,
+  /** Trạng thái thật lúc mở trang — từ getMyPersonFlags của core, server truyền xuống. */
+  batBanDau = false,
 }: {
   hanhDong: (truoc: KetQuaQuyen, formData: FormData) => Promise<KetQuaQuyen>;
   nhanBat: string;
   nhanTat: string;
+  batBanDau?: boolean;
 }) {
   const [ketQua, gui, dangGui] = useActionState(hanhDong, null);
-  const dangBat = ketQua?.ok === true ? ketQua.dangBat : false;
+  const dangBat = ketQua?.ok === true ? ketQua.dangBat : batBanDau;
 
   return (
     <form action={gui}>

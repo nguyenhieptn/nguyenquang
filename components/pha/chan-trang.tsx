@@ -87,7 +87,7 @@ function Cot({ tua, duong }: { tua: string; duong: Duong[] }) {
   );
 }
 
-export function ChanTrang({ tenPha = 'Nguyễn Quang' }: { tenPha?: string }) {
+export function ChanTrang({ tenPha = 'Tộc phả' }: { tenPha?: string }) {
   return (
     // `mt-auto` để chân trang tụt xuống đáy khi trang ngắn; `pb-28` chừa chỗ cho thanh dính đáy
     // của bản điện thoại, nếu không nó che mất hàng cuối.

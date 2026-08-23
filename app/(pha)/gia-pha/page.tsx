@@ -11,7 +11,8 @@
  * AD-24: core tự đọc phiên — trang không truyền danh tính vào lời gọi đọc cây.
  */
 import { redirect } from 'next/navigation';
-import { resolveViewer } from '@/core/identity';
+import { tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { getClanInfo, resolveViewer } from '@/core/identity';
 import { getAncestryPath, getBranchView, getClanOverview } from '@/core/tree';
 import { ManChi } from './_chia-se/man-chi';
 import { PhaTrong } from './_chia-se/pha-trong';
@@ -20,6 +21,10 @@ export default async function Page() {
   const viewer = await resolveViewer();
   // Không phiên và cũng không có phả nào mở cho khách — cùng nghĩa với 'unauthenticated'.
   if (!viewer) redirect('/dang-nhap');
+
+  // AD-14: tên phả đọc từ `clan.settings` qua core/identity, truyền xuống component câm.
+  const thongTinPha = await getClanInfo();
+  const tenPha = tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null);
 
   if (viewer.personId) {
     const [chi, duong] = await Promise.all([
@@ -32,6 +37,7 @@ export default async function Page() {
           chi={chi.value}
           minhId={viewer.personId}
           duongVeGoc={duong.ok ? duong.value.steps.map((s) => s.personId) : []}
+          tenPha={tenPha}
         />
       );
     }
@@ -45,13 +51,15 @@ export default async function Page() {
   if (!tongQuan.ok) {
     if (tongQuan.error.code === 'unauthenticated') redirect('/dang-nhap');
     // 'forbidden' → vắng lặng, không băng-rôn lỗi (build contract § Result handling).
-    return <PhaTrong />;
+    return <PhaTrong tenPha={tenPha} />;
   }
   const { mainFragment, branches } = tongQuan.value;
-  if (!mainFragment) return <PhaTrong />;
+  if (!mainFragment) return <PhaTrong tenPha={tenPha} />;
 
   const dauChi = branches[0]?.headPersonId ?? mainFragment.rootPersonId;
   const chi = await getBranchView(dauChi);
-  if (!chi.ok) return <PhaTrong />;
-  return <ManChi chi={chi.value} minhId={viewer.personId} moiTimCho={!viewer.personId} />;
+  if (!chi.ok) return <PhaTrong tenPha={tenPha} />;
+  return (
+    <ManChi chi={chi.value} minhId={viewer.personId} moiTimCho={!viewer.personId} tenPha={tenPha} />
+  );
 }

@@ -21,6 +21,7 @@ import {
   authUser,
   notification,
   person,
+  revision,
   source,
   union,
   CONFIDENCES,
@@ -666,4 +667,136 @@ export async function lookupAccountNames(accountIds: string[]): Promise<Map<stri
     .from(authUser)
     .where(inArray(authUser.id, ids));
   return new Map(rows.map((r) => [r.id, r.name]));
+}
+
+// ── Hidden listings (AD-17 restore surface, bàn duyệt 3-4) ───────────────────
+
+const GENDER_VN: Record<string, string> = { male: 'nam', female: 'nữ', other: 'khác' };
+
+function formatDateVN(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-');
+  return d && m && y ? `${d}/${m}/${y}` : isoDate;
+}
+
+/** "năm sinh 1941" / "ngày mất 12/03/2001" / "năm sinh khoảng 1941" / "năm sinh chưa rõ". */
+function describeDateVN(loai: 'sinh' | 'mất', v: Record<string, unknown>): string {
+  const date = typeof v.date === 'string' ? v.date : null;
+  const year = date ? date.slice(0, 4) : null;
+  const precision = typeof v.precision === 'string' ? v.precision : null;
+  if (precision === 'exact' && date) return `ngày ${loai} ${formatDateVN(date)}`;
+  if (precision === 'approximate') return year ? `năm ${loai} khoảng ${year}` : `năm ${loai} ước chừng`;
+  return year ? `năm ${loai} ${year}` : `năm ${loai} chưa rõ`;
+}
+
+/**
+ * Human-Vietnamese one-liner for an assertion's value — surface B listings show this instead
+ * of raw JSON. Wording follows core/audit's history one-liners; kept here because this module
+ * owns the value shapes (defensive against malformed jsonb: degrades, never throws).
+ */
+export function describeAssertionValue(kind: AssertionKind, value: unknown): string {
+  const v =
+    value !== null && typeof value === 'object' && !Array.isArray(value)
+      ? (value as Record<string, unknown>)
+      : {};
+  switch (kind) {
+    case 'name': {
+      const n = typeof v.fullName === 'string' ? v.fullName : '';
+      return n ? `tên "${n}"` : 'tên';
+    }
+    case 'gender': {
+      const g = typeof v.gender === 'string' ? v.gender : '';
+      return `giới tính ${GENDER_VN[g] ?? 'khác'}`;
+    }
+    case 'birth':
+      return describeDateVN('sinh', v);
+    case 'death':
+      return describeDateVN('mất', v);
+    case 'parent-child': {
+      const rel = typeof v.relation === 'string' ? v.relation : '';
+      const suffix = rel === 'adopted' ? ' (con nuôi)' : rel === 'heir' ? ' (thừa tự)' : '';
+      return `quan hệ cha mẹ – con${suffix}`;
+    }
+    case 'union-partner':
+      return 'quan hệ vợ chồng';
+    case 'note': {
+      const t = typeof v.text === 'string' ? v.text : '';
+      return t ? `ghi chú "${t}"` : 'ghi chú';
+    }
+    default:
+      return 'thông tin';
+  }
+}
+
+export type HiddenRow = {
+  assertionId: string;
+  personId: string;
+  personName: string;
+  kind: AssertionKind;
+  valueText: string;
+  hiddenReason: string;
+  createdByAccountId: string;
+  createdAt: Date;
+};
+
+/**
+ * Every live-table assertion with status='hidden' — what the bàn duyệt restores from (AD-17:
+ * one report hides; only this surface brings a claim back). Approver-only, like the pending
+ * queue. hiddenReason is the note of the LATEST 'hide' revision (AD-10 wrote one per hide);
+ * an assertion hidden by a path that left no note degrades to ''.
+ */
+export async function listHiddenAssertionsOp(
+  tx: Tx,
+  viewer: ViewerContext,
+): Promise<Result<HiddenRow[]>> {
+  const gate = gateApprover(viewer);
+  if (!gate.ok) return gate;
+
+  const rows = await tx
+    .select({
+      assertionId: assertion.id,
+      personId: assertion.subjectPersonId,
+      personName: person.fullName,
+      kind: assertion.kind,
+      value: assertion.value,
+      createdByAccountId: assertion.createdByAccountId,
+      createdAt: assertion.createdAt,
+    })
+    .from(assertion)
+    .innerJoin(person, eq(assertion.subjectPersonId, person.id))
+    .where(eq(assertion.status, 'hidden'))
+    .orderBy(desc(assertion.createdAt), desc(assertion.id));
+
+  const latestHideNote = new Map<string, string>();
+  if (rows.length > 0) {
+    const hideRevs = await tx
+      .select({ entityId: revision.entityId, note: revision.note })
+      .from(revision)
+      .where(
+        and(
+          eq(revision.entity, 'assertion'),
+          eq(revision.action, 'hide'),
+          inArray(
+            revision.entityId,
+            rows.map((r) => r.assertionId),
+          ),
+        ),
+      )
+      .orderBy(desc(revision.createdAt), desc(revision.id));
+    for (const rev of hideRevs) {
+      if (!latestHideNote.has(rev.entityId)) latestHideNote.set(rev.entityId, rev.note);
+    }
+  }
+
+  return ok(
+    rows.map((r) => ({
+      assertionId: r.assertionId,
+      personId: r.personId,
+      personName: r.personName,
+      kind: r.kind,
+      valueText: describeAssertionValue(r.kind, r.value),
+      hiddenReason: latestHideNote.get(r.assertionId) ?? '',
+      createdByAccountId: r.createdByAccountId,
+      createdAt: r.createdAt,
+    })),
+  );
 }

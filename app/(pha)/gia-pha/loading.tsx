@@ -28,7 +28,7 @@ export default function Loading() {
           <p className="sr-only">Đang mở cây…</p>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="gia-pha" />
     </>
   );
 }

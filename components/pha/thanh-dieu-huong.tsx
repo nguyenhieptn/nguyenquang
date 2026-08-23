@@ -101,6 +101,20 @@ function O({
   );
 }
 
+/**
+ * Ghép tên phả hiển thị từ `getClanInfo` của core/identity (AD-14: không hardcode tên một dòng
+ * họ nào trong mã). Hàm THUẦN — component vẫn "câm": trang server gọi getClanInfo rồi đưa kết
+ * quả qua đây, truyền chuỗi xuống. Ưu tiên settings.surname (+ middleName), rồi tên phả trong
+ * `clan.name`; không có gì thì về mặc định trung tính.
+ */
+export function tenPhaTuThongTin(
+  info?: { name: string; settings: { surname?: string; middleName?: string } } | null,
+): string {
+  if (!info) return 'Tộc phả';
+  const ghep = [info.settings.surname, info.settings.middleName].filter(Boolean).join(' ');
+  return ghep || info.name || 'Tộc phả';
+}
+
 export function ThanhDieuHuong({
   hienTai,
   /**

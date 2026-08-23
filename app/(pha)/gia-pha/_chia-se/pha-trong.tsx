@@ -8,7 +8,7 @@ import Link from 'next/link';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
 
-export function PhaTrong() {
+export function PhaTrong({ tenPha }: { tenPha?: string }) {
   return (
     <>
       <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
@@ -32,7 +32,7 @@ export function PhaTrong() {
           </div>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
     </>
   );
 }

@@ -14,6 +14,8 @@ import { err, type Result } from '@/core/types';
 import { withClanContext } from '@/db';
 import {
   executeMergeOp,
+  listMergeHistoryOp,
+  listProposalsOp,
   proposeMergeOp,
   rejectProposalOp,
   resolveAliasOp,
@@ -22,6 +24,9 @@ import {
   type DuplicateCandidate,
   type DuplicateEvidence,
   type ExecuteMergeOutcome,
+  type MergeEvent,
+  type ProposalStatus,
+  type ProposalView,
 } from './ops';
 
 export type {
@@ -87,4 +92,29 @@ export async function resolveAlias(personId: string): Promise<Result<string>> {
   const viewer = await resolveViewer();
   if (!viewer) return err('unauthenticated', 'no session and no clan to view');
   return withClanContext(viewer.clanId, (tx) => resolveAliasOp(tx, personId));
+}
+
+// ── listings for the bàn duyệt surface (stories 3-3/3-4) ─────────────────────
+
+export type { MergeEvent, ProposalPersonView, ProposalStatus, ProposalView } from './ops';
+
+/**
+ * Merge proposals (optionally by status), newest first, with person snapshots, evidence, and
+ * resolved account names. Admin | branch-head — the bàn duyệt is approver-only, so names are
+ * shown in full (AD-13 gives those roles full visibility).
+ */
+export async function listProposals(status?: ProposalStatus): Promise<Result<ProposalView[]>> {
+  const session = await resolveSession();
+  if (!session) return err('unauthenticated', 'sign-in required');
+  return withClanContext(session.clanId, (tx) => listProposalsOp(tx, session, { status }));
+}
+
+/**
+ * Executed merge/unmerge events from the revision log (AD-10), newest first. Admin |
+ * branch-head — history is a disclosure channel (AD-21).
+ */
+export async function listMergeHistory(limit = 20): Promise<Result<MergeEvent[]>> {
+  const session = await resolveSession();
+  if (!session) return err('unauthenticated', 'sign-in required');
+  return withClanContext(session.clanId, (tx) => listMergeHistoryOp(tx, session, { limit }));
 }

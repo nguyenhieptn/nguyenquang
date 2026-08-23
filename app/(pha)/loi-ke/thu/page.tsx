@@ -16,23 +16,57 @@
  */
 import { redirect } from 'next/navigation';
 import { DOC } from '@/components/pha/khung';
-import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
-import { resolveSession } from '@/core/identity';
+import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { getClanInfo, resolveSession } from '@/core/identity';
+import { getPerson } from '@/core/person';
+import type { NguoiDaChon } from './chon-nguoi';
 import { MoiGanVaoPha } from '../moi-gan';
 import { ManThu } from './man-thu';
 
 export const metadata = { title: 'Thu lời kể' };
 
-export default async function Page() {
+export default async function Page({
+  searchParams,
+}: {
+  searchParams: Promise<{ ve?: string | string[] }>;
+}) {
   const session = await resolveSession();
   if (!session) redirect('/dang-nhap');
+
+  // AD-14: tên phả từ `clan.settings`, không phải hằng trong mã.
+  const thongTinPha = await getClanInfo();
+  const tenPha = tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null);
+
+  // ?ve=<id> — "Kể về người này" từ trang một người: chọn sẵn người ấy trong ô "nói về những
+  // ai". Tên tra qua core/person (đã lọc bán kính); người được giữ kín thì KHÔNG chọn sẵn —
+  // chọn sẵn một nhãn giữ chỗ là vô nghĩa với người đang thu.
+  const { ve } = await searchParams;
+  let noiVeSan: NguoiDaChon[] = [];
+  if (typeof ve === 'string' && ve && session.personId !== null) {
+    const nguoi = await getPerson(ve);
+    if (nguoi.ok && nguoi.value.visibility !== 'anonymous') {
+      const the = nguoi.value.card;
+      const moTa = [
+        the.generation !== null ? `đời ${the.generation}` : null,
+        the.branchCode ? `chi ${the.branchCode}` : null,
+        the.generation === null && !the.branchCode && the.lifespan ? the.lifespan : null,
+      ]
+        .filter(Boolean)
+        .join(' · ');
+      noiVeSan = [{ personId: the.personId, fullName: the.fullName, moTa }];
+    }
+  }
 
   return (
     <>
       <main className={`${DOC} pb-28 pt-9 md:pb-16 md:pt-32`}>
-        {session.personId !== null ? <ManThu /> : <MoiGanVaoPha viecMuonLam="Thu lời kể" />}
+        {session.personId !== null ? (
+          <ManThu noiVeSan={noiVeSan} />
+        ) : (
+          <MoiGanVaoPha viecMuonLam="Thu lời kể" />
+        )}
       </main>
-      <ThanhDieuHuong hienTai="loi-ke" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="loi-ke" tenPha={tenPha} />
     </>
   );
 }

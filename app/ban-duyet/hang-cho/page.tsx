@@ -30,9 +30,15 @@
  */
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { listPendingAssertions, type PendingAssertion } from '@/core/assertion';
+import {
+  listHiddenAssertions,
+  listPendingAssertions,
+  type HiddenAssertion,
+  type PendingAssertion,
+} from '@/core/assertion';
 import { Button } from '@/components/ui/button';
 import { BangChoDuyet, type DongChoDuyet } from './bang-cho-duyet';
+import { khoiPhucKhangDinh } from './actions';
 
 // AD-23: hàng chờ phụ thuộc người xem (vai duyệt) và đổi theo từng mutation — không cache.
 export const dynamic = 'force-dynamic';
@@ -102,7 +108,7 @@ function raDong(m: PendingAssertion): DongChoDuyet {
 }
 
 export default async function Page() {
-  const ketQua = await listPendingAssertions();
+  const [ketQua, daAnKq] = await Promise.all([listPendingAssertions(), listHiddenAssertions()]);
 
   if (!ketQua.ok) {
     if (ketQua.error.code === 'unauthenticated') redirect('/dang-nhap');
@@ -133,10 +139,8 @@ export default async function Page() {
   }
 
   const dong = ketQua.value.map(raDong);
-
-  // TODO(core): listPendingAssertions chỉ trả khẳng định status='live' — dòng đã bị ẩn theo
-  // báo cáo (AD-17) không có trong danh sách, nên chưa bày được khu "đã ẩn + khôi phục"
-  // (restoreAssertion đã sẵn trong core, thiếu mỗi đường liệt kê).
+  // Khu "đã ẩn theo báo cáo" (AD-17) — đọc hỏng thì khu vắng lặng, không hỏng cả màn.
+  const daAn: HiddenAssertion[] = daAnKq.ok ? daAnKq.value : [];
 
   return (
     <main className="mx-auto max-w-[1280px] px-6 py-10">
@@ -158,6 +162,48 @@ export default async function Page() {
         </p>
       ) : (
         <BangChoDuyet dong={dong} />
+      )}
+
+      {/* ── ĐÃ ẨN THEO BÁO CÁO (AD-17) — khu RIÊNG, dưới hàng chờ ─────────────────────────
+          Một báo cáo là ẩn ngay, không cần duyệt; khôi phục mới cần quyền. Khu này tách hẳn
+          khỏi bảng chờ: ẩn không phải một trạng thái chờ duyệt — nó là một phán quyết tạm
+          của cộng đồng đang đợi người có quyền soát lại. */}
+      {daAn.length > 0 && (
+        <section className="mt-12 border-t border-ban-vien pt-8">
+          <h2 className="text-[19px] font-semibold">Đã ẩn theo báo cáo</h2>
+          <p className="mt-1.5 max-w-[70ch] text-[17px] text-muted-foreground">
+            {daAn.length} khẳng định đang ẩn khỏi cây vì có người trong họ báo. Toàn văn vẫn
+            trong nhật ký. Khôi phục là đưa trở lại cây, ở đúng tầng cũ.
+          </p>
+          <ul className="mt-5 grid gap-3">
+            {daAn.map((a) => (
+              <li key={a.assertionId} className="rounded-md border border-ban-vien bg-ban-o px-5 py-4">
+                <p className="text-[17px]">
+                  <Link
+                    href={`/nguoi/${a.personId}`}
+                    className="font-[family-name:var(--font-pha)] font-semibold underline-offset-4 hover:underline"
+                  >
+                    {a.personName}
+                  </Link>{' '}
+                  — {a.valueText}
+                </p>
+                <p className="mt-1 text-[15px] text-muted-foreground">
+                  {a.createdByName} khai · {luc(a.createdAt)}
+                  {a.hiddenReason && (
+                    <>
+                      {' · '}lý do báo: <em>{a.hiddenReason}</em>
+                    </>
+                  )}
+                </p>
+                <form action={khoiPhucKhangDinh.bind(null, a.assertionId)} className="mt-3">
+                  <Button type="submit" variant="outline" className="h-11 text-[17px]">
+                    Khôi phục
+                  </Button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
 
       {/* Ai được duyệt — FR-64. Không phải chú thích: một bảng duyệt không nói rõ vai thì

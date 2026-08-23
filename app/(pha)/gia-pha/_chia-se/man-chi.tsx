@@ -89,6 +89,7 @@ export function ManChi({
   minhId,
   duongVeGoc = [],
   moiTimCho = false,
+  tenPha,
 }: {
   chi: BranchView;
   minhId?: string | null;
@@ -96,6 +97,8 @@ export function ManChi({
   duongVeGoc?: string[];
   /** Khách / chưa gắn chỗ: mời tìm chỗ của mình (EXPERIENCE § Chưa gắn node — KHÔNG là màn lỗi). */
   moiTimCho?: boolean;
+  /** Tên phả cho măng-sét — trang server đọc từ getClanInfo rồi truyền xuống (AD-14). */
+  tenPha?: string;
 }) {
   const dungDau = chi.generations
     .flatMap((g) => g.couples)
@@ -204,7 +207,7 @@ export function ManChi({
           </p>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
     </>
   );
 }

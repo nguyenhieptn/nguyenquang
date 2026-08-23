@@ -50,18 +50,11 @@ import { ChanTrang } from "@/components/pha/chan-trang";
 import { KHUNG } from "@/components/pha/khung";
 import { OTim } from "@/components/pha/o-tim";
 import { TamPhim } from "@/components/pha/tam-phim";
-import { ThanhDieuHuong } from "@/components/pha/thanh-dieu-huong";
+import { ThanhDieuHuong, tenPhaTuThongTin } from "@/components/pha/thanh-dieu-huong";
 import { TuaMuc } from "@/components/pha/vach";
 import { getRecentAdditions } from "@/core/audit";
-import { resolveViewer } from "@/core/identity";
+import { getClanInfo, resolveViewer } from "@/core/identity";
 import { getAncestryPath, getClanOverview, type AncestryPath, type ClanOverview } from "@/core/tree";
-
-/**
- * TODO (missing core API): chưa có hàm nào của core trả TÊN PHẢ từ `clan.settings`/`clan.name`
- * (AD-14 cấm hardcode "Nguyễn Quang"). Khi core cấp getter, thay hằng này bằng lời gọi thật.
- * 'Tộc phả' là fallback trung tính — trùng mặc định của `ThanhDieuHuong`.
- */
-const TEN_PHA = "Tộc phả";
 
 /**
  * Nhãn chi hiển thị — "chi Hai", KHÔNG phải mã đường đi "1.3.2". Dẫn xuất lúc đọc từ khúc đầu
@@ -97,11 +90,14 @@ export default async function Page() {
   // Không còn cả khách lẫn phả để xem — phả chưa dựng. Chỉ đăng nhập quản trị mới đi tiếp được.
   if (!viewer) redirect("/dang-nhap");
 
-  const [tongQuanKq, vuaVaoKq, duongVeKq] = await Promise.all([
+  const [tongQuanKq, vuaVaoKq, duongVeKq, thongTinPha] = await Promise.all([
     getClanOverview(),
     getRecentAdditions(8),
     viewer.personId !== null ? getAncestryPath(viewer.personId) : Promise.resolve(null),
+    // AD-14: tên phả đọc từ `clan.settings` qua core/identity — không còn hằng trong mã.
+    getClanInfo(),
   ]);
+  const tenPha = tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null);
 
   // 'forbidden' / 'not-found' ⇒ vắng lặng lẽ, KHÔNG băng rôn lỗi (EXPERIENCE.md § State
   // Patterns): cột đời rơi về trạng thái mời, tổng quan rơi về rỗng.
@@ -365,8 +361,8 @@ export default async function Page() {
         </div>
       </main>
 
-      <ChanTrang tenPha={TEN_PHA} />
-      <ThanhDieuHuong hienTai="trang-chu" tenPha={TEN_PHA} />
+      <ChanTrang tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="trang-chu" tenPha={tenPha} />
     </div>
   );
 }

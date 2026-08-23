@@ -71,7 +71,12 @@ const LUA_CHON_TIEP_CAN: { muc: MucTiepCan; ten: string; giaiThich: string }[] =
   },
 ];
 
-export function ManThu() {
+export function ManThu({
+  /** "Nói về những ai" chọn sẵn — từ ?ve= của trang một người, server đã tra tên. */
+  noiVeSan = [],
+}: {
+  noiVeSan?: NguoiDaChon[];
+}) {
   const [buoc, setBuoc] = useState<Buoc>('san-sang');
   const [giay, setGiay] = useState(0);
   const [banThu, setBanThu] = useState<BanThu | null>(null);
@@ -82,7 +87,7 @@ export function ManThu() {
   // ── Thông tin đi kèm bản thu ────────────────────────────────────────────────
   const [nguoiKe, setNguoiKe] = useState<NguoiDaChon[]>([]); // chọn một
   const [tenNguoiKeNgoai, setTenNguoiKeNgoai] = useState(''); // người kể chưa có trong phả
-  const [noiVe, setNoiVe] = useState<NguoiDaChon[]>([]); // chọn nhiều
+  const [noiVe, setNoiVe] = useState<NguoiDaChon[]>(noiVeSan); // chọn nhiều
   const [tieuDe, setTieuDe] = useState('');
   const [ngayThu, setNgayThu] = useState(homNayISO());
   const [tiepCan, setTiepCan] = useState<MucTiepCan | null>(null); // KHÔNG chọn sẵn — FR-49

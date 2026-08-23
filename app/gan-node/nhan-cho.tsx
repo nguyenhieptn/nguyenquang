@@ -18,7 +18,8 @@
  *
  * ── Trạng thái CHỜ là trạng thái ổn, không phải lỗi ──
  * AD-8: yêu cầu nằm 'pending' tới khi một người trong họ bảo lãnh. Màn chờ ấm, không xin lỗi,
- * và nói rõ: trong lúc chờ, xem phả vẫn đủ như trước (FR-11).
+ * và nói rõ: trong lúc chờ, xem phả vẫn đủ như trước (FR-11). Mở lại màn khi lời nhận chỗ còn
+ * đang chờ: server đọc getMyAttachment và truyền `choSan` — vào thẳng màn chờ, không tìm lại.
  */
 import { useState } from 'react';
 import Link from 'next/link';
@@ -60,7 +61,15 @@ function KhoiLoi({ loi }: { loi: string }) {
   );
 }
 
-export function NhanCho() {
+/** Người đang chờ xác nhận — đủ cho màn chờ, dù đến từ lượt tìm này hay từ lời xin trước. */
+export type NguoiDangCho = { fullName: string; nguCanh: string };
+
+export function NhanCho({
+  /** Lời nhận chỗ đang 'pending' từ trước (server đọc getMyAttachment) — mở thẳng màn chờ. */
+  choSan = null,
+}: {
+  choSan?: NguoiDangCho | null;
+}) {
   const router = useRouter();
   const [tuKhoa, setTuKhoa] = useState('');
   const [dangTim, setDangTim] = useState(false);
@@ -69,8 +78,8 @@ export function NhanCho() {
   const [chonId, setChonId] = useState<string | null>(null);
   const [dangGui, setDangGui] = useState(false);
   const [loi, setLoi] = useState<string | null>(null);
-  /** Người vừa xin nhận — khác null nghĩa là đã sang màn chờ. */
-  const [dangCho, setDangCho] = useState<SearchHit | null>(null);
+  /** Người đang chờ xác nhận — khác null nghĩa là đang ở màn chờ. */
+  const [dangCho, setDangCho] = useState<NguoiDangCho | null>(choSan);
 
   async function tim(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -112,7 +121,7 @@ export function NhanCho() {
         setLoi(LOI_NHAN[kq.error.code] ?? LOI_CHUNG);
         return;
       }
-      setDangCho(nguoi);
+      setDangCho({ fullName: nguoi.fullName, nguCanh: dongNguCanh(nguoi) });
     } catch {
       setLoi(LOI_CHUNG);
     } finally {
@@ -129,8 +138,8 @@ export function NhanCho() {
           <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">
             {dangCho.fullName}
           </p>
-          {dongNguCanh(dangCho) && (
-            <p className="mt-0.5 text-[15px] text-muted-foreground">{dongNguCanh(dangCho)}</p>
+          {dangCho.nguCanh && (
+            <p className="mt-0.5 text-[15px] text-muted-foreground">{dangCho.nguCanh}</p>
           )}
         </div>
         <p className="mt-4 text-[17px]">

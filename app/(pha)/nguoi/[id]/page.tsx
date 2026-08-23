@@ -7,36 +7,30 @@
  *   · EXPERIENCE.md § Component Patterns — Chip mức tin cậy ("chạm → panel giải nghĩa"; panel là
  *     chỗ DUY NHẤT FR-1 lộ ra với người thường — không nhét nguồn vào node)
  *   · EXPERIENCE.md § Accessibility Floor — bán kính riêng tư là chuyện DỮ LIỆU, không phải CSS:
- *     cái ngoài bán kính KHÔNG rời server (core/tree đã lọc), nên trang ngoài bán kính chỉ đơn
+ *     cái ngoài bán kính KHÔNG rời server (core đã lọc), nên trang ngoài bán kính chỉ đơn
  *     giản là NGẮN — không ô xám, không ổ khoá, không "3 mục bị ẩn".
  *   · DESIGN.md § Ba mức tin cậy không mã hoá chỉ bằng màu · § Components (dòng ghi công bắt buộc)
  *
  * ── MỨC TIN CẬY GẮN VÀO KHẲNG ĐỊNH, KHÔNG GẮN VÀO NGƯỜI ─────────────────────────────────────
  * Ràng buộc dễ vẽ sai nhất của màn: không có huy hiệu "TỒN NGHI" nào trên đầu trang — mức nằm
- * cạnh TỪNG dòng khẳng định.
+ * cạnh TỪNG dòng khẳng định, và mỗi dòng mang nguồn của chính nó (core/person.getPerson).
  *
- * ⚠️ TODO(core) — nói to cho lần tu bổ sau:
- *   · KHÔNG có getPerson(personId). Thẻ người lấy từ getAncestryPath(id).steps[0] (đã lọc bán
- *     kính); quan hệ suy từ getBranchView(id). Cả hai đủ cho màn này nhưng một API đọc trực
- *     tiếp sẽ gọn hơn.
- *   · KHÔNG có listAssertionsFor(personId): danh sách "phả ghi gì, dựa vào đâu" chỉ dựng được
- *     MỘT dòng (tên — confidence/tier chiếu trên person). FR-1 "dựa vào đâu" chưa trả được.
- *   · Người kết hôn vào họ mà không nằm trên nhánh huyết thống: getBranchView trả err('invalid')
- *     — mục Quan hệ khi ấy vắng lặng (không có API nào bày vợ/chồng của họ).
- *
- * ── NGƯỜI ĐƯỢC ẨN (FR-55/AD-13) KHÔNG 404 ───────────────────────────────────────────────────
- * Core trả thẻ ẩn danh (nhãn giữ chỗ) thay vì lỗi — trang render giữ chỗ trung tính, vẫn giữ
- * liên kết phả hệ ("được ẩn, không được xóa").
+ * ── BA MỨC NHÌN CỦA CORE (AD-13/AD-21) — trang chỉ BÀY, không tự che ────────────────────────
+ *   · 'full'      — thẻ + quan hệ + danh sách khẳng định kèm nguồn (FR-1 trọn vẹn).
+ *   · 'limited'   — ngoài bán kính: thẻ + quan hệ, mục khẳng định VẮNG LẶNG (không rời server).
+ *   · 'anonymous' — người được giữ kín (FR-55) / vị thành niên: trang giữ chỗ trung tính,
+ *     KHÔNG 404 — "được ẩn, không được xóa", liên kết phả hệ giữ nguyên.
+ * Id đã gộp (AD-3): core trả người thắng kèm `redirectedFrom` — trang đưa URL về id chính thống.
  */
 import Link from 'next/link';
 import { notFound, redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
-import { getAncestryPath, getBranchView, type BranchView, type PersonCard } from '@/core/tree';
+import type { PersonCard } from '@/core/tree';
+import { getPerson, type PersonAssertion } from '@/core/person';
 import { getPersonHistory } from '@/core/audit';
 import { listRecordings, type RecordingMeta } from '@/core/media';
-import { ANONYMOUS_LABEL } from '@/core/identity';
 import { ChipGiaiNghia } from './chip-tin-cay';
 
 // ── Định dạng ────────────────────────────────────────────────────────────────
@@ -71,6 +65,28 @@ function dongMeta(the: PersonCard): string {
     .join(' · ');
 }
 
+/**
+ * Câu "dựa vào đâu" của MỘT khẳng định (FR-1) — từ source thật của core/person. Chữ bề mặt A:
+ * không từ kỹ thuật, không xưng hô; nguồn nào thiếu mô tả thì nói ngắn, không bịa thêm.
+ */
+function cauNguon(a: PersonAssertion): string {
+  const moTa = a.sourceDescription.trim();
+  switch (a.sourceKind) {
+    case 'self':
+      return 'tự khai về mình';
+    case 'told-by': {
+      const goc = a.toldByName ? `theo lời ${a.toldByName} kể` : 'theo lời kể trong họ';
+      return moTa ? `${goc} — ${moTa}` : goc;
+    }
+    case 'document':
+      return moTa ? `đối chiếu giấy tờ: ${moTa}` : 'đối chiếu được giấy tờ';
+    case 'recording':
+      return 'từ một bản thu trong sổ lời kể';
+    case 'seed-import':
+      return moTa ? `chép từ bản phả trước: ${moTa}` : 'chép từ bản phả trước';
+  }
+}
+
 function TieuDeMuc({ children }: { children: React.ReactNode }) {
   return (
     <h2 className="mb-2 mt-7 text-[15px] font-bold uppercase tracking-wider text-muted-foreground">
@@ -79,54 +95,7 @@ function TieuDeMuc({ children }: { children: React.ReactNode }) {
   );
 }
 
-// ── Quan hệ suy từ khung nhìn chi ────────────────────────────────────────────
-
-type QuanHe = { chaMe: PersonCard[]; voChong: PersonCard[]; con: PersonCard[] };
-
-/**
- * getBranchView(id) tự tìm chi chứa người này (ops tính đầu chi từ chính id). Trong các thế hệ:
- * cặp có mình là người huyết thống → vợ/chồng + con; cặp có childrenIds chứa mình → cha mẹ.
- *
- * Hai chỗ CỐ Ý dè dặt (đa thê trong phả cổ là chuyện thường):
- *   · Cha mẹ: người bạn đời của cha chỉ nhận là "mẹ" khi cha có ĐÚNG MỘT người bạn đời —
- *     nhiều hơn thì dữ liệu không nói được ai sinh ai, và đoán sai ở đây là xúc phạm.
- *   · Con (khi mình là người kết hôn vào): chỉ nhận childrenIds của cặp khi mình là người bạn
- *     đời duy nhất, cùng lý do.
- */
-function quanHeTrongChi(nhanh: BranchView, id: string): QuanHe {
-  const the = new Map<string, PersonCard>();
-  for (const tang of nhanh.generations)
-    for (const cap of tang.couples) {
-      the.set(cap.person.personId, cap.person);
-      for (const p of cap.partners) the.set(p.personId, p);
-    }
-
-  const chaMe = new Map<string, PersonCard>();
-  const voChong = new Map<string, PersonCard>();
-  const conIds = new Set<string>();
-
-  for (const tang of nhanh.generations)
-    for (const cap of tang.couples) {
-      if (cap.person.personId === id) {
-        for (const p of cap.partners) voChong.set(p.personId, p);
-        for (const c of cap.childrenIds) conIds.add(c);
-      } else if (cap.partners.some((p) => p.personId === id)) {
-        voChong.set(cap.person.personId, cap.person);
-        if (cap.partners.length === 1) for (const c of cap.childrenIds) conIds.add(c);
-      }
-      if (cap.childrenIds.includes(id)) {
-        chaMe.set(cap.person.personId, cap.person);
-        if (cap.partners.length === 1)
-          for (const p of cap.partners) chaMe.set(p.personId, p);
-      }
-    }
-
-  conIds.delete(id);
-  const con = [...conIds]
-    .map((x) => the.get(x))
-    .filter((x): x is PersonCard => x !== undefined);
-  return { chaMe: [...chaMe.values()], voChong: [...voChong.values()], con };
-}
+// ── Quan hệ ──────────────────────────────────────────────────────────────────
 
 /** Mỗi ô quan hệ là một đường sang trang người khác — đúng cách người ta thật sự đi trên phả. */
 function OQuanHe({ nguoi }: { nguoi: PersonCard }) {
@@ -169,39 +138,32 @@ const NHAN_TIEP_CAN: Record<RecordingMeta['accessTier'], string> = {
 export default async function Page({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  // Bốn nguồn chạy song song; mỗi Result tự nói được phần của nó vắng hay có.
-  const [duong, nhanh, lichSu, loiKe] = await Promise.all([
-    getAncestryPath(id),
-    getBranchView(id),
+  // Ba nguồn chạy song song; mỗi Result tự nói được phần của nó vắng hay có.
+  const [hoSo, lichSu, loiKe] = await Promise.all([
+    getPerson(id),
     getPersonHistory(id),
     listRecordings(), // khách chưa đăng nhập → err, mục lời kể vắng lặng
   ]);
 
-  if (!duong.ok) {
+  if (!hoSo.ok) {
     // 'unauthenticated' ở đây = chưa có phả nào để xem (chưa bootstrap) — mời đăng nhập.
-    if (duong.error.code === 'unauthenticated') redirect('/dang-nhap');
+    if (hoSo.error.code === 'unauthenticated') redirect('/dang-nhap');
     notFound();
   }
+  // Id đã gộp (AD-3): core đã trả người thắng — đưa URL về id chính thống rồi render một lần.
+  if (hoSo.value.redirectedFrom) redirect(`/nguoi/${hoSo.value.card.personId}`);
 
-  const the = duong.value.steps[0];
-  // Người được ẩn (FR-55) / vị thành niên ngoài bán kính: core trả nhãn giữ chỗ, KHÔNG lỗi.
-  const anDanh = the.fullName === ANONYMOUS_LABEL;
-  /**
-   * NGOÀI BÁN KÍNH RIÊNG TƯ (FR-37) — trang MỎNG, không phải trang bị che. Không có cờ
-   * "visibility" nào trên thẻ (đúng — cái bị giữ lại không rời server), nhưng có một dấu
-   * gián tiếp chắc chắn: getPersonHistory từ chối ('forbidden') ĐÚNG KHI người xem không
-   * thấy trọn người này (AD-21). Người đã khuất luôn trọn, nên dấu này chỉ nảy với người sống.
-   */
-  const ngoaiBanKinh =
-    !anDanh && the.isLiving && !lichSu.ok && lichSu.error.code === 'forbidden';
-  // Gốc tạm (FR-63): không còn đời trên, và chính là gốc của mảnh mình thuộc về.
-  const laGocTam =
-    duong.value.steps.length === 1 && duong.value.fragmentRootName === the.fullName;
+  const { card: the, relations: quanHe, visibility: mucNhin, assertions: khangDinh } = hoSo.value;
+  const anDanh = mucNhin === 'anonymous';
+  // NGOÀI BÁN KÍNH RIÊNG TƯ (FR-37) — trang MỎNG, không phải trang bị che: core nói thẳng
+  // mức nhìn, và cái bị giữ lại không rời server.
+  const ngoaiBanKinh = mucNhin === 'limited';
+  // Gốc tạm (FR-63): đời 1 của mảnh và không còn đời trên. Người kết hôn vào họ không mang
+  // số đời nên không bị nhận nhầm là gốc.
+  const laGocTam = !anDanh && the.generation === 1 && quanHe.parents.length === 0;
 
-  const quanHe = nhanh.ok ? quanHeTrongChi(nhanh.value, the.personId) : null;
   const coQuanHe =
-    quanHe !== null &&
-    quanHe.chaMe.length + quanHe.voChong.length + quanHe.con.length > 0;
+    quanHe.parents.length + quanHe.partners.length + quanHe.children.length > 0;
 
   // Lời kể có nhắc tới người này. Bản đã rút lại (FR-49) không bày — rút là rút hẳn.
   // Trang ẩn danh cũng không bày: tựa đề lời kể có thể gọi thẳng tên đang được giữ kín.
@@ -217,17 +179,16 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
   const meta = dongMeta(the);
 
   /* Khối Quan hệ dùng chung cho trang đầy đủ VÀ trang mỏng ngoài bán kính — mỗi ô là một
-     đường sang trang người khác, đúng cách người ta thật sự đi trên phả. Khi getBranchView
-     từ chối (người kết hôn vào, không nằm trên nhánh huyết thống — TODO đầu file) thì mục
-     vắng lặng thay vì nói dối "chưa nối được với ai". */
-  const khoiQuanHe = (coQuanHe || nhanh.ok) && (
+     đường sang trang người khác, đúng cách người ta thật sự đi trên phả. Người kết hôn vào họ
+     giờ cũng có mặt: core/person trả cả vợ/chồng (partners), không chỉ nhánh huyết thống. */
+  const khoiQuanHe = (
     <>
       <TieuDeMuc>Quan hệ</TieuDeMuc>
-      {coQuanHe && quanHe ? (
+      {coQuanHe ? (
         <div className="grid gap-4">
-          <NhomQuanHe tua="Cha mẹ" cac={quanHe.chaMe} />
-          <NhomQuanHe tua="Vợ chồng" cac={quanHe.voChong} />
-          <NhomQuanHe tua="Con" cac={quanHe.con} />
+          <NhomQuanHe tua="Cha mẹ" cac={quanHe.parents} />
+          <NhomQuanHe tua="Vợ chồng" cac={quanHe.partners} />
+          <NhomQuanHe tua="Con" cac={quanHe.children} />
         </div>
       ) : (
         <p className="text-[17px] text-muted-foreground">
@@ -278,9 +239,10 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           ) : ngoaiBanKinh ? (
             /* ── NGOÀI BÁN KÍNH (FR-37) — trang MỎNG ──────────────────────────────────
                Không một ô xám nào, không "3 mục bị ẩn", không ổ khoá: cái ngoài bán kính
-               không được gửi tới client, nên trang chỉ đơn giản là NGẮN. Cái được phép nói
-               là LUẬT — luật áp cho tất cả và không tiết lộ gì về riêng người này; im lặng
-               ở đây bị đọc thành "chắc là hỏng". */
+               không được gửi tới client, nên trang chỉ đơn giản là NGẮN. Mục khẳng định
+               VẮNG LẶNG — không phải ô bị che. Cái được phép nói là LUẬT — luật áp cho tất
+               cả và không tiết lộ gì về riêng người này; im lặng ở đây bị đọc thành "chắc
+               là hỏng". */
             <>
               {khoiQuanHe}
               <p className="mt-7 text-[17px] text-muted-foreground">
@@ -292,37 +254,70 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           ) : (
             <>
               {/* ══ PHẢ GHI GÌ, DỰA VÀO ĐÂU (FR-1, FR-2) ═══════════════════
-                  Mức tin cậy nằm cạnh TỪNG dòng. Hiện core mới chiếu ra một khẳng định đọc
-                  được (tên — nameConfidence/nameTier trên person); danh sách này nở ra khi
-                  core có listAssertionsFor. Tồn nghi = nét đứt + vân chéo, KHÔNG opacity. */}
+                  Mức tin cậy nằm cạnh TỪNG dòng khẳng định — core/person trả trọn danh sách
+                  đang sống, mỗi dòng kèm nguồn thật ("mức này là gì · ai khai · dựa vào đâu").
+                  Tồn nghi = nét đứt + vân chéo, KHÔNG opacity. */}
               <TieuDeMuc>Phả ghi gì, dựa vào đâu</TieuDeMuc>
-              <div
-                className={
-                  the.confidence === 'ton-nghi'
-                    ? 'van-ton-nghi rounded-md border border-dashed bg-card px-4 py-3.5'
-                    : 'rounded-md border border-border bg-card px-4 py-3.5'
-                }
-                style={
-                  the.confidence === 'ton-nghi'
-                    ? { borderColor: 'var(--color-tin-ton-nghi)' }
-                    : undefined
-                }
-              >
-                <p className="text-[17px]">
-                  Tên ghi trong phả:{' '}
-                  <span className="font-[family-name:var(--font-pha)] font-semibold">
-                    {the.fullName}
-                  </span>
-                </p>
-                <div className="mt-1">
-                  <ChipGiaiNghia
-                    muc={the.confidence}
-                    tang={the.tier}
-                    nguoiKhai={the.attribution?.byName ?? null}
-                    luc={the.attribution ? ngayHienThi(the.attribution.at) : null}
-                  />
+              {khangDinh && khangDinh.length > 0 ? (
+                <ul className="grid gap-2.5">
+                  {khangDinh.map((a) => (
+                    <li
+                      key={a.assertionId}
+                      className={
+                        a.confidence === 'ton-nghi'
+                          ? 'van-ton-nghi rounded-md border border-dashed bg-card px-4 py-3.5'
+                          : 'rounded-md border border-border bg-card px-4 py-3.5'
+                      }
+                      style={
+                        a.confidence === 'ton-nghi'
+                          ? { borderColor: 'var(--color-tin-ton-nghi)' }
+                          : undefined
+                      }
+                    >
+                      <p className="text-[17px]">{a.valueText}</p>
+                      <div className="mt-1">
+                        <ChipGiaiNghia
+                          muc={a.confidence}
+                          tang={a.tier}
+                          nguoiKhai={a.createdByName}
+                          luc={ngayHienThi(a.createdAt)}
+                          nguon={cauNguon(a)}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                /* Không còn khẳng định sống nào (hiếm — dữ liệu dựng tay): rơi về một dòng
+                   tên từ giá trị chiếu, vẫn kèm chip — không bao giờ một mục trống trơn. */
+                <div
+                  className={
+                    the.confidence === 'ton-nghi'
+                      ? 'van-ton-nghi rounded-md border border-dashed bg-card px-4 py-3.5'
+                      : 'rounded-md border border-border bg-card px-4 py-3.5'
+                  }
+                  style={
+                    the.confidence === 'ton-nghi'
+                      ? { borderColor: 'var(--color-tin-ton-nghi)' }
+                      : undefined
+                  }
+                >
+                  <p className="text-[17px]">
+                    Tên ghi trong phả:{' '}
+                    <span className="font-[family-name:var(--font-pha)] font-semibold">
+                      {the.fullName}
+                    </span>
+                  </p>
+                  <div className="mt-1">
+                    <ChipGiaiNghia
+                      muc={the.confidence}
+                      tang={the.tier}
+                      nguoiKhai={the.attribution?.byName ?? null}
+                      luc={the.attribution ? ngayHienThi(the.attribution.at) : null}
+                    />
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* ══ QUAN HỆ ═════════════════════════════════════════════════ */}
               {khoiQuanHe}

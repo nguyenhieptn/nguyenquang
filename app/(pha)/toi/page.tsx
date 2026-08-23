@@ -23,14 +23,21 @@
  *     đúng trong mọi ca thêm-mới; nếu về sau có ca gắn thông báo mà không tạo node, cần API tên.
  *   · Chưa có API "mình đã ghi được gì" (nhật ký lọc theo tài khoản) — ô ấy của prototype
  *     chưa dựng lại được, chờ core.
- *   · Chưa có API đọc hiddenFromPublic/refusePrint của mình — xem quyen-hien-thi.tsx.
+ * (hiddenFromPublic/refusePrint giờ đọc thật qua getMyPersonFlags; trạng thái chờ xác nhận
+ *  đọc qua getMyAttachment — hai nợ cũ đã trả.)
  */
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
-import { getMyNotifications, resolveSession, type NotificationItem } from '@/core/identity';
+import {
+  getMyAttachment,
+  getMyNotifications,
+  getMyPersonFlags,
+  resolveSession,
+  type NotificationItem,
+} from '@/core/identity';
 import { getAncestryPath, type PersonCard } from '@/core/tree';
 import { attributionFor } from '@/core/audit';
 import { anKhoiCongKhai, daXemThongBao, tuChoiBanIn } from './actions';
@@ -122,19 +129,50 @@ function ChuaNhanCho() {
   );
 }
 
+/** Đã xin nhận chỗ, đang chờ bảo lãnh (AD-8) — trạng thái ỔN, ấm, không xin lỗi. */
+function DangChoXacNhan({ tenNguoi }: { tenNguoi: string }) {
+  return (
+    <Khung>
+      <h1 className="font-[family-name:var(--font-pha)] text-[27px] leading-tight">
+        Đã gửi lời nhận chỗ
+      </h1>
+      <div className="mt-5 rounded-md border border-border bg-card px-4 py-3">
+        <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">{tenNguoi}</p>
+      </div>
+      <p className="mt-4 text-[17px]">
+        Chờ một người trong họ xác nhận — thường là trưởng chi hoặc ban tu phả, có thể mất vài
+        ngày. Không cần làm gì thêm; xác nhận xong là chỗ này thành chỗ của mình.
+      </p>
+      <p className="mt-3 text-[17px]">Trong lúc chờ, xem phả và tìm người vẫn đủ như trước.</p>
+      <TieuDeMuc>Tài khoản</TieuDeMuc>
+      <TaiKhoan />
+    </Khung>
+  );
+}
+
 // ── Trang ────────────────────────────────────────────────────────────────────
 
 export default async function Page() {
   const session = await resolveSession();
   if (!session) return <ChuaDangNhap />;
-  if (!session.personId) return <ChuaNhanCho />;
+  if (!session.personId) {
+    // Chưa có chỗ — nhưng có thể ĐÃ xin và đang chờ bảo lãnh (AD-8): trạng thái chờ phải
+    // hiện ra thay cho lời mời đi tìm, kẻo người ta tưởng lời nhận chỗ đã rơi mất.
+    const ganKet = await getMyAttachment();
+    if (ganKet.ok && ganKet.value && ganKet.value.status === 'pending')
+      return <DangChoXacNhan tenNguoi={ganKet.value.personName} />;
+    return <ChuaNhanCho />;
+  }
 
   const personId = session.personId;
-  const [duong, thongBao, ghiCong] = await Promise.all([
+  const [duong, thongBao, ghiCong, coQuyen] = await Promise.all([
     getAncestryPath(personId),
     getMyNotifications(),
     attributionFor([personId]),
+    // FR-55: trạng thái thật của hai quyền — nút không còn phải đoán mặc định.
+    getMyPersonFlags(),
   ]);
+  const quyen = coQuyen.ok ? coQuyen.value : { hiddenFromPublic: false, refusePrint: false };
 
   const the = duong.ok ? duong.value.steps[0] : null;
   const cacThongBao: NotificationItem[] = thongBao.ok ? thongBao.value : [];
@@ -189,11 +227,13 @@ export default async function Page() {
               hanhDong={anKhoiCongKhai}
               nhanBat="Ẩn khỏi phần cả họ xem được"
               nhanTat="Hiện lại với cả họ"
+              batBanDau={quyen.hiddenFromPublic}
             />
             <NutQuyen
               hanhDong={tuChoiBanIn}
               nhanBat="Không in tên mình trong bản in"
               nhanTat="Cho in tên mình trở lại"
+              batBanDau={quyen.refusePrint}
             />
           </div>
 
@@ -298,11 +338,13 @@ export default async function Page() {
             hanhDong={anKhoiCongKhai}
             nhanBat="Ẩn khỏi phần cả họ xem được"
             nhanTat="Hiện lại với cả họ"
+            batBanDau={quyen.hiddenFromPublic}
           />
           <NutQuyen
             hanhDong={tuChoiBanIn}
             nhanBat="Không in tên mình trong bản in"
             nhanTat="Cho in tên mình trở lại"
+            batBanDau={quyen.refusePrint}
           />
         </div>
 

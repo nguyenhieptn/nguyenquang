@@ -32,3 +32,6 @@ export {
   visibilityFor,
 } from './privacy';
 export type { PrivacySubject, PrivacyViewer, Visibility } from './privacy';
+
+export { getClanInfo, getMyAttachment, getMyPersonFlags } from './info';
+export type { ClanInfo, ClanSettings, MyAttachment, MyPersonFlags } from './info';

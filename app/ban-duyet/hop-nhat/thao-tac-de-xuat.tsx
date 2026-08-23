@@ -1,12 +1,10 @@
 'use client';
 
 /**
- * THAO TÁC THEO MÃ ĐỀ XUẤT — gộp · bác · tách lại.
+ * THAO TÁC TRÊN MỘT ĐỀ XUẤT ĐANG MỞ — gộp · bác — và TÁCH LẠI trên một lần gộp đã chạy.
  *
- * ⚠️ TODO(core): đây là đường TẠM. core/merge chưa có API liệt kê đề xuất đang mở lẫn lịch
- * sử gộp gần đây (cần listProposals()/listMergeHistory()) — nên chưa bày được danh sách để
- * bấm thẳng vào từng đề xuất. Trong lúc chờ, thao tác nhận MÃ đề xuất (hiện ra ngay khi mở
- * đề xuất ở khu trên). Có API liệt kê thì thay khối này bằng danh sách thật.
+ * Danh sách đề xuất giờ là danh sách THẬT (core/merge.listProposals — page.tsx đọc và bày);
+ * hai component ở đây đứng DƯỚI TỪNG dòng, mã đề xuất đi theo props chứ không bắt ai chép tay.
  *
  * Luật màu giữ nguyên: GỘP là nút son duy nhất của màn — nó đúng nghĩa "đã chốt". Bác và
  * tách lại là nút phụ. Gộp còn bị chặn sau một ô "đã đọc kỹ": màn này cố tình KHÔNG có
@@ -20,8 +18,23 @@ import { loiRaCau } from './loi';
 
 type ThongBao = { loai: 'xong' | 'loi'; cau: string };
 
-export function ThaoTacDeXuat() {
-  const [ma, setMa] = useState('');
+function DongThongBao({ thongBao }: { thongBao: ThongBao | null }) {
+  if (!thongBao) return null;
+  return (
+    <div className="mt-4 max-w-[70ch]" aria-live="polite">
+      {thongBao.loai === 'loi' ? (
+        <p className="border-l-4 border-destructive bg-canh-bao-nen px-4 py-3 text-[17px]">
+          {thongBao.cau}
+        </p>
+      ) : (
+        <p className="text-[17px]">{thongBao.cau}</p>
+      )}
+    </div>
+  );
+}
+
+/** Gộp / bác — dưới MỘT đề xuất đang mở. Trang revalidate sau khi xong nên dòng tự rời danh sách. */
+export function ThaoTacDeXuat({ proposalId }: { proposalId: string }) {
   const [lyDo, setLyDo] = useState('');
   const [daDocKy, setDaDocKy] = useState(false);
   const [thongBao, setThongBao] = useState<ThongBao | null>(null);
@@ -29,11 +42,11 @@ export function ThaoTacDeXuat() {
 
   const gop = () =>
     batDau(async () => {
-      const ketQua = await gopDeXuat(ma);
+      const ketQua = await gopDeXuat(proposalId);
       if (ketQua.ok) {
         setThongBao({
           loai: 'xong',
-          cau: `Đã gộp: chuyển ${ketQua.value.repointedCount} mối nối về hồ sơ chính. Tách lại được bằng đúng mã này.`,
+          cau: `Đã gộp: chuyển ${ketQua.value.repointedCount} mối nối về hồ sơ chính. Tách lại được ở mục "Lịch sử gộp gần đây".`,
         });
         setDaDocKy(false);
       } else {
@@ -43,43 +56,21 @@ export function ThaoTacDeXuat() {
 
   const bac = () =>
     batDau(async () => {
-      const ketQua = await khongPhaiMotNguoi(ma, lyDo);
+      const ketQua = await khongPhaiMotNguoi(proposalId, lyDo);
       if (ketQua.ok) {
-        setThongBao({ loai: 'xong', cau: 'Đã ghi: không phải một người. Phán quyết nằm trong nhật ký.' });
+        setThongBao({
+          loai: 'xong',
+          cau: 'Đã ghi: không phải một người. Phán quyết nằm trong nhật ký.',
+        });
         setLyDo('');
       } else {
         setThongBao({ loai: 'loi', cau: loiRaCau(ketQua.error) });
       }
     });
 
-  const tach = () =>
-    batDau(async () => {
-      const ketQua = await tachLai(ma);
-      if (ketQua.ok) {
-        setThongBao({
-          loai: 'xong',
-          cau: `Đã tách lại: ${ketQua.value.reversed} mối nối trở về đúng như trước khi gộp.`,
-        });
-      } else {
-        setThongBao({ loai: 'loi', cau: loiRaCau(ketQua.error) });
-      }
-    });
-
   return (
-    <div className="rounded-md border border-ban-vien bg-ban-o px-5 py-5">
-      <label className="grid max-w-xl gap-1.5">
-        <span className="text-[15px] font-semibold text-muted-foreground">
-          Mã đề xuất (proposal ID)
-        </span>
-        <input
-          value={ma}
-          onChange={(e) => setMa(e.target.value)}
-          placeholder="hiện ra ngay khi mở đề xuất ở khu trên"
-          className="h-11 rounded-md border border-ban-vien px-3 font-mono text-[15px]"
-        />
-      </label>
-
-      <div className="mt-6 grid items-start gap-6 lg:grid-cols-3">
+    <div>
+      <div className="grid items-start gap-6 lg:grid-cols-2">
         {/* GỘP — hành động son duy nhất của màn, sau một hàng rào cố ý. */}
         <div className="grid gap-2">
           <p className="text-[17px] font-semibold">Gộp</p>
@@ -97,7 +88,7 @@ export function ThaoTacDeXuat() {
           <Button
             type="button"
             onClick={gop}
-            disabled={dangChay || !ma.trim() || !daDocKy}
+            disabled={dangChay || !daDocKy}
             className="h-11 text-[17px]"
           >
             {dangChay ? 'Đang làm…' : 'Gộp — chuyển mọi mối nối về hồ sơ chính'}
@@ -120,42 +111,49 @@ export function ThaoTacDeXuat() {
             type="button"
             variant="outline"
             onClick={bac}
-            disabled={dangChay || !ma.trim() || !lyDo.trim()}
+            disabled={dangChay || !lyDo.trim()}
             className="h-11 text-[17px]"
           >
             Không phải một người
           </Button>
         </div>
-
-        {/* TÁCH LẠI — đảo một lần gộp đã chạy, từ danh sách mối nối ghi trong nhật ký (AD-3). */}
-        <div className="grid gap-2">
-          <p className="text-[17px] font-semibold">Tách lại</p>
-          <p className="text-[15px] text-muted-foreground">
-            Trả một lần gộp về đúng như trước, theo danh sách mối nối đã ghi lúc gộp.
-          </p>
-          <Button
-            type="button"
-            variant="outline"
-            onClick={tach}
-            disabled={dangChay || !ma.trim()}
-            className="h-11 text-[17px]"
-          >
-            Tách lại
-          </Button>
-        </div>
       </div>
 
-      {thongBao && (
-        <div className="mt-5 max-w-[70ch]" aria-live="polite">
-          {thongBao.loai === 'loi' ? (
-            <p className="border-l-4 border-destructive bg-canh-bao-nen px-4 py-3 text-[17px]">
-              {thongBao.cau}
-            </p>
-          ) : (
-            <p className="text-[17px]">{thongBao.cau}</p>
-          )}
-        </div>
-      )}
+      <DongThongBao thongBao={thongBao} />
+    </div>
+  );
+}
+
+/** TÁCH LẠI — đảo một lần gộp đã chạy, từ danh sách mối nối ghi trong nhật ký (AD-3). */
+export function TachLaiNut({ proposalId }: { proposalId: string }) {
+  const [thongBao, setThongBao] = useState<ThongBao | null>(null);
+  const [dangChay, batDau] = useTransition();
+
+  const tach = () =>
+    batDau(async () => {
+      const ketQua = await tachLai(proposalId);
+      if (ketQua.ok) {
+        setThongBao({
+          loai: 'xong',
+          cau: `Đã tách lại: ${ketQua.value.reversed} mối nối trở về đúng như trước khi gộp.`,
+        });
+      } else {
+        setThongBao({ loai: 'loi', cau: loiRaCau(ketQua.error) });
+      }
+    });
+
+  return (
+    <div>
+      <Button
+        type="button"
+        variant="outline"
+        onClick={tach}
+        disabled={dangChay}
+        className="h-11 text-[17px]"
+      >
+        {dangChay ? 'Đang làm…' : 'Tách lại'}
+      </Button>
+      <DongThongBao thongBao={thongBao} />
     </div>
   );
 }

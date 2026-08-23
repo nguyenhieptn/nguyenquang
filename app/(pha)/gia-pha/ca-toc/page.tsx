@@ -24,23 +24,30 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Card, CardBody } from '@/components/ui/card';
 import { KHUNG, RONG } from '@/components/pha/khung';
-import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
 // Bản máy đi qua CỔNG TẢI ĐỘNG, không import thẳng — xem đầu file cay-tai-dong.tsx.
 import { CayCaTocTaiDong } from '@/components/pha/cay-tai-dong';
-import { resolveViewer } from '@/core/identity';
+import { getClanInfo, resolveViewer, type ClanSettings } from '@/core/identity';
 import { getAncestryPath, getClanOverview } from '@/core/tree';
 import { tenChi } from '../_chia-se/chuyen-doi';
 import { PhaTrong } from '../_chia-se/pha-trong';
 
 export default async function Page() {
-  const [viewer, tongQuan] = await Promise.all([resolveViewer(), getClanOverview()]);
+  const [viewer, tongQuan, thongTinPha] = await Promise.all([
+    resolveViewer(),
+    getClanOverview(),
+    getClanInfo(),
+  ]);
   if (!viewer) redirect('/dang-nhap');
+  // AD-14: danh tính dòng họ (tên + đề từ) đọc từ `clan.settings`, không nằm trong mã.
+  const caiDat: ClanSettings = thongTinPha.ok ? thongTinPha.value.settings : {};
+  const tenPha = tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null);
   if (!tongQuan.ok) {
     if (tongQuan.error.code === 'unauthenticated') redirect('/dang-nhap');
-    return <PhaTrong />; // 'forbidden' → vắng lặng, không băng-rôn lỗi
+    return <PhaTrong tenPha={tenPha} />; // 'forbidden' → vắng lặng, không băng-rôn lỗi
   }
   const { mainFragment, branches, unconnectedFragments } = tongQuan.value;
-  if (!mainFragment) return <PhaTrong />;
+  if (!mainFragment) return <PhaTrong tenPha={tenPha} />;
 
   // Chi của mình tô son giữa các chi khác — cao trào của Luồng 3 (bước 2). Đầu chi = tổ tiên
   // đứng ngay dưới gốc tạm trên đường huyết thống của chính mình.
@@ -75,18 +82,22 @@ export default async function Page() {
       <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
         <div className={KHUNG}>
           {/* ── Đề từ. Trên máy mở hết cỡ; Hán-Nôm LUÔN kèm phiên âm (NFR-9).
-              TODO(core): tên họ + đề từ thuộc clan.settings (AD-14) — chưa có API đọc,
-              tạm giữ nguyên văn của bản đã duyệt. */}
+              Tên họ + đề từ đọc từ clan.settings qua getClanInfo (AD-14) — phả chưa khai đề từ
+              thì khối đề từ vắng, không bịa. */}
           <header className="mb-7 md:mb-12 md:border-b md:border-border md:pb-10 md:text-center">
             <p className="text-[15px] uppercase tracking-[0.16em] text-muted-foreground">
-              Nguyễn Quang
+              {tenPha}
             </p>
-            <p className="mt-2 font-[family-name:var(--font-pha)] text-[23px] text-primary md:mt-4 md:text-[44px]">
-              光前裕後
-            </p>
-            <p className="text-[15px] italic text-muted-foreground md:mt-1 md:text-[17px]">
-              Quang tiền dụ hậu
-            </p>
+            {caiDat.motto && (
+              <p className="mt-2 font-[family-name:var(--font-pha)] text-[23px] text-primary md:mt-4 md:text-[44px]">
+                {caiDat.motto}
+              </p>
+            )}
+            {caiDat.motto && caiDat.mottoPhonetic && (
+              <p className="text-[15px] italic text-muted-foreground md:mt-1 md:text-[17px]">
+                {caiDat.mottoPhonetic}
+              </p>
+            )}
             <h1 className="mt-4 font-[family-name:var(--font-pha)] text-[23px] md:mt-8 md:text-[28px]">
               Cả tộc
             </h1>
@@ -221,7 +232,7 @@ export default async function Page() {
           )}
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
     </>
   );
 }

@@ -9,7 +9,7 @@
  */
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { promoteAssertion, rejectAssertion } from '@/core/assertion';
+import { promoteAssertion, rejectAssertion, restoreAssertion } from '@/core/assertion';
 import { err, ok, type Result } from '@/core/types';
 
 const DUONG = '/ban-duyet/hang-cho';
@@ -44,6 +44,18 @@ export async function duyetHangLoat(
   }
   if (daNang > 0) revalidatePath(DUONG);
   return ok({ daNang, loi });
+}
+
+/**
+ * Khôi phục một khẳng định đã ẩn theo báo cáo (AD-17: một báo cáo là ẩn ngay, khôi phục thì
+ * cần quyền duyệt — core tự gác). Dạng form action bind(assertionId) — thành công thì dòng
+ * rời danh sách qua revalidate; hỏng thì danh sách giữ nguyên, không băng-rôn lỗi (bề mặt B
+ * vắng lặng như các mục đọc khác của màn).
+ */
+export async function khoiPhucKhangDinh(assertionId: string): Promise<void> {
+  const ketQua = await restoreAssertion(assertionId);
+  if (!ketQua.ok && ketQua.error.code === 'unauthenticated') redirect('/dang-nhap');
+  if (ketQua.ok) revalidatePath(DUONG);
 }
 
 /**

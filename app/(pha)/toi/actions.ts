@@ -10,9 +10,8 @@
  * Chữ trả về là chữ BỀ MẶT A: không xưng hô, không từ công nghệ — message thô của core không
  * được rơi thẳng ra màn.
  *
- * ⚠️ TODO(core): chưa có API ĐỌC hiddenFromPublic / refusePrint của chính mình —
- * core/identity chỉ có đường ghi (updateSelfVisibility). UI vì thế không biết trạng thái ban
- * đầu của hai quyền; xem ghi chú ở quyen-hien-thi.tsx.
+ * Trạng thái ban đầu của hai quyền giờ đọc thật qua getMyPersonFlags (page.tsx truyền vào
+ * quyen-hien-thi.tsx) — action này chỉ còn lo đường ghi.
  */
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';

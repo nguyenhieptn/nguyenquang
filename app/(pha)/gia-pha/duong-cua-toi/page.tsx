@@ -22,8 +22,8 @@ import { redirect } from 'next/navigation';
 import { Card, CardBody } from '@/components/ui/card';
 import { ChamTinCay, type MucTinCay } from '@/components/pha/tin-cay';
 import { DOC } from '@/components/pha/khung';
-import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
-import { resolveViewer } from '@/core/identity';
+import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { getClanInfo, resolveViewer } from '@/core/identity';
 import { getAncestryPath, getBranchView, getClanOverview, type PersonCard } from '@/core/tree';
 import { dongViTri, nhanNgay } from '../_chia-se/chuyen-doi';
 
@@ -40,7 +40,7 @@ function DongPhu({ n }: { n: PersonCard }) {
 }
 
 /** Chưa có chỗ trong phả: lời mời, KHÔNG phải màn lỗi (EXPERIENCE § Chưa gắn node). */
-function MoiNhanCho() {
+function MoiNhanCho({ tenPha }: { tenPha?: string }) {
   return (
     <>
       <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
@@ -60,7 +60,7 @@ function MoiNhanCho() {
           </div>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
     </>
   );
 }
@@ -69,12 +69,16 @@ export default async function Page() {
   const viewer = await resolveViewer();
   // Khách xem được cây chung; còn "đường của mình" thì phải là mình — chưa đăng nhập thì mời vào.
   if (!viewer || !viewer.accountId) redirect('/dang-nhap');
-  if (!viewer.personId) return <MoiNhanCho />;
+
+  // AD-14: tên phả đọc từ `clan.settings` qua core/identity, truyền xuống component câm.
+  const thongTinPha = await getClanInfo();
+  const tenPha = tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null);
+  if (!viewer.personId) return <MoiNhanCho tenPha={tenPha} />;
 
   const duong = await getAncestryPath(viewer.personId);
   if (!duong.ok) {
     if (duong.error.code === 'unauthenticated') redirect('/dang-nhap');
-    return <MoiNhanCho />; // chỗ cũ không còn — mời nhận lại, không phải màn lỗi
+    return <MoiNhanCho tenPha={tenPha} />; // chỗ cũ không còn — mời nhận lại, không phải màn lỗi
   }
 
   // Cụ xa nhất ở TRÊN, chính mình ở DƯỚI: ngón tay đi lên là đi về phía tổ tiên.
@@ -235,7 +239,7 @@ export default async function Page() {
           </Link>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha="Nguyễn Quang" />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
     </>
   );
 }

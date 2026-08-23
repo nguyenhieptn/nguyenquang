@@ -9,11 +9,8 @@
  * Chấm màu + CHỮ, không bao giờ chỉ màu (§ Accessibility Floor — phải đọc được khi in đen trắng
  * và với người mù màu). Gạch chấm dưới chữ báo "chạm được" — cũng không mã hoá bằng màu.
  *
- * ⚠️ TODO(core): FR-1 đòi đủ ba câu "mức này là gì · ai khai · dựa vào đâu". Core hiện chưa có
- * API đọc danh sách khẳng định (kèm source) của một người — assertion/index.ts chỉ có đường ghi
- * và listPendingAssertions (bề mặt B). Câu "dựa vào đâu" vì thế chưa trả được; panel mới trả
- * được "mức này là gì" + "ai khai" (từ dòng ghi công). Khi core có listAssertionsFor(personId),
- * thêm dòng nguồn vào đây.
+ * FR-1 đủ ba câu "mức này là gì · ai khai · dựa vào đâu": nguồn thật của TỪNG khẳng định giờ
+ * đến từ core/person.getPerson — trang server dựng sẵn câu nguồn và truyền vào `nguon`.
  */
 import { useId, useState } from 'react';
 
@@ -47,11 +44,14 @@ export function ChipGiaiNghia({
   nguoiKhai,
   /** Khi nào — đã định dạng sẵn ở server ("hôm nay", "12/8/2026"). */
   luc,
+  /** "Dựa vào đâu" — câu nguồn của khẳng định, dựng sẵn ở server. `null`/vắng = không bày. */
+  nguon,
 }: {
   muc: MucTinCay;
   tang: 'official' | 'tentative';
   nguoiKhai?: string | null;
   luc?: string | null;
+  nguon?: string | null;
 }) {
   const [mo, setMo] = useState(false);
   const id = useId();
@@ -84,6 +84,8 @@ export function ChipGiaiNghia({
               {nguoiKhai} ghi{luc ? ` · ${luc}` : ''}
             </p>
           )}
+          {/* Dựa vào đâu — nguồn thật của khẳng định (FR-1), không phải câu mẫu. */}
+          {nguon && <p className="mt-1.5 text-[15px]">Dựa vào: {nguon}.</p>}
           {tang === 'official' ? (
             // Son CHỈ cho "đã chốt" — đây đúng là chỗ ấy.
             <p className="mt-1.5 text-[15px] font-semibold text-primary">

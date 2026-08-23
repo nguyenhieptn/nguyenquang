@@ -6,7 +6,8 @@
  * sẻ ở buổi họp họ không dễ gãy.
  */
 import { notFound, redirect } from 'next/navigation';
-import { resolveViewer } from '@/core/identity';
+import { tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { getClanInfo, resolveViewer } from '@/core/identity';
 import { getAncestryPath, getBranchView } from '@/core/tree';
 import { ManChi } from '../../_chia-se/man-chi';
 
@@ -29,5 +30,14 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     if (duong.ok) duongVeGoc = duong.value.steps.map((s) => s.personId);
   }
 
-  return <ManChi chi={chi.value} minhId={viewer.personId} duongVeGoc={duongVeGoc} />;
+  // AD-14: tên phả đọc từ `clan.settings` qua core/identity, truyền xuống component câm.
+  const thongTinPha = await getClanInfo();
+  return (
+    <ManChi
+      chi={chi.value}
+      minhId={viewer.personId}
+      duongVeGoc={duongVeGoc}
+      tenPha={tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null)}
+    />
+  );
 }

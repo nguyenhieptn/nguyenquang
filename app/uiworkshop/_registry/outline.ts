@@ -85,36 +85,16 @@ export const FOUNDATION: View[] = [
  * tự ẩn — không có đầu mục rỗng.
  *
  * ─────────────────────────────────────────────────────────────────────────────────────────────
- * ⚠️ THU PHẠM VI — 16/08/2026. Xưởng từng có 18 màn phủ kín 15 FR của Đợt 1. Mười sáu màn đã bị
- * XOÁ, còn đúng MỘT: `trang-chu`. Không phải vì chúng sai, mà vì mười tám màn dựng song song thì
- * không màn nào được làm tới nơi — và chi phí giữ chúng đồng bộ với nhau lớn hơn giá trị chúng trả
- * về ở giai đoạn này.
- *
- * Cách làm mới: **một view một lúc, làm xong mới mở view sau.** Mười lăm FR kia quay về
- * `PLANNED_REQS` — chúng vẫn là phạm vi Đợt 1, chỉ là chưa có hình dạng để nhìn.
- *
- * Mười sáu màn đã xoá nằm trong lịch sử git (trừ `tim-vi-tri` — chưa từng commit, mất hẳn). Dựng
- * lại thì `git log --diff-filter=D --name-only -- app/uiworkshop` là ra.
+ * LỊCH SỬ: 16/08/2026 thu phạm vi xuống một màn (`trang-chu`); 22/08/2026 Đợt 1 dev xong,
+ * mọi màn promote ra route thật và rời xưởng. Muốn xem bản dựng thử cũ: lịch sử git
+ * (`git log --diff-filter=D --name-only -- app/uiworkshop`).
  * ─────────────────────────────────────────────────────────────────────────────────────────────
  */
 export const REQ_GROUPS: ReqGroup[] = [
-  {
-    section: 'app',
-    fr: 'FR-13·FR-39·FR-63',
-    title: 'Trả công tức thì',
-    epics: ['Đợt 1'],
-    views: [
-      {
-        slug: 'trang-chu',
-        label: 'Trang chủ',
-        // `web` ĐÈ mặc định `mobile` của bề mặt 'app'. Bề mặt vẫn khai đúng: sản phẩm thật sống
-        // trên trình duyệt điện thoại (NFR §6). Nhưng THỨ TỰ DỰNG thì ngược lại — dựng bề ngang
-        // trước, vì bố cục hai cột ở đây (cột đời | ghi chú lề) là quyết định phải chốt trước, và
-        // nó chỉ tồn tại ở khung rộng. Bản hẹp là bản xếp chồng của nó, không phải ngược lại.
-        viewport: 'web',
-      },
-    ],
-  },
+  // 22/08/2026 — Đợt 1 ĐÃ PROMOTE TOÀN BỘ ra route thật (app/(pha), app/ban-duyet, app/dang-nhap,
+  // app/gan-node). Theo đúng luồng promote của specs/frontend-stack.md §5, bản dựng thử rời xưởng
+  // khi thành màn thật: `trang-chu` (màn cuối còn lại) đã xoá, entry gỡ khỏi đây.
+  // Xưởng quay về vai trò gốc: design-system + chỗ dựng thử cho ĐỢT SAU.
 ];
 
 /**
@@ -128,32 +108,8 @@ export const REQ_GROUPS: ReqGroup[] = [
  * và gắn `storySlugs` cho từng view.
  */
 export const PLANNED_REQS: { fr: string; title: string; epic: string }[] = [
-  // ĐẦY LẠI từ 16/08/2026 sau khi thu phạm vi. Danh sách này từng rỗng — mọi FR Đợt 1 đều đã có
-  // một màn dựng thử. Mười sáu màn đó bị xoá, nên các FR quay về đây.
-  //
-  // ⚠️ ĐỌC ĐÚNG DANH SÁCH NÀY. Nó nói: những yêu cầu này thuộc phạm vi Đợt 1 và chưa có hình dạng
-  // để nhìn. Nó KHÔNG nói rằng chúng chưa từng được thiết kế — hầu hết đã có một bản dựng, và bản
-  // đó nằm trong lịch sử git. Đây là danh sách CHỜ ĐẾN LƯỢT, không phải danh sách trắng.
-  //
-  // Thứ tự giữ đúng thứ tự của prd.md §5 (Gieo mồi → Vòng lặp người dùng → Thu lời kể → Nền dữ
-  // liệu → Không làm hại ai), vì đó là thứ tự khiến dữ liệu bắt đầu chảy vào.
-  //
-  // Làm xong một view thì gỡ FR tương ứng khỏi đây và tạo `ReqGroup` ở trên — MỘT lúc một cái.
-  { fr: 'FR-51', title: 'Gieo mồi — nạp khung dòng họ', epic: 'Đợt 1' },
-  { fr: 'FR-48', title: 'Chặn bản trùng tại nguồn — tìm trước khi thêm', epic: 'Đợt 1' },
-  { fr: 'FR-11', title: 'Tự khai — bốn câu, ghi ngay', epic: 'Đợt 1' },
-  { fr: 'FR-15', title: 'Cây gia tộc — zoom theo chi, collapse theo đời', epic: 'Đợt 1' },
-  { fr: 'FR-1', title: 'Khẳng định mang nguồn', epic: 'Đợt 1' },
-  { fr: 'FR-2', title: 'Ba mức tin cậy', epic: 'Đợt 1' },
-  { fr: 'FR-3', title: 'Duyệt lên Tầng chính thức', epic: 'Đợt 1' },
-  { fr: 'FR-47', title: 'Thu lời kể', epic: 'Đợt 1' },
-  { fr: 'FR-49', title: 'Đồng thuận của người kể', epic: 'Đợt 1' },
-  { fr: 'FR-37', title: 'Bán kính riêng tư', epic: 'Đợt 1' },
-  { fr: 'FR-55', title: 'Quyền của người sống với phần về mình', epic: 'Đợt 1' },
-  { fr: 'FR-64', title: 'Đăng nhập & nhận chỗ của mình trên phả', epic: 'Đợt 1' },
-  //
-  // FR của "Sau này" (prd.md §7) vẫn KHÔNG liệt kê ở đây — kể cả hai ô còn thiếu của màn chủ
-  // (FR-22 lời giáo huấn, FR-41 sự kiện sắp tới). Đợt 1 cố ý dựng hai trong bốn ô.
+  // RỖNG từ 22/08/2026 — mười lăm FR Đợt 1 đều đã có màn THẬT ngoài production.
+  // FR "Sau này" (prd.md §7) sẽ đổ vào đây khi tới lượt (FR-22 lời giáo huấn, FR-41 lịch giỗ…).
 ];
 
 /**
