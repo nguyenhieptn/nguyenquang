@@ -1,0 +1,30 @@
+# Hạ tầng Gia phả Nguyễn Quang — NFR-3: khởi động lại bằng một lệnh, cấu hình nằm trong repo.
+# `docker compose up -d` là toàn bộ bước dựng database. Mật khẩu nằm ở .env (không commit).
+#
+# Cổng 5438 (không phải 5432) vì máy này còn Postgres của dự án khác chiếm 5432/5435.
+# Chỉ bind 127.0.0.1 — database không bao giờ lộ ra ngoài máy, kể cả qua VPN.
+services:
+  db:
+    image: postgres:18
+    container_name: giapha-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: giapha
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${GIAPHA_PG_SUPER_PASSWORD:?set in .env}
+      # Roles ứng dụng (giapha_owner / giapha_app) tạo bởi db/init/01-roles.sh lần đầu.
+      GIAPHA_OWNER_PASSWORD: ${GIAPHA_OWNER_PASSWORD:?set in .env}
+      GIAPHA_APP_PASSWORD: ${GIAPHA_APP_PASSWORD:?set in .env}
+    ports:
+      - '127.0.0.1:5438:5432'
+    volumes:
+      - giapha-pgdata:/var/lib/postgresql
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d giapha']
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  giapha-pgdata:

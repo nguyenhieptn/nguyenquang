@@ -1,0 +1,47 @@
+# Sprint status — Gia phả Nguyễn Quang, Đợt 1
+# Sinh bởi sprint planning 22/08/2026. Cấu trúc: xem planning-artifacts/epics/epics.md.
+# Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
+generated: 2026-08-22
+last_updated: 2026-08-22
+project: Gia phả dòng họ Nguyễn Quang
+project_key: giapha
+tracking_system: sprint-status.yaml
+story_location: _bmad-output/planning-artifacts/epics/epics.md
+
+development_status:
+  epic-1: backlog
+  1-1-ha-tang-db-rls: ready-for-dev
+  1-2-khang-dinh-va-nguoi: backlog
+  1-3-cay-dan-xuat: backlog
+  1-4-danh-tinh-va-quyen: backlog
+  1-5-loi-ke-va-media: backlog
+  1-6-nhat-ky-va-tai-hien: backlog
+  1-7-hop-nhat-manh: backlog
+  1-8-nap-khung-csv: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-trang-chu: backlog
+  2-2-dang-nhap-gan-node: backlog
+  2-3-tu-khai-bon-buoc: backlog
+  2-4-tim-va-khong-tim-thay: backlog
+  2-5-them-nguoi-than: backlog
+  2-6-cay-ba-tang: backlog
+  2-7-trang-nguoi: backlog
+  2-8-thu-loi-ke: backlog
+  2-9-toi-va-quyen: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-nap-khung: backlog
+  3-2-xem-truoc-so-khop: backlog
+  3-3-hang-cho-duyet: backlog
+  3-4-hop-nhat-manh: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-trien-khai-vpn: backlog
+  4-2-sao-luu: backlog
+  4-3-ra-soat-chat-luong: backlog
+  4-4-tai-lieu-van-hanh: backlog
+  epic-4-retrospective: optional
