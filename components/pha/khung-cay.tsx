@@ -13,9 +13,14 @@
  *
  * React Flow CHỈ lo khung nhìn. Mọi thẻ đều là component của mình, token có tên.
  */
+import { useEffect, useMemo } from 'react';
+import type { ViTri } from './xep-cay';
 import {
   ReactFlow,
+  ReactFlowProvider,
   Controls,
+  useNodesInitialized,
+  useReactFlow,
   type Node,
   type Edge,
   type NodeTypes,
@@ -25,25 +30,71 @@ import '@xyflow/react/dist/style.css';
 export { Handle, Position } from '@xyflow/react';
 export type { Node, Edge, NodeProps } from '@xyflow/react';
 
-export function KhungCay({
+export type KichThuoc = { rong: number; cao: number };
+
+/**
+ * CHIỀU CAO KHUNG NHÌN — theo màn hình, không phải một con số cứng.
+ *
+ * `h-[620px]` cũ để cây — nội dung CHÍNH của màn — nằm gọn trong một hộp bằng nhau trên mọi máy,
+ * trong khi phần trên trang cứ ăn dần chỗ. Trên màn 1080 thì hơn nửa chiều cao bỏ không mà cây
+ * vẫn phải cuộn. `clamp` cho cây lấy hết phần còn lại của khung nhìn, có sàn để màn thấp không
+ * bẹp và có trần để màn rất cao không kéo cây dài quá tầm mắt.
+ */
+export const CAO_KHUNG_NHIN = 'h-[clamp(460px,calc(100dvh-17rem),880px)]';
+
+/**
+ * ĐO RỒI XẾP LẠI — chỗ sửa lỗi thẻ đè lên nhau (23/08/2026).
+ *
+ * Bố cục cũ dùng một hằng số `CAO_HANG` cho mọi hàng. Nhưng thẻ người CAO KHÔNG BẰNG NHAU: thêm
+ * một người bạn đời là +70px, thêm dòng ghi công (FR-39) là +25px, tên dài xuống dòng lại +25px
+ * nữa. Thẻ nào vượt hằng số ấy thì tràn xuống hàng dưới và đè lên thẻ ở đó — đúng thứ nhìn thấy
+ * trên màn.
+ *
+ * Không có con số cứng nào đúng được, vì chiều cao là kết quả của DỮ LIỆU chứ không phải của
+ * thiết kế. Nên: dựng lần đầu bằng ước lượng, để trình duyệt đo thật, rồi xếp lại theo số đo —
+ * mỗi hàng cao bằng thẻ cao nhất của chính hàng ấy.
+ */
+function KhungCayTrong({
   nodes,
   edges,
   nodeTypes,
-  chieuCao = 'h-[620px]',
+  xepLai,
 }: {
   nodes: Node[];
   edges: Edge[];
   nodeTypes: NodeTypes;
-  chieuCao?: string;
+  xepLai?: (kichThuoc: Map<string, KichThuoc>) => Map<string, ViTri>;
 }) {
+  // `useNodesInitialized` bật lên đúng lúc trình duyệt đo xong mọi thẻ. Vị trí mới tính THẲNG
+  // lúc render từ số đo ấy — không giữ thêm state, nên không có vòng render nào phải cắt.
+  const daDo = useNodesInitialized();
+  const { getNodes, fitView } = useReactFlow();
+
+  const dsNode = useMemo(() => {
+    if (!xepLai || !daDo) return nodes;
+    const kichThuoc = new Map<string, KichThuoc>();
+    for (const n of getNodes()) {
+      kichThuoc.set(n.id, { rong: n.measured?.width ?? 0, cao: n.measured?.height ?? 0 });
+    }
+    const viTri = xepLai(kichThuoc);
+    return nodes.map((n) => (viTri.has(n.id) ? { ...n, position: viTri.get(n.id)! } : n));
+    // Đổi vị trí KHÔNG đổi số đo, nên `daDo` không lật lại — tính đúng một lần cho mỗi bộ dữ liệu.
+  }, [nodes, xepLai, daDo, getNodes]);
+
+  // Khung nhìn phải ôm lại cây SAU khi xếp lại, nếu không cây mới nằm lệch ngoài tầm nhìn.
+  useEffect(() => {
+    if (!daDo) return;
+    const t = requestAnimationFrame(() => void fitView({ padding: 0.08, duration: 200 }));
+    return () => cancelAnimationFrame(t);
+  }, [daDo, dsNode, fitView]);
+
   return (
-    <div className={`${chieuCao} w-full overflow-hidden rounded-md border border-border`}>
       <ReactFlow
-        nodes={nodes}
+        nodes={dsNode}
         edges={edges}
         nodeTypes={nodeTypes}
         fitView
-        fitViewOptions={{ padding: 0.15 }}
+        fitViewOptions={{ padding: 0.08 }}
         minZoom={0.25}
         maxZoom={1.4}
         // Cây là để ĐỌC, không phải để sửa: kéo một node đi chỗ khác chỉ tạo ra một cái cây sai.
@@ -61,49 +112,46 @@ export function KhungCay({
           className="[&_button]:size-11 [&_button]:border-border [&_button]:bg-card [&_button]:fill-foreground"
         />
       </ReactFlow>
+  );
+}
+
+export function KhungCay({
+  nodes,
+  edges,
+  nodeTypes,
+  chieuCao = CAO_KHUNG_NHIN,
+  xepLai,
+}: {
+  nodes: Node[];
+  edges: Edge[];
+  nodeTypes: NodeTypes;
+  chieuCao?: string;
+  /** Xếp lại theo SỐ ĐO THẬT sau khi trình duyệt dựng xong thẻ. Bỏ trống thì giữ vị trí ban đầu. */
+  xepLai?: (kichThuoc: Map<string, KichThuoc>) => Map<string, ViTri>;
+}) {
+  return (
+    <div className={`${chieuCao} w-full overflow-hidden rounded-md border border-border`}>
+      {/* Provider tường minh: `DoRoiXepLai`/`KhungCayTrong` dùng hook đọc số đo, mà hook phải nằm
+          trong provider — và provider phải bọc NGOÀI component render <ReactFlow>. */}
+      <ReactFlowProvider>
+        {/* `key` theo tập node: sang chi khác thì khung nhìn dựng lại để ĐO LẠI từ đầu. Không có
+            nó, `useNodesInitialized` vẫn đang bật từ bộ dữ liệu trước nên số đo mới không bao
+            giờ được đọc, và cây mới phải sống bằng ước lượng. */}
+        <KhungCayTrong
+          key={nodes.map((n) => n.id).join('|')}
+          nodes={nodes}
+          edges={edges}
+          nodeTypes={nodeTypes}
+          xepLai={xepLai}
+        />
+      </ReactFlowProvider>
     </div>
   );
 }
 
-// ── Bố cục: cha đứng GIỮA bề rộng của cả nhánh con ──────────────────────────────────────────
-// Không phải giữa hai con đầu–cuối: với nhánh lệch (một con có 5 cháu, con kia không có ai) thì
-// hai cách cho ra hai kết quả khác nhau, và cách "giữa đầu–cuối" vẽ ra cái cây nghiêng.
-
-export type NutCay = { id: string; chaId: string | null };
-
-export function xepCay<T extends NutCay>(
-  nut: T[],
-  { rong, hoNgang, caoHang }: { rong: number; hoNgang: number; caoHang: number },
-): Map<string, { x: number; y: number }> {
-  const con = new Map<string | null, T[]>();
-  for (const n of nut) con.set(n.chaId, [...(con.get(n.chaId) ?? []), n]);
-
-  const beRong = new Map<string, number>();
-  const doRong = (id: string): number => {
-    if (beRong.has(id)) return beRong.get(id)!;
-    const cs = con.get(id) ?? [];
-    const w = cs.length ? cs.reduce((s, c) => s + doRong(c.id), 0) : rong + hoNgang;
-    beRong.set(id, w);
-    return w;
-  };
-
-  const viTri = new Map<string, { x: number; y: number }>();
-  const dat = (n: T, trai: number, sau: number) => {
-    let x = trai;
-    for (const c of con.get(n.id) ?? []) {
-      dat(c, x, sau + 1);
-      x += doRong(c.id);
-    }
-    viTri.set(n.id, { x: trai + doRong(n.id) / 2 - rong / 2, y: sau * caoHang });
-  };
-
-  let x = 0;
-  for (const goc of con.get(null) ?? []) {
-    dat(goc, x, 0);
-    x += doRong(goc.id);
-  }
-  return viTri;
-}
+// Toán bố cục nằm ở `xep-cay.ts` (module thuần, có test). Re-export để nơi gọi không đổi.
+export { xepCay } from './xep-cay';
+export type { NutCay, ViTri } from './xep-cay';
 
 // ── Mảnh dùng chung của mọi thẻ người ───────────────────────────────────────────────────────
 

@@ -20,7 +20,7 @@
  * PersonCard → NguoiTrenCay rồi truyền xuống, để thẻ vẫn là client thuần không kéo theo db.
  */
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   KhungCay,
   xepCay,
@@ -33,6 +33,7 @@ import {
   type Edge,
   type NodeProps,
   type MucTinCayCay,
+  type KichThuoc,
 } from './khung-cay';
 
 export type NguoiTrenCay = {
@@ -62,7 +63,27 @@ export type CapCay = {
 
 const RONG = 264;
 const HO_NGANG = 24;
-const CAO_HANG = 210;
+/** Khoảng hở giữa hai hàng — chỗ cho nhánh nối rủ xuống. Chiều cao hàng do SỐ ĐO quyết định. */
+const HO_DOC = 56;
+
+/**
+ * Ước lượng chiều cao thẻ cho lần dựng ĐẦU TIÊN, trước khi trình duyệt đo được.
+ *
+ * Chỉ để cây không nhảy quá xa lúc số đo thật về; sai vài chục điểm ảnh không sao vì
+ * `KhungCay` xếp lại ngay sau đó. Các con số bám theo đúng phần thân của `TheNguoi` dưới đây —
+ * sửa thân thẻ thì liếc lại chỗ này, nhưng SAI Ở ĐÂY KHÔNG LÀM THẺ ĐÈ NHAU nữa.
+ */
+function caoUocTinh(cap: CapCay): number {
+  let h = 24 + 30 + 32; // đệm dọc + dòng tên + chip tin cậy
+  if (cap.moTa) h += 24;
+  if (cap.nguoi.doiSong) h += 24;
+  for (const b of cap.banDoi ?? []) h += 58 + (b.doiSong ? 24 : 0);
+  if (cap.nguoi.nguoiThem) h += 28;
+  // Cộng rộng tay cho tên dài xuống dòng: ước THIẾU thì thẻ đè nhau (đúng lỗi vừa sửa), ước
+  // THỪA thì cây chỉ thưa ra một nhịp rồi co lại ngay khi số đo thật về. Hai cái giá không
+  // ngang nhau, nên nghiêng hẳn về phía thừa.
+  return h + 28;
+}
 
 function DongDoiSong({ n }: { n: NguoiTrenCay }) {
   // Chuỗi rỗng thì KHÔNG vẽ gì: ngoài bán kính riêng tư, năm tháng vắng mặt như không tồn tại
@@ -151,11 +172,29 @@ export function CayGiaPha({
   vongSonTrenDuong?: boolean;
   chieuCao?: string;
 }) {
+  /** Xếp theo số đo thật; `KhungCay` gọi lại sau khi trình duyệt dựng xong thẻ. */
+  const xepLai = useCallback(
+    (kichThuoc: Map<string, KichThuoc>) =>
+      xepCay(
+        caps.map((c) => ({ id: c.nguoi.id, chaId: c.chaId })),
+        {
+          rong: RONG,
+          hoNgang: HO_NGANG,
+          hoDoc: HO_DOC,
+          cao: (id) =>
+            kichThuoc.get(id)?.cao ||
+            caoUocTinh(caps.find((c) => c.nguoi.id === id) ?? caps[0]),
+        },
+      ),
+    [caps],
+  );
+
   const { nodes, edges } = useMemo(() => {
     const tren = new Set(duongVeGoc);
+    const uoc = new Map(caps.map((c) => [c.nguoi.id, caoUocTinh(c)]));
     const viTri = xepCay(
       caps.map((c) => ({ id: c.nguoi.id, chaId: c.chaId })),
-      { rong: RONG, hoNgang: HO_NGANG, caoHang: CAO_HANG },
+      { rong: RONG, hoNgang: HO_NGANG, hoDoc: HO_DOC, cao: (id) => uoc.get(id) ?? 200 },
     );
 
     const nodes: Node<DuLieuThe>[] = caps.map((cap) => ({
@@ -188,5 +227,13 @@ export function CayGiaPha({
     return { nodes, edges };
   }, [caps, minhId, duongVeGoc, vongSonTrenDuong]);
 
-  return <KhungCay nodes={nodes} edges={edges} nodeTypes={nodeTypes} chieuCao={chieuCao} />;
+  return (
+    <KhungCay
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      chieuCao={chieuCao}
+      xepLai={xepLai}
+    />
+  );
 }

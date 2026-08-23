@@ -21,6 +21,7 @@
  * `dynamic(...)` ở đây, đừng import thẳng component cây trong màn.
  */
 import dynamic from 'next/dynamic';
+import { CAO_KHUNG_NHIN } from './khung-cay';
 import { useEffect, useState } from 'react';
 import type { CapCay } from './cay-gia-pha';
 import type { GocTamCay, KhoiChiCay, ManhRoiCay } from './cay-ca-toc';
@@ -39,7 +40,8 @@ const CayCaToc = dynamic(() => import('./cay-ca-toc').then((m) => m.CayCaToc), {
 const NGUONG_MAN_RONG = '(min-width: 768px)';
 
 /** Giữ đúng chỗ của cây để đừng nhảy layout khi thư viện về. */
-function KhungCho({ chieuCao = 'h-[620px]' }: { chieuCao?: string }) {
+// Khung chờ phải cao BẰNG khung thật, nếu không trang nhảy một nhịp lúc cây vào chỗ.
+function KhungCho({ chieuCao = CAO_KHUNG_NHIN }: { chieuCao?: string }) {
   return (
     <div
       className={`${chieuCao} flex w-full items-center justify-center rounded-md border border-border`}

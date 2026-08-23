@@ -79,7 +79,7 @@ export default async function Page() {
 
   return (
     <>
-      <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
+      <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-24">
         <div className={KHUNG}>
           {/* ── Đề từ. Trên máy mở hết cỡ; chữ Hán đặt bằng `--font-han-nom` (stack CJK hệ
               thống), KHÔNG bằng `--font-pha` — serif Latin không phủ CJK nên trình duyệt tự
@@ -88,13 +88,13 @@ export default async function Page() {
               tiếng thì là hoa văn, không phải câu chữ của dòng họ.
               Tên họ + đề từ đọc từ clan.settings qua getClanInfo (AD-14) — phả chưa khai đề từ
               thì khối đề từ vắng, không bịa. */}
-          <header className="mb-7 md:mb-12 md:border-b md:border-border md:pb-10 md:text-center">
+          <header className="mb-6 md:mb-6 md:border-b md:border-border md:pb-5 md:text-center">
             <p className="text-[15px] uppercase tracking-[0.16em] text-muted-foreground">
               {tenPha}
             </p>
             {caiDat.motto && caiDat.mottoPhonetic && (
               <>
-                <p className="mt-2 font-[family-name:var(--font-han-nom)] text-[23px] text-primary md:mt-4 md:text-[44px]">
+                <p className="mt-2 font-[family-name:var(--font-han-nom)] text-[23px] text-primary md:mt-2 md:text-[32px]">
                   {caiDat.motto}
                 </p>
                 <p className="text-[15px] italic text-muted-foreground md:mt-1 md:text-[17px]">
@@ -102,7 +102,7 @@ export default async function Page() {
                 </p>
               </>
             )}
-            <h1 className="mt-4 font-[family-name:var(--font-pha)] text-[23px] md:mt-8 md:text-[28px]">
+            <h1 className="mt-4 font-[family-name:var(--font-pha)] text-[23px] md:mt-4 md:text-[26px]">
               Cả tộc
             </h1>
             <p className="mt-1 text-[15px] text-muted-foreground">
@@ -120,17 +120,17 @@ export default async function Page() {
             khoiChi={khoiChi}
             manhRoi={manhRoi}
             chiCuaMinhId={chiCuaMinhId}
+            // Cây là NỘI DUNG CHÍNH của màn: cho nó phần còn lại của khung nhìn thay vì một hộp
+            // cao bằng nhau trên mọi máy. Số trừ đi là chỗ của măng-sét + đầu trang + dòng chú.
+            chieuCao="h-[clamp(460px,calc(100dvh-25rem),900px)]"
           />
-          <p className="mt-2 text-[15px] text-muted-foreground">
-            Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to. Mảnh chưa nối nằm tách hẳn
-            sang một bên, kéo tới mới thấy — vì chưa ai tìm ra chỗ nối.
+          {/* MỘT dòng chú thích, không phải hai khối. Hai đoạn cũ ăn ~120px ngay dưới cây —
+              đúng chỗ mắt vừa rời cây và cần thấy tiếp phần dưới của cây. */}
+          <p className="mt-2 max-w-3xl text-[15px] text-muted-foreground">
+            Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to.
+            {manhRoi.length > 0 &&
+              ' Mảnh chưa nối nằm tách hẳn sang một bên, kéo tới mới thấy — chưa ai tìm ra chỗ nối. Đó không phải lỗi: nối được một mảnh là việc quý nhất ai cũng làm được.'}
           </p>
-          {manhRoi.length > 0 && (
-            <p className="mt-4 max-w-xl text-[17px] text-muted-foreground">
-              Mảnh rời không phải lỗi. Đó là phần dòng họ còn nhớ nhưng chưa nối lại được — và
-              nối được một mảnh là việc quý nhất ai cũng làm được.
-            </p>
-          )}
         </div>
 
         {/* ══ BẢN ĐIỆN THOẠI — khối chi xếp chồng, một nét dọc ═══════════════ */}

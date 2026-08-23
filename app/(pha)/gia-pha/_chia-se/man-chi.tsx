@@ -116,10 +116,10 @@ export function ManChi({
 
   return (
     <>
-      <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
+      <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-24">
         <div className={KHUNG}>
           {/* Đầu trang. Trên máy: một dải rộng, tên chi lớn hẳn, hành động nằm bên phải. */}
-          <div className="md:flex md:items-end md:justify-between md:border-b md:border-border md:pb-6">
+          <div className="md:flex md:items-end md:justify-between md:border-b md:border-border md:pb-4">
             <div>
               <Link
                 href="/gia-pha/ca-toc"
@@ -129,7 +129,7 @@ export function ManChi({
               >
                 ← Xem cả tộc
               </Link>
-              <h1 className="mt-3 font-[family-name:var(--font-pha)] text-[23px] md:text-[34px]">
+              <h1 className="mt-2 font-[family-name:var(--font-pha)] text-[23px] md:text-[28px]">
                 {tieuDe}
               </h1>
               <p className="mt-1 text-[15px] text-muted-foreground">
@@ -197,11 +197,13 @@ export function ManChi({
         </div>
 
         {/* ══ BẢN MÁY — CÂY THẬT, vẽ từ trên xuống ═══════════════════════════ */}
-        <div className={`${RONG} mt-8 hidden md:block`}>
+        <div className={`${RONG} mt-5 hidden md:block`}>
           <CayGiaPhaTaiDong
             caps={capsTuChi(chi)}
             minhId={minhId ?? undefined}
             duongVeGoc={duongVeGoc}
+            // Xem ghi chú cùng chỗ ở màn cả tộc: cây lấy phần còn lại của khung nhìn.
+            chieuCao="h-[clamp(460px,calc(100dvh-23rem),900px)]"
           />
           <p className="mt-2 text-[15px] text-muted-foreground">
             Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to. Vòng son là đường huyết thống

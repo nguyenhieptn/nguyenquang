@@ -24,7 +24,7 @@
  * có trong PersonCard). Khối chi và mảnh rời nhận `href` — chạm là đi xem chi đó (Luồng 3 bước 3).
  */
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   KhungCay,
   lopThe,
@@ -33,6 +33,8 @@ import {
   type Node,
   type Edge,
   type NodeProps,
+  type KichThuoc,
+  type ViTri,
 } from './khung-cay';
 
 export type GocTamCay = {
@@ -58,7 +60,10 @@ export type ManhRoiCay = {
 
 const RONG = 264;
 const HO_NGANG = 32;
-const CAO_HANG = 230;
+/** Khoảng hở giữa hàng gốc tạm và hàng chi — chiều cao hàng do SỐ ĐO quyết định (xem xepCay). */
+const HO_DOC = 64;
+/** Ước lượng cho lần dựng đầu, trước khi trình duyệt đo được. */
+const CAO_UOC_GOC = 150;
 /** Khoảng tách mảnh rời — cố ý rộng gấp nhiều lần hở giữa các chi, để khoảng trắng tự nói. */
 const KHOANG_TACH = 260;
 
@@ -149,29 +154,52 @@ export function CayCaToc({
   chiCuaMinhId?: string;
   chieuCao?: string;
 }) {
+  /**
+   * Vị trí ba nhóm node, tính từ chiều cao THẬT của thẻ gốc tạm (23/08/2026).
+   *
+   * Trước đây hàng chi đặt ở hằng số 230px dưới gốc. Thẻ gốc tạm cao bao nhiêu là do tên cụ dài
+   * hay ngắn — tên xuống hai dòng là thẻ chạm vào hàng dưới. Giờ hàng chi bắt đầu ngay dưới đáy
+   * thật của thẻ gốc, cộng một khoảng hở cố định.
+   */
+  const tinhViTri = useCallback(
+    (caoGoc: number): Map<string, ViTri> => {
+      const buoc = RONG + HO_NGANG;
+      const beRongChi = Math.max(khoiChi.length, 1) * buoc - HO_NGANG;
+      const hangChi = caoGoc + HO_DOC;
+      const v = new Map<string, ViTri>();
+      v.set(goc.id, { x: beRongChi / 2 - RONG / 2, y: 0 });
+      khoiChi.forEach((chi, i) => v.set(chi.id, { x: i * buoc, y: hangChi }));
+      // Đẩy hẳn sang phải, ngoài bề rộng của cả tộc. Không cùng hàng ngẫu nhiên: nằm lệch
+      // xuống một nhịp để đọc ra "chưa thuộc về đâu" thay vì "là một chi nữa".
+      manhRoi.forEach((manh, i) =>
+        v.set(manh.id, { x: beRongChi + KHOANG_TACH + i * buoc, y: hangChi + 60 }),
+      );
+      return v;
+    },
+    [goc.id, khoiChi, manhRoi],
+  );
+
+  const xepLai = useCallback(
+    (kichThuoc: Map<string, KichThuoc>) => tinhViTri(kichThuoc.get(goc.id)?.cao || CAO_UOC_GOC),
+    [tinhViTri, goc.id],
+  );
+
   const { nodes, edges } = useMemo(() => {
-    const buoc = RONG + HO_NGANG;
-    const beRongChi = Math.max(khoiChi.length, 1) * buoc - HO_NGANG;
+    const viTri = tinhViTri(CAO_UOC_GOC);
+    const oDau = (id: string): ViTri => viTri.get(id) ?? { x: 0, y: 0 };
 
     const nodes: Node[] = [
-      {
-        id: goc.id,
-        type: 'goc',
-        position: { x: beRongChi / 2 - RONG / 2, y: 0 },
-        data: { goc },
-      },
-      ...khoiChi.map((chi, i) => ({
+      { id: goc.id, type: 'goc', position: oDau(goc.id), data: { goc } },
+      ...khoiChi.map((chi) => ({
         id: chi.id,
         type: 'chi',
-        position: { x: i * buoc, y: CAO_HANG },
+        position: oDau(chi.id),
         data: { chi, cuaMinh: chi.id === chiCuaMinhId },
       })),
-      ...manhRoi.map((manh, i) => ({
+      ...manhRoi.map((manh) => ({
         id: manh.id,
         type: 'manh',
-        // Đẩy hẳn sang phải, ngoài bề rộng của cả tộc. Không cùng hàng ngẫu nhiên: nằm lệch
-        // xuống một nhịp để đọc ra "chưa thuộc về đâu" thay vì "là một chi nữa".
-        position: { x: beRongChi + KHOANG_TACH + i * buoc, y: CAO_HANG + 60 },
+        position: oDau(manh.id),
         data: { manh },
       })),
     ];
@@ -189,7 +217,15 @@ export function CayCaToc({
     }));
 
     return { nodes, edges };
-  }, [goc, khoiChi, manhRoi, chiCuaMinhId]);
+  }, [goc, khoiChi, manhRoi, chiCuaMinhId, tinhViTri]);
 
-  return <KhungCay nodes={nodes} edges={edges} nodeTypes={nodeTypes} chieuCao={chieuCao} />;
+  return (
+    <KhungCay
+      nodes={nodes}
+      edges={edges}
+      nodeTypes={nodeTypes}
+      chieuCao={chieuCao}
+      xepLai={xepLai}
+    />
+  );
 }
