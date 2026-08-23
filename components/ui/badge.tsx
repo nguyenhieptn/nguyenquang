@@ -1,3 +1,10 @@
+/**
+ * SÀN CHỮ 15px — sửa 23/08/2026. Bản shadcn gốc dùng `text-xs` (12px), dưới sàn tuyệt đối mà
+ * DESIGN.md § Typography đặt ra cho MỌI chữ, không ngoại lệ. Nâng ở đây thay vì nhắc từng màn:
+ * sàn phải là chuyện của cấu trúc, không phải chuyện kỷ luật của người dựng màn sau.
+ *
+ * ⚠️ `npx shadcn@latest add badge` sẽ GHI ĐÈ file này — nâng lại sau mỗi lần chạy.
+ */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
@@ -5,7 +12,7 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const badgeVariants = cva(
-  "group/badge inline-flex h-5 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-xs font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
+  "group/badge inline-flex h-6 w-fit shrink-0 items-center justify-center gap-1 overflow-hidden rounded-4xl border border-transparent px-2 py-0.5 text-[15px] font-medium whitespace-nowrap transition-all focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 aria-invalid:border-destructive aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 [&>svg]:pointer-events-none [&>svg]:size-3!",
   {
     variants: {
       variant: {

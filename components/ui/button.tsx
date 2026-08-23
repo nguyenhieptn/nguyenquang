@@ -1,3 +1,10 @@
+/**
+ * SÀN CHỮ 15px — sửa 23/08/2026. Bản shadcn gốc dùng `text-xs` (12px), dưới sàn tuyệt đối mà
+ * DESIGN.md § Typography đặt ra cho MỌI chữ, không ngoại lệ. Nâng ở đây thay vì nhắc từng màn:
+ * sàn phải là chuyện của cấu trúc, không phải chuyện kỷ luật của người dựng màn sau.
+ *
+ * ⚠️ `npx shadcn@latest add button` sẽ GHI ĐÈ file này — nâng lại sau mỗi lần chạy.
+ */
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 import { Slot } from "radix-ui"
@@ -23,7 +30,7 @@ const buttonVariants = cva(
       size: {
         default:
           "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        xs: "h-6 gap-1 rounded-[min(var(--radius-md),10px)] px-2 text-[15px] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
         sm: "h-7 gap-1 rounded-[min(var(--radius-md),12px)] px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
         icon: "size-8",
