@@ -176,7 +176,7 @@ export function ThanhDieuHuong({
           đáy măng-sét, mở chân trang, và các vạch chia mục trong thân trang. Trước đó mỗi chỗ một
           kiểu viền — đó chính là chỗ menu "chưa thuần nhất". */}
       <header className="fixed inset-x-0 top-0 z-10 hidden bg-background md:block">
-        <div className={`${KHUNG} flex items-end justify-between gap-8 pb-3.5 pt-5`}>
+        <div className={`${KHUNG} flex items-end justify-between gap-8 pb-3 pt-4`}>
           {/* 22/08/2026 — trỏ về route thật '/' (promote 2-1); trước đó còn trỏ bản xưởng. */}
           <Link
             href="/"

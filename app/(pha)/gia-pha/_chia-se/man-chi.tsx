@@ -116,30 +116,38 @@ export function ManChi({
 
   return (
     <>
-      <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-24">
+      <main className="flex-1 pb-28 pt-7 md:pb-4 md:pt-[5.5rem]">
         <div className={KHUNG}>
-          {/* Đầu trang. Trên máy: một dải rộng, tên chi lớn hẳn, hành động nằm bên phải. */}
-          <div className="md:flex md:items-end md:justify-between md:border-b md:border-border md:pb-4">
-            <div>
-              <Link
-                href="/gia-pha/ca-toc"
-                // Vùng chạm 44px (Accessibility Floor): min-h-11, không phải py — nhãn một dòng
-                // 15px với py-1.5 mới được ~34px.
-                className="inline-flex min-h-11 items-center text-[15px] text-muted-foreground underline underline-offset-4"
-              >
-                ← Xem cả tộc
-              </Link>
-              <h1 className="mt-2 font-[family-name:var(--font-pha)] text-[23px] md:text-[28px]">
+          {/* ── ĐẦU TRANG MỘT HÀNG trên máy (sửa 23/08/2026) ────────────────────────────────
+              Trước: đường lui, tên chi, dòng số liệu và nút xếp CHỒNG bốn tầng — 129px, cộng
+              măng-sét cố định 81px là ngót một phần ba màn hình bỏ ra trước khi thấy cây. Mà cây
+              mới là thứ người ta mở trang này để xem.
+
+              Nay cả bốn thứ nằm trên MỘT hàng: lui trái, tên + số liệu giữa, nút phải. Không chữ
+              nào xuống dưới sàn (tên 23px, số liệu 15px, vùng chạm vẫn 44px) — chỉ đổi cách xếp,
+              đúng luật "bảng chật thì bớt cột, không thu chữ" của EXPERIENCE § Bề mặt B áp sang.
+              Bản điện thoại giữ nguyên bốn tầng: ở đó chiều dọc không phải thứ khan hiếm. */}
+          <div className="md:flex md:items-center md:gap-4 md:border-b md:border-border md:pb-2.5">
+            <Link
+              href="/gia-pha/ca-toc"
+              // Vùng chạm 44px (Accessibility Floor): min-h-11, không phải py — nhãn một dòng
+              // 15px với py-1.5 mới được ~34px.
+              className="inline-flex min-h-11 shrink-0 items-center text-[15px] text-muted-foreground underline underline-offset-4"
+            >
+              ← Xem cả tộc
+            </Link>
+            <div className="md:flex md:min-w-0 md:flex-1 md:items-baseline md:gap-3">
+              <h1 className="mt-2 font-[family-name:var(--font-pha)] text-[23px] md:mt-0 md:shrink-0">
                 {tieuDe}
               </h1>
-              <p className="mt-1 text-[15px] text-muted-foreground">
+              <p className="mt-1 truncate text-[15px] text-muted-foreground md:mt-0">
                 {dungDau ? `${dungDau.fullName} · ` : ''}
                 {tongNguoi} người · {chi.generations.length} đời
               </p>
             </div>
             <Link
               href="/gia-pha/duong-cua-toi"
-              className="hidden rounded-md border border-input px-5 py-3 text-[17px] md:block"
+              className="hidden shrink-0 rounded-md border border-input px-4 py-2.5 text-[17px] md:block"
             >
               Xem cây gia tộc
             </Link>
@@ -148,14 +156,21 @@ export function ManChi({
           {/* Chưa có chỗ trong cây (khách, hoặc tài khoản chưa gắn): mọi hành động ghi dẫn về
               luồng nhận chỗ — KHÔNG BAO GIỜ là một màn lỗi (EXPERIENCE § Chưa gắn node). */}
           {moiTimCho && (
-            <aside className="mt-6 rounded-md border border-border bg-card px-4 py-4 md:flex md:items-center md:justify-between md:gap-6">
-              <p className="text-[17px] leading-relaxed">
-                Đây là chi đầu của dòng họ. Tìm tên của mình trong phả để mở đúng chi nhà mình —
-                chưa thấy tên thì thêm vào, ai trong họ cũng thêm được.
+            <aside className="mt-6 rounded-md border border-border bg-card px-4 py-4 md:mt-3 md:flex md:items-center md:justify-between md:gap-6 md:py-2">
+              <p className="text-[17px] leading-relaxed md:truncate">
+                {/* Câu dài đủ nghĩa trên điện thoại; trên máy rút còn một dòng — chỗ tiết kiệm
+                    được ở đây rơi thẳng vào chiều cao của cây. */}
+                <span className="md:hidden">
+                  Đây là chi đầu của dòng họ. Tìm tên của mình trong phả để mở đúng chi nhà mình —
+                  chưa thấy tên thì thêm vào, ai trong họ cũng thêm được.
+                </span>
+                <span className="hidden md:inline">
+                  Đây là chi đầu của dòng họ — tìm tên của mình để mở đúng chi nhà mình.
+                </span>
               </p>
               <Link
                 href="/tim"
-                className="mt-3 inline-block shrink-0 rounded-md border border-input px-5 py-3 text-[17px] md:mt-0"
+                className="mt-3 inline-flex min-h-11 shrink-0 items-center rounded-md border border-input px-5 text-[17px] md:mt-0"
               >
                 Tìm chỗ của mình
               </Link>
@@ -197,15 +212,15 @@ export function ManChi({
         </div>
 
         {/* ══ BẢN MÁY — CÂY THẬT, vẽ từ trên xuống ═══════════════════════════ */}
-        <div className={`${RONG} mt-5 hidden md:block`}>
+        <div className={`${RONG} mt-3 hidden md:block`}>
           <CayGiaPhaTaiDong
             caps={capsTuChi(chi)}
             minhId={minhId ?? undefined}
             duongVeGoc={duongVeGoc}
             // Xem ghi chú cùng chỗ ở màn cả tộc: cây lấy phần còn lại của khung nhìn.
-            chieuCao="h-[clamp(460px,calc(100dvh-23rem),900px)]"
+            chieuCao="h-[clamp(460px,calc(100dvh-14rem),1000px)]"
           />
-          <p className="mt-2 text-[15px] text-muted-foreground">
+          <p className="mt-1.5 text-[15px] text-muted-foreground">
             Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to. Vòng son là đường huyết thống
             ngược lên cụ xa nhất hiện biết.
           </p>

@@ -79,7 +79,7 @@ export default async function Page() {
 
   return (
     <>
-      <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-24">
+      <main className="flex-1 pb-28 pt-7 md:pb-4 md:pt-[5.5rem]">
         <div className={KHUNG}>
           {/* ── Đề từ. Trên máy mở hết cỡ; chữ Hán đặt bằng `--font-han-nom` (stack CJK hệ
               thống), KHÔNG bằng `--font-pha` — serif Latin không phủ CJK nên trình duyệt tự
@@ -88,24 +88,30 @@ export default async function Page() {
               tiếng thì là hoa văn, không phải câu chữ của dòng họ.
               Tên họ + đề từ đọc từ clan.settings qua getClanInfo (AD-14) — phả chưa khai đề từ
               thì khối đề từ vắng, không bịa. */}
-          <header className="mb-6 md:mb-6 md:border-b md:border-border md:pb-5 md:text-center">
-            <p className="text-[15px] uppercase tracking-[0.16em] text-muted-foreground">
-              {tenPha}
-            </p>
+          {/* ── ĐẦU TRANG MỘT HÀNG trên máy (sửa 23/08/2026) ────────────────────────────────
+              Trước, đầu trang này chồng năm tầng: tên phả, chữ Hán 44px, phiên âm, tiêu đề, dòng
+              số liệu — 180px, cộng măng-sét cố định 81px thì cây bắt đầu ở gần một phần ba màn.
+
+              Bỏ hẳn dòng tên phả: măng-sét ngay phía trên đã in "Gia phả họ / <tên>", nhắc lại
+              cách nhau chưa tới trăm điểm ảnh là thừa — cùng lý do trang chủ không có tiêu đề.
+              Đề từ + phiên âm về một hàng, vẫn KHÔNG BAO GIỜ rời nhau (NFR-9: chữ Hán đứng trần
+              là lỗi), chỉ đổi từ xếp chồng sang xếp ngang.
+              Bản điện thoại giữ nguyên khối dọc — ở đó bề ngang mới là thứ khan hiếm. */}
+          <header className="mb-6 md:mb-0 md:flex md:items-baseline md:gap-4 md:border-b md:border-border md:pb-2.5">
             {caiDat.motto && caiDat.mottoPhonetic && (
-              <>
-                <p className="mt-2 font-[family-name:var(--font-han-nom)] text-[23px] text-primary md:mt-2 md:text-[32px]">
+              <p className="shrink-0 md:order-2 md:ml-auto">
+                <span className="font-[family-name:var(--font-han-nom)] text-[23px] text-primary md:text-[24px]">
                   {caiDat.motto}
-                </p>
-                <p className="text-[15px] italic text-muted-foreground md:mt-1 md:text-[17px]">
+                </span>
+                <span className="ml-2 text-[15px] italic text-muted-foreground">
                   {caiDat.mottoPhonetic}
-                </p>
-              </>
+                </span>
+              </p>
             )}
-            <h1 className="mt-4 font-[family-name:var(--font-pha)] text-[23px] md:mt-4 md:text-[26px]">
+            <h1 className="mt-4 font-[family-name:var(--font-pha)] text-[23px] md:mt-0 md:shrink-0 md:text-[26px]">
               Cả tộc
             </h1>
-            <p className="mt-1 text-[15px] text-muted-foreground">
+            <p className="mt-1 text-[15px] text-muted-foreground md:mt-0 md:min-w-0 md:truncate">
               {tongNguoi} người đã được ghi · {khoiChi.length} chi · {tongTonNghi} người còn tồn
               nghi
               {manhRoi.length > 0 && ` · ${manhRoi.length} mảnh chưa nối`}
@@ -114,7 +120,7 @@ export default async function Page() {
         </div>
 
         {/* ══ BẢN MÁY — cùng một khung nhìn cây với tầng 2 ═════════════════ */}
-        <div className={`${RONG} hidden md:block`}>
+        <div className={`${RONG} mt-3 hidden md:block`}>
           <CayCaTocTaiDong
             goc={{ id: mainFragment.rootPersonId, hoTen: mainFragment.rootName }}
             khoiChi={khoiChi}
@@ -122,11 +128,11 @@ export default async function Page() {
             chiCuaMinhId={chiCuaMinhId}
             // Cây là NỘI DUNG CHÍNH của màn: cho nó phần còn lại của khung nhìn thay vì một hộp
             // cao bằng nhau trên mọi máy. Số trừ đi là chỗ của măng-sét + đầu trang + dòng chú.
-            chieuCao="h-[clamp(460px,calc(100dvh-25rem),900px)]"
+            chieuCao="h-[clamp(460px,calc(100dvh-14rem),1000px)]"
           />
           {/* MỘT dòng chú thích, không phải hai khối. Hai đoạn cũ ăn ~120px ngay dưới cây —
               đúng chỗ mắt vừa rời cây và cần thấy tiếp phần dưới của cây. */}
-          <p className="mt-2 max-w-3xl text-[15px] text-muted-foreground">
+          <p className="mt-1.5 max-w-3xl text-[15px] text-muted-foreground">
             Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to.
             {manhRoi.length > 0 &&
               ' Mảnh chưa nối nằm tách hẳn sang một bên, kéo tới mới thấy — chưa ai tìm ra chỗ nối. Đó không phải lỗi: nối được một mảnh là việc quý nhất ai cũng làm được.'}

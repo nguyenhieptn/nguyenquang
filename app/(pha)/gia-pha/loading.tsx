@@ -15,16 +15,17 @@ function O({ lop }: { lop: string }) {
 export default function Loading() {
   return (
     <>
-      <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
+      <main className="flex-1 pb-28 pt-7 md:pb-4 md:pt-[5.5rem]">
         <div className={KHUNG} role="status" aria-label="Đang mở cây">
-          <O lop="h-5 w-32" />
-          <O lop="mt-4 h-9 w-56" />
-          <div className="mt-6 space-y-3">
+          {/* Nhịp khớp màn thật: đầu trang MỘT hàng trên máy, rồi khối cây chiếm phần còn lại
+              của khung nhìn — để lúc dữ liệu về, trang không giật một nhịp. */}
+          <O lop="h-11 w-64 md:w-full" />
+          <div className="mt-6 space-y-3 md:hidden">
             <O lop="h-24" />
             <O lop="h-14" />
             <O lop="h-14" />
-            <O lop="h-14" />
           </div>
+          <O lop="mt-3 hidden h-[clamp(460px,calc(100dvh-14rem),1000px)] md:block" />
           <p className="sr-only">Đang mở cây…</p>
         </div>
       </main>

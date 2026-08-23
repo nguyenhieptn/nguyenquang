@@ -43,7 +43,7 @@ function DongPhu({ n }: { n: PersonCard }) {
 function MoiNhanCho({ tenPha }: { tenPha?: string }) {
   return (
     <>
-      <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
+      <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-[5.5rem]">
         <div className={DOC}>
           <h1 className="font-[family-name:var(--font-pha)] text-[23px]">Cây gia tộc</h1>
           <div className="mt-6 rounded-md border border-border bg-card px-5 py-6">
@@ -106,7 +106,7 @@ export default async function Page() {
     <>
       {/* MỘT CỘT kể cả trên máy — cố ý. Một đường dọc kéo ngang 1280px không đọc dễ hơn,
           chỉ dài dòng hơn (EXPERIENCE § Responsive — hai màn cố tình không nới rộng). */}
-      <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
+      <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-[5.5rem]">
         <div className={DOC}>
           <header className="mb-6">
             <h1 className="font-[family-name:var(--font-pha)] text-[23px]">Cây gia tộc</h1>

@@ -18,7 +18,7 @@ export default function Error({
 }) {
   return (
     <>
-      <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
+      <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-[5.5rem]">
         <div className={DOC}>
           <h1 className="font-[family-name:var(--font-pha)] text-[23px]">Gia phả</h1>
           <div className="mt-6 rounded-md border border-border bg-card px-5 py-6">
