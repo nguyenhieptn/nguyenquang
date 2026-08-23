@@ -145,10 +145,14 @@
   --color-tin-ton-nghi: #b09a72;
 
   /* Chữ có chân cho TÊN NGƯỜI và tiêu đề — tên trên phả cần sức nặng.
-   * [ASSUMPTION] DESIGN.md § Typography: font thật CHƯA CHỐT. Phải kiểm phủ đủ
-   * Latin Extended Additional (ễ ộ ự ằ ỹ) trước khi khoá — việc của story hạ
-   * tầng, không kiểm bằng mắt. Đây mới là chỗ dành sẵn. */
-  --font-pha: ui-serif, Georgia, 'Times New Roman', Times, serif;
+   * CHỐT 22/08/2026: Noto Serif, nạp qua next/font với subset `vietnamese`
+   * (kiểm phủ Latin Extended Additional bằng subset, không bằng mắt — đúng yêu
+   * cầu DESIGN.md § Typography). Stack sau là fallback lúc font chưa tải. */
+  --font-pha: var(--font-pha-loaded), ui-serif, Georgia, 'Times New Roman', Times, serif;
+
+  /* Hán-Nôm (đề từ 光前裕後, tên huý chữ Hán): stack CJK hệ thống — nạp font TC
+   * riêng là +5MB cho bốn chữ. LUÔN đi kèm phiên âm (NFR-9). */
+  --font-han-nom: 'Noto Serif TC', 'Songti SC', 'SimSun', serif;
 
   /* Nền khối cảnh báo — chàm pha loãng. Cảnh báo KHÔNG được mã hoá chỉ bằng
    * màu: khối này luôn có viền trái đặc + câu chữ nói rõ bot thấy gì. */

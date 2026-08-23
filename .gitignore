@@ -42,3 +42,7 @@ next-env.d.ts
 
 # đầu ra biên dịch của npm run test:so-khop
 /.test-out
+var/
+
+# bytes lời kể (story 1-5) — AD-11: media không nằm trong git, backup off-host lo
+/var/media

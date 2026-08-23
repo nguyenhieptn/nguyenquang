@@ -5,6 +5,8 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: ['core/**/*.test.ts', 'db/**/*.test.ts'],
+    // so-khop dùng node:test với runner riêng (npm run test:so-khop) — không phải file vitest.
+    exclude: ['core/so-khop/**'],
     setupFiles: ['./vitest.setup.ts'],
     // DB tests share one database — chạy tuần tự cho khỏi giẫm chân nhau.
     fileParallelism: false,

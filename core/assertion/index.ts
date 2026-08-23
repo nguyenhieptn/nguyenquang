@@ -6,8 +6,20 @@
  * projected values on `person`. AD-24: no identity parameters — session is resolved inside.
  * Internal ops (ops.ts) take (tx, ctx, args) and are for core-internal use + tests only.
  */
-import type { Result } from '@/core/types';
+import { err, ok, type Result } from '@/core/types';
 import type { Confidence, DatePrecision } from '@/db/schema';
+import { resolveViewer } from '@/core/identity/session';
+import { withClanContext } from '@/db';
+import {
+  addAssertionOp,
+  hideAssertionOp,
+  listPendingAssertionsOp,
+  lookupAccountNames,
+  promoteAssertionOp,
+  rejectAssertionOp,
+  restoreAssertionOp,
+} from './ops';
+import { createPersonOp } from '@/core/person/ops';
 
 export type GenealogicalDate = { date?: string; precision: DatePrecision };
 
@@ -45,37 +57,59 @@ export type AssertionSpec =
 
 export type AddedPerson = { personId: string; assertionIds: string[] };
 
+/** AD-24: every surface below resolves identity itself; a null viewer means no clan exists yet. */
+async function requireViewer() {
+  const viewer = await resolveViewer();
+  return viewer ?? null;
+}
+
 /** Create a person + initial claims, all tentative, revisions + FR-55/AD-15 notification included. */
-export async function addPerson(_input: NewPersonInput): Promise<Result<AddedPerson>> {
-  throw new Error('NOT_IMPLEMENTED — story 1-2');
+export async function addPerson(input: NewPersonInput): Promise<Result<AddedPerson>> {
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  return withClanContext(viewer.clanId, (tx) => createPersonOp(tx, viewer, input));
 }
 
 /** Add one claim about an existing person. */
 export async function addAssertion(
-  _personId: string,
-  _spec: AssertionSpec,
-  _source: SourceSpec,
-  _confidence?: Confidence,
+  personId: string,
+  spec: AssertionSpec,
+  source: SourceSpec,
+  confidence?: Confidence,
 ): Promise<Result<{ assertionId: string }>> {
-  throw new Error('NOT_IMPLEMENTED — story 1-2');
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  return withClanContext(viewer.clanId, async (tx) => {
+    const result = await addAssertionOp(tx, viewer, { personId, spec, source, confidence });
+    if (!result.ok) return result;
+    return ok({ assertionId: result.value.assertionId });
+  });
 }
 
 /** Promotion = status change on the same row + projection onto person, one transaction (AD-19). */
-export async function promoteAssertion(_assertionId: string): Promise<Result<void>> {
-  throw new Error('NOT_IMPLEMENTED — story 1-2');
+export async function promoteAssertion(assertionId: string): Promise<Result<void>> {
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  return withClanContext(viewer.clanId, (tx) => promoteAssertionOp(tx, viewer, { assertionId }));
 }
 
 /** AD-17: one report hides, no approval needed. Restoring needs the approval right. */
-export async function hideAssertion(_assertionId: string, _reason: string): Promise<Result<void>> {
-  throw new Error('NOT_IMPLEMENTED — story 1-2');
+export async function hideAssertion(assertionId: string, reason: string): Promise<Result<void>> {
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  return withClanContext(viewer.clanId, (tx) => hideAssertionOp(tx, viewer, { assertionId, reason }));
 }
-export async function restoreAssertion(_assertionId: string): Promise<Result<void>> {
-  throw new Error('NOT_IMPLEMENTED — story 1-2');
+export async function restoreAssertion(assertionId: string): Promise<Result<void>> {
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  return withClanContext(viewer.clanId, (tx) => restoreAssertionOp(tx, viewer, { assertionId }));
 }
 
 /** AD-4: losing value leaves live data, stays in the revision log. Needs approval right. */
-export async function rejectAssertion(_assertionId: string, _note: string): Promise<Result<void>> {
-  throw new Error('NOT_IMPLEMENTED — story 1-2');
+export async function rejectAssertion(assertionId: string, note: string): Promise<Result<void>> {
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  return withClanContext(viewer.clanId, (tx) => rejectAssertionOp(tx, viewer, { assertionId, note }));
 }
 
 /** Hàng chờ duyệt (FR-3, bề mặt B). */
@@ -91,5 +125,23 @@ export type PendingAssertion = {
   createdAt: string;
 };
 export async function listPendingAssertions(): Promise<Result<PendingAssertion[]>> {
-  throw new Error('NOT_IMPLEMENTED — story 1-2');
+  const viewer = await requireViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  const rows = await withClanContext(viewer.clanId, (tx) => listPendingAssertionsOp(tx, viewer));
+  if (!rows.ok) return rows;
+  // Auth user names live outside the clan partition (AD-8) — second read through dbGlobal.
+  const names = await lookupAccountNames(rows.value.map((r) => r.createdByAccountId));
+  return ok(
+    rows.value.map((r) => ({
+      assertionId: r.assertionId,
+      personId: r.personId,
+      personName: r.personName,
+      kind: r.kind,
+      value: r.value,
+      confidence: r.confidence,
+      sourceDescription: r.sourceDescription,
+      createdByName: names.get(r.createdByAccountId) ?? r.createdByAccountId,
+      createdAt: r.createdAt.toISOString(),
+    })),
+  );
 }

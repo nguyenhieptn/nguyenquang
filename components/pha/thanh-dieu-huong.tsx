@@ -56,24 +56,19 @@ type Muc = {
  * "Thêm" nằm GIỮA và nổi hẳn vì nó là vòng lặp cốt lõi: NFR-5 cho phép tối đa 4 màn / 3 phút để
  * thêm một người, nên đường vào việc đó không được nằm sau một lần chạm nào khác.
  *
- * ⚠️ BỐN `href` LÀ `null` TỪ 16/08/2026. Thu phạm vi xưởng còn một màn (`trang-chu`) đã xoá bốn
- * màn đích. `null` là đúng cơ chế có sẵn của `Muc` — mục thành nút trơ, không phải link 404.
- *
- * Giữ NGUYÊN năm mục thay vì cắt xuống một: thanh điều hướng là thứ khai báo HÌNH DẠNG của sản
- * phẩm. Cắt còn một mục sẽ làm trang chủ đọc ra như một trang lẻ, và mọi quyết định bố cục lấy
- * trên nó — chiều cao thanh, khoảng chừa dưới, sức nặng của "Thêm" ở giữa — đều sai. Dựng lại màn
- * nào thì trả `href` của mục đó về.
+ * 22/08/2026 — NĂM HREF TRỎ ROUTE THẬT (promote Đợt 1). Cơ chế `href: null` (nút trơ) giữ
+ * nguyên cho lần thu phạm vi sau, nếu có.
  */
 const MUC: Muc[] = [
-  { key: 'trang-chu', label: 'Trang chủ', Icon: House, href: '/uiworkshop/trang-chu' },
+  { key: 'trang-chu', label: 'Trang chủ', Icon: House, href: '/' },
   // Vào thẳng TẦNG 2 (chi của mình), không phải tầng 1. FR-15: "mở lên thấy chính mình trước".
-  { key: 'gia-pha', label: 'Gia phả', Icon: Network, href: null },
+  { key: 'gia-pha', label: 'Gia phả', Icon: Network, href: '/gia-pha' },
   // "Thêm" mở vào màn TÌM, không mở thẳng vào màn khai. Không phải một lần chạm thừa: tìm là
   // thao tác chặn trùng (FR-48), và chặn một lần gõ rẻ hơn nhiều so với gỡ hai bản trùng ra khỏi
   // nhau về sau. Người dùng nghĩ mình đang tìm; hệ thống đang chặn.
-  { key: 'them', label: 'Thêm', Icon: Plus, href: null, noiBat: true },
-  { key: 'loi-ke', label: 'Lời kể', Icon: Mic, href: null },
-  { key: 'toi', label: 'Tôi', Icon: User, href: null },
+  { key: 'them', label: 'Thêm', Icon: Plus, href: '/tim', noiBat: true },
+  { key: 'loi-ke', label: 'Lời kể', Icon: Mic, href: '/loi-ke' },
+  { key: 'toi', label: 'Tôi', Icon: User, href: '/toi' },
 ];
 
 /** Vòng chỉ báo bàn phím. Bày ở một chỗ để năm mục không trôi lệch nhau. */

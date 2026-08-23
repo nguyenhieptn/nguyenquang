@@ -47,7 +47,8 @@ describe('Gate 1 — schema: RLS enabled + forced + policy on every partitioned 
        FROM pg_class c
        WHERE c.relnamespace = 'public'::regnamespace AND c.relkind = 'r'`,
     );
-    const byName = new Map(res.rows.map((r: any) => [r.tbl, r]));
+    type RlsRow = { tbl: string; rls: boolean; forced: boolean; policies: number };
+    const byName = new Map((res.rows as RlsRow[]).map((r) => [r.tbl, r]));
     for (const tbl of ['clan', ...PARTITIONED_TABLES]) {
       const row = byName.get(tbl);
       expect(row, `table ${tbl} missing`).toBeTruthy();

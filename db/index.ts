@@ -20,7 +20,6 @@ import { sql } from 'drizzle-orm';
 import * as schema from './schema';
 
 const pool = new Pool({
-  // eslint-disable-next-line no-restricted-syntax
   connectionString: process.env.DATABASE_URL,
   max: 10,
 });
@@ -44,7 +43,6 @@ export async function withClanContext<T>(clanId: string, fn: (tx: Tx) => Promise
 
 /** For scripts/tests that must act as owner (migrations, seeds, gates). Never in app code. */
 export function ownerPool(): Pool {
-  // eslint-disable-next-line no-restricted-syntax
   const url = process.env.DATABASE_URL_OWNER;
   if (!url) throw new Error('DATABASE_URL_OWNER not set');
   return new Pool({ connectionString: url, max: 3 });
