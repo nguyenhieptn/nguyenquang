@@ -12,14 +12,32 @@ export type CoreErrorCode =
   | 'invalid' // input failed validation
   | 'conflict'; // state no longer allows the operation (e.g. already merged)
 
-export type CoreError = { code: CoreErrorCode; message: string };
+export type CoreError = {
+  code: CoreErrorCode;
+  message: string;
+  /**
+   * Dữ liệu kèm theo lỗi, để màn NỐI TIẾP được thay vì chỉ bày một câu (thêm 25/08/2026).
+   *
+   * Ca sinh ra nó: `addPlace` gặp một nơi trùng khít thì phải trả về id của nơi đã có "để màn nối
+   * thẳng vào đó" — nhưng `CoreError` chỉ có `message`, nên id bị nhét vào giữa một câu tiếng
+   * Việt và người dùng nhận được một UUID trần trong hộp đỏ, không có đường đi tiếp.
+   *
+   * Giữ TUỲ CHỌN và hẹp: đây không phải chỗ nhét dữ liệu chung. Chỉ dùng khi màn có một hành
+   * động cụ thể để làm với nó.
+   */
+  detail?: Record<string, unknown>;
+};
 
 export type Result<T> = { ok: true; value: T } | { ok: false; error: CoreError };
 
 export const ok = <T>(value: T): Result<T> => ({ ok: true, value });
-export const err = <T = never>(code: CoreErrorCode, message: string): Result<T> => ({
+export const err = <T = never>(
+  code: CoreErrorCode,
+  message: string,
+  detail?: Record<string, unknown>,
+): Result<T> => ({
   ok: false,
-  error: { code, message },
+  error: detail === undefined ? { code, message } : { code, message, detail },
 });
 
 /**

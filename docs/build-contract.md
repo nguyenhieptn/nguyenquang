@@ -54,13 +54,19 @@ Server Action đặt tại `app/**/actions.ts` (`'use server'`), gọi core, tr�
   người sống → chèn `notification` cùng tx (AD-15).
   - **Ngoại lệ AD-10 đã chốt — đúng hai chỗ, đừng thêm chỗ thứ ba:**
     1. `ensureClan` (`core/identity/bootstrap.ts`) chèn hàng `clan`. `revision.clanId` tham chiếu
-       chính hàng vừa tạo, `revision.accountId` là NOT NULL mà lúc ấy chưa có tài khoản nào, và
-       `revision.entity` cố ý không có thành viên `'clan'` — sự kiện khai sinh dòng họ nằm ngoài
-       nhật ký của dòng họ đó.
+       chính hàng vừa tạo, và `revision.accountId` là NOT NULL mà lúc ấy chưa có tài khoản nào —
+       sự kiện khai sinh dòng họ nằm ngoài nhật ký của dòng họ đó, vì lúc ấy chưa có ai để ghi
+       công.
+       Ngoại lệ là ĐÚNG LỐI GHI ẤY, không phải cả thực thể `clan`: từ story 5-8 `revision.entity`
+       CÓ thành viên `'clan'`, và `updateClanInfoOp` ghi nhật ký như mọi mutation khác (AD-14 —
+       tên họ, chữ đệm, đề từ đều là dữ liệu của dòng họ, sửa được và phải truy được). Bản trước
+       25/08 của dòng này nói `entity` "cố ý không có `'clan'`" — đúng lúc viết, sai từ 5-8.
     2. `markNotificationSeen` (`core/identity/ops.ts`) đặt `seenAt`. Đây là sổ giao nhận, không
        phải sự kiện phả hệ: `revision.entity` cũng không có `'notification'`, và AD-15 giữ bản
        thân sự kiện bất biến — chỉ dấu "đã đọc" đổi.
-  - Thêm ngoại lệ mới ⇒ sửa cả `revision.entity` trong schema và mục này, kèm lý do.
+  - Thêm ngoại lệ mới ⇒ sửa `revision.entity` ở **cả hai** nơi khai nó — `db/schema/domain.ts`
+    và `core/revision.ts` — cộng mục này, kèm lý do. Hai chỗ vì tầng schema và tầng ghi khai
+    riêng; sửa một chỗ thì `tsc` bắt, nhưng chỉ ở nơi gọi, không ở đây.
 - **Bán kính riêng tư** (AD-13/21): mặc định — trong 3 bậc (đường máu + hôn nhân) thấy đủ; ngoài:
   người sống chỉ tên + vị trí + NĂM sinh (không ngày/tháng), ẩn liên hệ; vị thành niên chặt hơn;
   `hiddenFromPublic` ⇒ với khách/ngoài bán kính, ẩn cả tên (giữ chỗ "một người con") — vẫn giữ
@@ -90,7 +96,9 @@ Server Action đặt tại `app/**/actions.ts` (`'use server'`), gọi core, tr�
 ## Bản đồ route production (Phase 2 dựng)
 
 ```
-app/(pha)/layout.tsx        bề mặt A: ThanhDieuHuong đáy (mobile) / đỉnh (md+), nền giấy dó
+app/(pha)/…                 bề mặt A: ThanhDieuHuong đáy (mobile) / đỉnh (md+), nền giấy dó.
+                            ⚠ CHƯA có layout.tsx — mỗi trang tự import ThanhDieuHuong, đúng
+                            cái nếp mà story 5-1 đã dẹp ở bề mặt B. Nợ, không phải thiết kế.
 app/(pha)/page.tsx          2-1 trang chủ  (promote từ uiworkshop/trang-chu)
 app/(pha)/gia-pha/page.tsx  2-6 tầng 2 — chi của mình (điểm vào; guest → chi đầu)
 app/(pha)/gia-pha/ca-toc/page.tsx        2-6 tầng 1
@@ -102,7 +110,8 @@ app/(pha)/them/…                         2-3/2-5 tự khai 4 bước + thêm n
 app/(pha)/loi-ke/…                       2-8 thu lời kể
 app/(pha)/toi/page.tsx                   2-9 trang Tôi (FR-55)
 app/dang-nhap/page.tsx  app/gan-node/…   2-2 (bề mặt A, khung DOC)
-app/ban-duyet/layout.tsx + 4 màn         3-1…3-4 (bề mặt B — chrome trần, desktop)
+app/admin/layout.tsx + 8 màn            3-1…3-4, 5-1…5-8 (bề mặt B — khung trần, desktop)
+app/admin/[...khong-co-man]/             bẫy 404 để app/admin/not-found.tsx chạy được
 app/api/auth/[...all]/route.ts           1-4 Better Auth handler
 app/api/media/…                          1-5 upload + stream có token thời hạn
 ```

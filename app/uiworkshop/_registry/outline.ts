@@ -42,7 +42,7 @@ export type View = {
  * trên điện thoại** — NFR §6 chốt "≤ 4 màn hình, ≤ 3 phút, điện thoại tầm trung, 4G ở quê". Nên
  * mặc định của bề mặt người trong họ là `mobile`, không phải `web`.
  *
- * Bàn duyệt tách riêng vì chrome khác hẳn: Hiệp duyệt hàng loạt, so sánh hai mảnh cạnh nhau, đọc
+ * Bàn làm việc tách riêng vì chrome khác hẳn: Hiệp duyệt hàng loạt, so sánh hai mảnh cạnh nhau, đọc
  * nhật ký sửa — những việc cần bề ngang, làm trên máy.
  */
 export type SectionKey = 'app' | 'admin';
@@ -56,7 +56,7 @@ export const SECTIONS: {
   viewport: ViewportMode;
 }[] = [
   { key: 'app', label: 'Người trong họ', note: 'web trên điện thoại', viewport: 'mobile' },
-  { key: 'admin', label: 'Bàn duyệt', note: 'màn rộng, duyệt & đối chiếu', viewport: 'web' },
+  { key: 'admin', label: 'Bàn làm việc', note: 'màn rộng, một trang ba cột', viewport: 'web' },
 ];
 
 /** Một nhóm yêu cầu = đơn vị điều hướng chính. */
@@ -91,10 +91,42 @@ export const FOUNDATION: View[] = [
  * ─────────────────────────────────────────────────────────────────────────────────────────────
  */
 export const REQ_GROUPS: ReqGroup[] = [
-  // 22/08/2026 — Đợt 1 ĐÃ PROMOTE TOÀN BỘ ra route thật (app/(pha), app/ban-duyet, app/dang-nhap,
+  // 22/08/2026 — Đợt 1 ĐÃ PROMOTE TOÀN BỘ ra route thật (app/(pha), app/admin, app/dang-nhap,
   // app/gan-node). Theo đúng luồng promote của specs/frontend-stack.md §5, bản dựng thử rời xưởng
   // khi thành màn thật: `trang-chu` (màn cuối còn lại) đã xoá, entry gỡ khỏi đây.
-  // Xưởng quay về vai trò gốc: design-system + chỗ dựng thử cho ĐỢT SAU.
+  // 24/08/2026 — ĐỢT SAU bắt đầu: bàn làm việc `/admin` (Epic 5) vào xưởng để duyệt bố cục
+  // trước khi dev.
+  //
+  // Cùng ngày, sau khi bố cục được chốt: bản chú giải tĩnh `admin-ban-lam-viec` đã XOÁ — nó là
+  // bản vẽ để bàn, và bàn xong thì bản vẽ hết việc; giữ hai bản dựng thử của cùng một màn chỉ
+  // sinh ra câu hỏi "bản nào đúng". Đọc lại nó ở lịch sử git nếu cần
+  // (`git log --diff-filter=D --name-only -- app/uiworkshop`).
+  //
+  // Vỏ của màn này (thanh trên · thanh việc · một hệ bề rộng) ĐÃ PROMOTE ra `app/admin` ngày
+  // 24/08 theo story 5-1.
+  //
+  // 25/08/2026 — CẢ EPIC 5 đã promote ra màn thật: canvas (5-2), chồng khẳng định (5-3), thêm
+  // người (5-4), duyệt vào phả (5-5), ghi thêm (5-6), nơi chốn (5-7). Bản dựng thử ở lại xưởng
+  // vì đúng MỘT lý do còn giá trị: nó xem được KHÔNG CẦN ĐĂNG NHẬP, mà mọi màn `/admin` thì đứng
+  // sau cổng quyền. Đó là chỗ duy nhất bàn bố cục được với người ngoài Ban tu phả.
+  //
+  // Khác biết trước khi đối chiếu hai bên: bản dựng thử KHÔNG lọc bán kính riêng tư và chỉ đi
+  // cạnh cha-con, còn màn thật lọc riêng tư (AD-13/AD-21) và đi cả cạnh vợ-chồng. Số người trên
+  // hai màn vì thế không khớp nhau, và đó không phải lỗi của bên nào.
+  {
+    section: 'admin',
+    fr: 'FR-3 · FR-64 · FR-65',
+    title: 'Bàn làm việc quản trị — một trang ba cột',
+    epics: ['E5'],
+    views: [
+      {
+        // Màn THẬT 1:1, chạy được: @xyflow/react + xepCay() thật, mock data, full width.
+        slug: 'admin-canvas-graph',
+        label: 'Bàn làm việc (chạy được)',
+        storySlugs: [],
+      },
+    ],
+  },
 ];
 
 /**

@@ -59,7 +59,14 @@ export async function requestAttachmentOp(
   }
 
   if (existing) {
-    // Pending request → replace it (same row, new target node).
+    /**
+     * Hàng cũ không `active` — đang `pending`, hoặc ĐÃ BỊ TỪ CHỐI (story 5-5). Cả hai đều dùng
+     * lại chính hàng ấy và đặt về `pending`.
+     *
+     * Đây là chỗ giữ cho `attachment_account_clan_uq` (unique trên clanId+accountId) không khoá
+     * đường quay lại của người bị từ chối: một lần từ chối là một lần chưa nhận, không phải một
+     * lệnh cấm vĩnh viễn.
+     */
     const before = { personId: existing.personId, status: existing.status };
     await tx
       .update(attachment)
@@ -143,6 +150,16 @@ export async function approveAttachmentOp(
   const [target] = await tx.select().from(attachment).where(eq(attachment.id, args.attachmentId));
   if (!target) return err('not-found', 'Không thấy yêu cầu gắn này.');
   if (target.status === 'active') return err('conflict', 'Yêu cầu này đã được duyệt rồi.');
+  /**
+   * Đã bị TỪ CHỐI thì không duyệt ngược lại được (thêm 25/08 sau code review).
+   *
+   * Không có nhánh này thì một trang hàng chờ cũ còn giữ id là đủ để lật ngược phán quyết của
+   * dòng họ, và nhật ký ghi cả hai verdict mà không nói cái nào có hiệu lực. Muốn nhận lại thì
+   * người ấy xin lại — `requestAttachmentOp` dùng lại chính hàng đó và đặt về `pending`.
+   */
+  if (target.status === 'rejected') {
+    return err('conflict', 'Yêu cầu này đã bị từ chối — người ấy cần xin lại.');
+  }
 
   const [voucher] = await tx
     .select()
@@ -169,6 +186,58 @@ export async function approveAttachmentOp(
 }
 
 /** Undo one's own attachment (pending or active). The row goes; the revision remembers. */
+/**
+ * TỪ CHỐI một yêu cầu vào phả — story 5-5.
+ *
+ * `core/identity` từ Đợt 1 có `approveAttachment` mà KHÔNG có đường từ chối, nên một yêu cầu chỉ
+ * có hai kết cục: được nhận, hoặc nằm `pending` vĩnh viễn. Bản dựng thử đã ghi cảnh báo này.
+ *
+ * Hàng được GIỮ LẠI ở trạng thái `rejected`, không xoá (tinh thần AD-4), và revision ghi cả lý do
+ * (AD-10). Quyền y hệt duyệt: một lần từ chối cũng là một phán quyết về ai thuộc về dòng họ này.
+ */
+export async function rejectAttachmentOp(
+  tx: Tx,
+  ctx: SessionContext,
+  args: { attachmentId: string; note: string },
+): Promise<Result<{ attachmentId: string }>> {
+  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
+    return err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới từ chối được yêu cầu vào phả.');
+  }
+  if (!isUuid(args.attachmentId)) return err('not-found', 'Không thấy yêu cầu gắn này.');
+
+  const [target] = await tx.select().from(attachment).where(eq(attachment.id, args.attachmentId));
+  if (!target) return err('not-found', 'Không thấy yêu cầu gắn này.');
+  if (target.status === 'active') {
+    return err('conflict', 'Yêu cầu này đã được duyệt — gỡ gắn là việc khác.');
+  }
+  if (target.status === 'rejected') return err('conflict', 'Yêu cầu này đã bị từ chối rồi.');
+
+  // Người từ chối cũng phải tự gắn với một node, y như người duyệt: phán quyết về dòng họ đến từ
+  // một chỗ đứng TRONG dòng họ, không đến từ một tài khoản trôi nổi (AD-8).
+  const [voucher] = await tx
+    .select()
+    .from(attachment)
+    .where(and(eq(attachment.accountId, ctx.accountId), eq(attachment.status, 'active')));
+  if (!voucher) return err('forbidden', 'Người từ chối phải tự gắn với một node trước đã.');
+
+  const before = { status: target.status, personId: target.personId, role: target.role };
+  await tx
+    .update(attachment)
+    .set({ status: 'rejected' })
+    .where(eq(attachment.id, target.id));
+  await writeRevision(tx, {
+    clanId: ctx.clanId,
+    accountId: ctx.accountId,
+    entity: 'attachment',
+    entityId: target.id,
+    action: 'update',
+    before,
+    after: { status: 'rejected' },
+    note: args.note.trim() || 'từ chối yêu cầu vào phả',
+  });
+  return ok({ attachmentId: target.id });
+}
+
 export async function detachSelfOp(tx: Tx, ctx: SessionContext): Promise<Result<{ detached: true }>> {
   const [own] = await tx.select().from(attachment).where(eq(attachment.accountId, ctx.accountId));
   if (!own) return err('not-found', 'Tài khoản chưa gắn với ai trong phả.');

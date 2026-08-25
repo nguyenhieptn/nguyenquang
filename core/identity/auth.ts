@@ -18,9 +18,10 @@ export async function resolveSessionImpl(headers: Headers): Promise<SessionConte
   const session = await auth.api.getSession({ headers });
   if (!session) return null;
 
-  // Single-clan era: the deployment's clan comes from configuration (clan-registry, AD-14).
-  // Before bootstrap there is no clan — an authenticated account still has no context.
-  const clanId = soleClanId();
+  // Single-clan era: the deployment's clan is read from the database (clan-registry, AD-14 —
+  // it stopped being an env var on 25/08/2026). Before bootstrap there is no clan row, so an
+  // authenticated account still has no context.
+  const clanId = await soleClanId();
   if (!clanId) return null;
 
   const accountId = session.user.id;
@@ -37,7 +38,7 @@ export async function resolveSessionImpl(headers: Headers): Promise<SessionConte
 
 /** Guest scoped to the sole existing clan (null when no clan seeded yet). */
 export async function guestContextImpl(): Promise<GuestContext | null> {
-  const clanId = soleClanId();
+  const clanId = await soleClanId();
   if (!clanId) return null;
   return { accountId: null, clanId, personId: null, role: 'guest' };
 }

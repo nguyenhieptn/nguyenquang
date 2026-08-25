@@ -176,6 +176,20 @@ Distance is measured over **both** accepted parent-child assertions **and** unio
 
 Two release gates, not optional checks: a test that seeds two clans and asserts neither can read the other, and a schema check that fails when any partitioned table lacks an enabled, forced policy. Each of these four details fails **silently** on its own — a policy that exists and does nothing looks identical in the schema to one that works.
 
+> **Sửa đổi 25/08/2026 — bảng `clan` là DANH BẠ, không phải dữ liệu phân vùng.**
+> `SELECT` trên riêng bảng `clan` nay mở, không cần clan context (migration `0002_clan_directory`).
+> Lý do: fail-closed trên bảng ấy làm câu *"triển khai này phục vụ dòng họ nào?"* không trả lời
+> được từ database, buộc phải chép id ra `GIAPHA_CLAN_ID` trong `.env` — một sự thật ở hai nơi,
+> lệch nhau sau mỗi lần dựng lại. Bảng `clan` chứa `id`, `name`, `settings` (họ · chữ đệm · đề
+> từ), `created_at`: dữ liệu về DÒNG HỌ, không về NGƯỜI.
+>
+> **Không đổi:** mọi lối GHI vào `clan` vẫn buộc `id = current_clan_id()`, và cả mười bảng phân
+> vùng giữ nguyên `USING (clan_id = current_clan_id())` fail-closed. Phần AD-7 thật sự bảo vệ —
+> cách ly dữ liệu gia phả — không suy suyển.
+>
+> Gate đã cập nhật cùng lượt và nay khẳng định điều mạnh hơn: danh bạ đọc được **và** ghi vẫn bị
+> chặn. Nới `SELECT` cho một bảng phân vùng vẫn làm gate gãy.
+
 ### AD-21 — The privacy radius binds every read path, not just the person record
 
 - **Binds:** FR-37, FR-55, FR-49, FR-39
@@ -321,7 +335,28 @@ gia-pha/
 | Apache AGE | Recursive CTE is faster than AGE for the ancestry walk this product does, and the clan is two orders of magnitude below where a graph store pays. Revisit only if a real query proves too slow. |
 | pgvector, pg_search, ParadeDB | They serve Quang Gia Tộc Sử (F7) only, which is outside Đợt 1. Adding them later is an extension install, not a migration. |
 | Speech-to-text provider | FR-47 stores audio; FR-8 transcribes it and is outside Đợt 1. The provider choice carries a privacy decision about the most sensitive data in the system and deserves its own deliberation. |
-| Multi-clan onboarding | AD-7 and AD-14 make a second clan possible; nothing builds the flow for registering one. That is a separate product decision, not an architectural one. |
+| Multi-clan onboarding | AD-7 and AD-14 make a second clan possible; nothing builds the flow for registering one. That is a separate product decision, not an architectural one. **Chốt 25/08/2026: nhận việc, làm ở Đợt 3** — xem ghi chú ngay dưới bảng. |
 | Deployment specifics | Host, domain, and TLS are settled at deploy time. Backup destinations are **not** deferred — AD-25 binds them. |
 | Metrics collection | Measured by hand at this scale — a monthly SQL query, not an instrumentation layer. |
+
+> ### Đợt 3 — Admin hệ thống (chốt 25/08/2026)
+>
+> **Hình dáng đã chốt:** một vai đứng TRÊN dòng họ, quản được nhiều dòng họ và đặt được quản trị
+> cho từng dòng họ. Chỗ đặt nó đã sẵn: `user` / `account` / `session` nằm ngoài phân vùng RLS
+> theo AD-8, nên vai cấp hệ thống thuộc về bảng `user` — không phải `attachment`.
+>
+> **Bốn thứ nó kéo theo, không thứ nào nhỏ:**
+> 1. Cột vai trên `user`, cộng các ops chạy xuyên dòng họ (tạo · liệt kê · đặt quản trị) — mỗi
+>    thao tác tự mở `withClanContext` cho dòng họ đích.
+> 2. `soleClanId()` **biến mất**. Phiên lấy clan từ `attachment` của tài khoản; khách chọn qua
+>    subdomain hoặc đoạn đường dẫn.
+> 3. Một bề mặt mới. `/admin` là bàn của MỘT dòng họ; bàn quản trị hệ thống là chỗ khác.
+> 4. **Sửa AD-8.** Hôm nay *"vai tính từ node"*; vai hệ thống tính từ **tài khoản**.
+>
+> **Vì sao không làm ở Đợt 2:** Epic 5 dựng `/admin` trên mô hình một-dòng-họ. Làm bây giờ thì
+> 5-2 → 5-8 xây trên một mô hình phiên sắp thay.
+>
+> **Nó KHÔNG xoá được bài toán con-gà-quả-trứng, chỉ lùi lên một tầng.** Vẫn phải có một hành
+> động từ ngoài tạo ra người có quyền đầu tiên. `scripts/create-admin.ts` giữ đúng vai đó, và ở
+> Đợt 3 chỉ đổi thứ nó tạo ra: admin hệ thống thay vì admin dòng họ.
 | Full role-management UI | AD-8 fixes how roles bind; the screen that administers them is post-Đợt-1. |

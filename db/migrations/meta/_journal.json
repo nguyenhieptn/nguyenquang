@@ -15,6 +15,34 @@
       "when": 1787449611017,
       "tag": "0001_rls",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1787449611018,
+      "tag": "0002_clan_directory",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1787449611019,
+      "tag": "0003_noi_chon",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1787449611020,
+      "tag": "0004_place_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1787666968712,
+      "tag": "0005_sync_snapshots",
+      "breakpoints": true
     }
   ]
 }

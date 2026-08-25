@@ -37,6 +37,12 @@ export type SeedRowClassification = 'khop-nguoi-co-san' | 'nguoi-moi' | 'nghi-tr
 export type SeedRowWarning =
   /** ten_cha named but found nowhere — row still importable, becomes a fragment root (FR-63). */
   | 'father-not-found'
+  /**
+   * ten_cha names someone who exists MORE THAN ONCE — two file rows, or two clan people.
+   * The import refuses to guess, so this row also arrives without its father. Attaching by
+   * hand afterwards is the only honest resolution: only a human knows which one is meant.
+   */
+  | 'father-ambiguous'
   /** another row in the same file carries this name — review before committing */
   | 'duplicate-in-file';
 

@@ -109,7 +109,6 @@ function KhungCayTrong({
             làm được, và cử chỉ ẩn là thứ đầu tiên mất với người ít dùng máy. */}
         <Controls
           showInteractive={false}
-          className="[&_button]:size-11 [&_button]:border-border [&_button]:bg-card [&_button]:fill-foreground"
         />
       </ReactFlow>
   );

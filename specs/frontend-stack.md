@@ -94,8 +94,23 @@ lại trên nhiều màn, và **đi theo màn khi dev promote**. Đặt trong `a
 xong là mất; đặt trong `components/ui/` thì lẫn với primitive.
 
 Ràng buộc giữ nguyên: không import tầng dữ liệu (AD-1), token có tên, không hardcode hex.
-Hiện có: `thanh-dieu-huong.tsx` (điều hướng gốc bề mặt A) · `thanh-ban-duyet.tsx` (chrome bề mặt
-B) · và bốn file của cây, `'use client'` cả bốn:
+Hiện có: `thanh-dieu-huong.tsx` (điều hướng gốc bề mặt A) · và bốn file của cây, `'use client'`
+cả bốn:
+
+**`components/admin/` — root THỨ BA, thêm 24/08/2026 (story 5-1).** Ngang hàng với
+`components/pha/` và `components/ui/`, KHÔNG nằm dưới `components/pha/` — đó là hai bề mặt khác
+nhau: `pha/` mặc giấy dó cho người trong họ, `admin/` là khung trần của bàn tu phả
+(`DESIGN.md § Colors › Bề mặt B`). Trộn vào một chỗ là mời người sau dùng nhầm tông.
+
+| File | Việc |
+|---|---|
+| `khung-admin.tsx` | `'use client'` — vỏ `/admin`: thanh trên, thanh việc, `<h1>` của màn, trạng thái thu/mở |
+| `man-admin.ts` | **Dữ liệu thuần, không phải component.** Bản đồ màn: nhãn thanh việc · `<h1>` · tiêu đề thẻ · mục nào đang mở |
+
+Ràng buộc y hệt `components/pha/`: không import `@/core/*` (build-contract § Phân tầng), token có
+tên, không hardcode hex.
+
+### Component của cây (`components/pha/`)
 
 | File | Việc |
 |---|---|

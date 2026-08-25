@@ -1,8 +1,9 @@
-# Sprint status — Gia phả Nguyễn Quang, Đợt 1
-# Sinh bởi sprint planning 22/08/2026. Cấu trúc: xem planning-artifacts/epics/epics.md.
+# Sprint status — Gia phả Nguyễn Quang, Đợt 1 + Đợt 2
+# Sinh bởi sprint planning 22/08/2026. Cấu trúc: xem planning-artifacts/epics/epics.md
+# (Đợt 1, epic 1-4) và planning-artifacts/epics/epics-dot-2.md (Đợt 2, epic 5).
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
-last_updated: 2026-08-23
+last_updated: 2026-08-25
 project: Gia phả dòng họ Nguyễn Quang
 project_key: giapha
 tracking_system: sprint-status.yaml
@@ -45,3 +46,26 @@ development_status:
   4-3-ra-soat-chat-luong: done
   4-4-tai-lieu-van-hanh: done
   epic-4-retrospective: optional
+
+  # ── Đợt 2 ── cấu trúc ở planning-artifacts/epics/epics-dot-2.md
+  #
+  # HAI lượt code review, 25/08 — xem review-epic-5-2026-08-25.md.
+  #   lượt 1 · 12 tầng trên cả epic     → 6 lỗi CHẶN + 38 mục nặng, vá hết
+  #   lượt 2 · 3 tầng soi chính bản vá  → 44 phát hiện, vá hết
+  # Lượt 2 dựng Firefox thật và ĐO, nên bắt được hai lỗi mà lượt 1 vá xong lại đẻ ra: nhãn trên
+  # thẻ sơn đè lên họ tên, và mọi màn dài mất trắng 34px đệm đáy. Bài học ghi lại ở đây vì nó là
+  # lý do bảy story từng bị trả về: xanh qua tsc/eslint/vitest/build KHÔNG phải xanh với người dùng.
+  #
+  # Chốt done: lint + tsc + build sạch, 219/219 test, và mọi phát hiện của cả hai lượt đã vá.
+  # Nợ còn lại nằm ở deferred-work.md, không nằm trong phạm vi story nào.
+  epic-5: done
+  5-1-vo-admin: done
+  5-2-canvas-neo: done
+  5-3-panel-khang-dinh: done
+  5-4-them-nguoi: done
+  5-5-duyet-vao-pha: done
+  5-6-ghi-them-thong-tin: done
+  5-7-noi-chon: done
+  # thêm 24/08 sau khi soi lại thanh việc — ClanSettings đọc được mà không ghi được
+  5-8-so-dong-ho: done
+  epic-5-retrospective: optional

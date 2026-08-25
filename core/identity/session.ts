@@ -9,9 +9,13 @@
  * `SessionContext` — but they are internal to core and not importable by adapters. Only
  * `index.ts` surfaces are. Tests may exercise ops directly with a fabricated context.
  *
- * Single-clan era: PRD NFR-7 keeps one clan in the data. clanId still comes from data, never
- * a constant (AD-14): the account's active attachment names it; an unattached account falls
- * back to the sole existing clan for public reads.
+ * Single-clan era: PRD NFR-7 keeps one clan in the data. clanId comes from DATA, never a
+ * constant (AD-14) — cụ thể là bảng `clan` trong database, đọc qua `soleClanId()`. Tài khoản đã
+ * gắn node thì `attachment` cấp thêm `personId` và `role`; tài khoản chưa gắn, và khách vãng
+ * lai, vẫn đứng trong đúng dòng họ ấy để đọc phần công khai.
+ *
+ * (Trước 25/08/2026 id nằm ở biến môi trường `GIAPHA_CLAN_ID`, và chú thích chỗ này từng ghi là
+ * "attachment đặt tên cho clan" — không đúng với mã lúc ấy. Nay cả hai đã khớp.)
  */
 import { cache } from 'react';
 import { headers } from 'next/headers';

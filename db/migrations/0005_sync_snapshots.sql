@@ -1,0 +1,22 @@
+-- KHÔNG LÀM GÌ CẢ — file này tồn tại để mang theo một SNAPSHOT (vá 25/08/2026 sau code review).
+--
+-- ── Chuyện gì đã xảy ra ────────────────────────────────────────────────────────────────────
+-- Ba migration `0002` · `0003` · `0004` được viết TAY, không qua `drizzle-kit generate`. Chúng
+-- chạy đúng, nhưng `db/migrations/meta/` vì thế dừng lại ở `0001_snapshot.json`.
+--
+-- `drizzle-kit generate` so schema hiện tại với snapshot MỚI NHẤT. Với snapshot còn ở `0001`, lần
+-- sinh migration tiếp theo — bất kể người sau định thêm cột gì — sẽ phát lại `CREATE TABLE
+-- "place"`, `ALTER TABLE "assertion" ADD COLUMN "place_id"` và cả hai chỉ mục, rồi **hỏng ngay
+-- trên mọi database đã migrate**. Người vấp phải nó là người sửa schema kế tiếp, và họ sẽ không
+-- hiểu vì sao.
+--
+-- ── Vì sao no-op chứ không phải chạy thật ──────────────────────────────────────────────────
+-- Toàn bộ DDL mà `generate` vừa sinh ra ĐÃ nằm trong `0003` và `0004`. Chạy lại là hỏng. Nhưng
+-- `_journal.json` cần một mục để `0005_snapshot.json` được coi là trạng thái hiện hành. Nên file
+-- SQL rỗng nghĩa, còn snapshot mới là thứ có giá trị.
+--
+-- ── Điều còn thiếu, ghi ra để không ai tưởng đã đủ ─────────────────────────────────────────
+-- Không có snapshot cho `0002` · `0003` · `0004`. Sinh migration TIẾP THEO thì đúng (chỉ cần
+-- snapshot mới nhất), nhưng không sinh lại được ba bước ở giữa. Chấp nhận: ba file ấy viết tay và
+-- đã chạy trên production; dựng lại chúng bằng máy không mang lại gì.
+SELECT 1;

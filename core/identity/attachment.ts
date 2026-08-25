@@ -11,6 +11,7 @@ import { resolveSession } from './session';
 import {
   approveAttachmentOp,
   detachSelfOp,
+  rejectAttachmentOp,
   listPendingAttachmentsOp,
   requestAttachmentOp,
   type AttachmentRole,
@@ -52,4 +53,24 @@ export async function detachSelf(): Promise<Result<{ detached: true }>> {
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập.');
   return withClanContext(session.clanId, (tx) => detachSelfOp(tx, session));
+}
+
+/**
+ * Từ chối một yêu cầu vào phả — story 5-5.
+ *
+ * Trước 25/08/2026 `core/identity` chỉ có đường DUYỆT, nên một yêu cầu chỉ có hai kết cục: được
+ * nhận, hoặc nằm `pending` vĩnh viễn. Đó là nửa còn thiếu của FR-64.
+ *
+ * Lý do đi vào revision (AD-10), không đi tới người xin: bề mặt A chỉ nói rằng lời nhận chỗ chưa
+ * được nhận, và mời chọn lại. Sổ của ban tu phả không phải một hộp thư.
+ */
+export async function rejectAttachment(
+  attachmentId: string,
+  note: string,
+): Promise<Result<{ attachmentId: string }>> {
+  const session = await resolveSession();
+  if (!session) return err('unauthenticated', 'Cần đăng nhập.');
+  return withClanContext(session.clanId, (tx) =>
+    rejectAttachmentOp(tx, session, { attachmentId, note }),
+  );
 }

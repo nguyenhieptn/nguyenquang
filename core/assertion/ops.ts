@@ -21,6 +21,7 @@ import {
   authUser,
   notification,
   person,
+  place,
   revision,
   source,
   union,
@@ -32,6 +33,7 @@ import {
 import { chuanHoa } from '@/core/so-khop';
 import { writeRevision } from '@/core/revision';
 import { err, isUuid, ok, type Result } from '@/core/types';
+import { DON_TRI } from '@/core/person/chong';
 import type { ViewerContext } from '@/core/identity/session';
 import type { AssertionSpec, GenealogicalDate, SourceSpec } from './index';
 
@@ -270,6 +272,8 @@ async function insertAssertionRow(
     kind: AssertionKind;
     objectPersonId?: string;
     unionId?: string;
+    /** kind 'place' (FR-65) — nơi được nhắc tới. */
+    placeId?: string;
     value: unknown;
     sourceId: string;
     confidence: Confidence;
@@ -283,6 +287,7 @@ async function insertAssertionRow(
     kind: row.kind,
     objectPersonId: row.objectPersonId ?? null,
     unionId: row.unionId ?? null,
+    placeId: row.placeId ?? null,
     value: row.value,
     sourceId: row.sourceId,
     confidence: row.confidence,
@@ -336,6 +341,20 @@ export async function addAssertionOp(
     case 'death': {
       const problem = invalidGenealogicalDate(spec.value);
       if (problem) return err('invalid', `${spec.kind}: ${problem}`);
+      break;
+    }
+    case 'place': {
+      if (!['que-quan', 'tru-quan', 'an-tang'].includes(spec.role)) {
+        return err('invalid', `unknown place role '${spec.role}'`);
+      }
+      // `place.id` là cột uuid: một chuỗi sai định dạng NÉM 22P02 chứ không trả rỗng, và cú ném
+      // ấy thoát khỏi hợp đồng Result thành một 500. Mọi nhánh khác của file này đều gác trước.
+      if (!isUuid(spec.placeId)) return err('not-found', 'Không thấy nơi này trong danh mục.');
+      // Nơi phải CÓ TRONG DANH MỤC trước. Không cho một khẳng định tự đẻ ra một nơi: đó đúng là
+      // đường mà "hai lần gõ cùng một cái tên thành hai nơi khác nhau" quay lại (FR-65).
+      const [noi] = await tx.select().from(place).where(eq(place.id, spec.placeId));
+      if (!noi) return err('not-found', 'Không thấy nơi này trong danh mục.');
+      if (noi.mergedInto) return err('conflict', 'Nơi này đã được gộp vào một nơi khác.');
       break;
     }
     case 'parent-child': {
@@ -397,6 +416,18 @@ export async function addAssertionOp(
           subjectPersonId: args.personId,
           kind: spec.kind,
           value: spec.value,
+          sourceId,
+          confidence,
+        }),
+      );
+      break;
+    case 'place':
+      created.push(
+        await insertAssertionRow(tx, ctx, {
+          subjectPersonId: args.personId,
+          kind: 'place',
+          placeId: spec.placeId,
+          value: { role: spec.role },
           sourceId,
           confidence,
         }),
@@ -489,6 +520,43 @@ export async function promoteAssertionOp(
   if (!row) return err('not-found', 'assertion not found in this clan');
   if (row.status !== 'live') return err('conflict', 'a hidden assertion cannot be promoted');
   if (row.tier === 'official') return err('conflict', 'assertion is already official');
+
+  /**
+   * ── MỘT giá trị chính thức cho mỗi loại đơn trị (siết 25/08 sau code review lượt hai) ─────
+   * Op này KHÔNG hạ giá trị cũ, và hệ không có phép hạ tầng. Nên nâng thêm một khẳng định cùng
+   * loại là tạo ra hai giá trị cùng chính thức về cùng một chuyện, và không gì gỡ được: `person`
+   * chiếu ra một trong hai theo thứ tự tình cờ, và cả hai đều không loại được từ màn nào.
+   *
+   * Gác Ở ĐÂY chứ không ở giao diện. Cột phải của màn cây đã ẩn nút nâng trên dòng thua, nhưng
+   * `/admin/hang-cho` duyệt hàng loạt thì gọi thẳng op này — hai cú bấm là hai giá trị chính
+   * thức, và `duyetHangLoat` lặp nên một lượt có thể đẻ ra vài cặp. AD-24: quyền và luật là việc
+   * của core, kể cả khi bị POST thẳng không qua UI.
+   *
+   * Đường đổi ý vẫn mở, và là hai bước có chủ ý: LOẠI giá trị đang giữ (`rejectAssertion` — nó
+   * rời dữ liệu sống nhưng ở lại nhật ký, AD-4), rồi nâng giá trị kia.
+   */
+  if (DON_TRI[row.kind]) {
+    const [dangGiu] = await tx
+      .select({ id: assertion.id })
+      .from(assertion)
+      .where(
+        and(
+          eq(assertion.clanId, ctx.clanId),
+          eq(assertion.subjectPersonId, row.subjectPersonId),
+          eq(assertion.kind, row.kind),
+          eq(assertion.tier, 'official'),
+          eq(assertion.status, 'live'),
+        ),
+      )
+      .limit(1);
+    if (dangGiu) {
+      return err(
+        'conflict',
+        'Đã có một giá trị chính thức cho mục này. Loại giá trị đang giữ trước, rồi nâng giá trị này lên.',
+        { dangGiuAssertionId: dangGiu.id },
+      );
+    }
+  }
 
   const personBefore = await loadPerson(tx, row.subjectPersonId);
   if (!personBefore) return err('not-found', 'subject person not found'); // FK makes this a bug guard
@@ -730,6 +798,16 @@ export function describeAssertionValue(kind: AssertionKind, value: unknown): str
     case 'note': {
       const t = typeof v.text === 'string' ? v.text : '';
       return t ? `ghi chú "${t}"` : 'ghi chú';
+    }
+    case 'place': {
+      const vai = typeof v.role === 'string' ? v.role : '';
+      return vai === 'que-quan'
+        ? 'quê quán'
+        : vai === 'tru-quan'
+          ? 'trú quán'
+          : vai === 'an-tang'
+            ? 'nơi an táng'
+            : 'nơi chốn';
     }
     default:
       return 'thông tin';

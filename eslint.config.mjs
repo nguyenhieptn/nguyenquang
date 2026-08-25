@@ -12,6 +12,10 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Sản phẩm biên dịch của `npm run test:so-khop`. Flat config KHÔNG đọc `.gitignore`, nên
+    // không khai ở đây thì `npm run lint` đỏ 13 lỗi trên máy của bất cứ ai đã chạy bộ test ấy —
+    // và xanh trên máy chưa chạy. Một hàng rào chỉ đúng tuỳ máy thì không phải hàng rào.
+    ".test-out/**",
   ]),
 
   // ── AD-1: mọi truy cập dữ liệu đi qua core/ ────────────────────────────────────────────────

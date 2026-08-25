@@ -9,7 +9,18 @@ import { revision } from '@/db/schema';
 type RevisionInput = {
   clanId: string;
   accountId: string;
-  entity: 'person' | 'assertion' | 'source' | 'union' | 'recording' | 'attachment' | 'merge';
+  entity:
+    | 'person'
+    | 'assertion'
+    | 'source'
+    | 'union'
+    | 'recording'
+    | 'attachment'
+    | 'merge'
+    /** FR-65, story 5-7 — nơi chốn là thực thể, nên mọi lần tạo/gộp nó cũng vào nhật ký (AD-10). */
+    | 'place'
+    /** AD-14, story 5-8 — tên họ · chữ đệm · đề từ là DỮ LIỆU, nên đổi chúng cũng vào nhật ký. */
+    | 'clan';
   entityId: string;
   action:
     | 'create'

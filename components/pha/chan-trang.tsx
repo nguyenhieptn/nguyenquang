@@ -41,8 +41,8 @@ const DI_TIEP: Duong[] = [
   { nhan: 'Cả tộc', href: '/gia-pha/ca-toc' },
   { nhan: 'Cây gia tộc', href: '/gia-pha/duong-cua-toi' },
   // "Mảnh chưa nối" (FR-48) sống trên màn hợp nhất của ban duyệt — đó là chỗ duy nhất nối được.
-  { nhan: 'Mảnh chưa nối', href: '/ban-duyet/hop-nhat' },
-  { nhan: 'Bàn duyệt', href: '/ban-duyet' },
+  { nhan: 'Mảnh chưa nối', href: '/admin/hop-nhat' },
+  { nhan: 'Bàn làm việc', href: '/admin' },
 ];
 
 /**

@@ -51,6 +51,8 @@ export const ASSERTION_KINDS = [
   'parent-child', // subject = CHILD, objectPersonId = PARENT. value: { relation: 'blood'|'adopted'|'heir' }
   'union-partner', // subject = person, unionId set. value: { role?: 'chinh-pha'|'ngoai-pha' }
   'note', // value: { text }
+  // FR-65 (story 5-7): placeId trỏ vào `place`. value: { role: 'que-quan'|'tru-quan'|'an-tang' }
+  'place',
 ] as const;
 export type AssertionKind = (typeof ASSERTION_KINDS)[number];
 
@@ -63,6 +65,40 @@ export const clan = pgTable('clan', {
   settings: jsonb('settings').notNull().default(sql`'{}'::jsonb`),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
+
+/**
+ * FR-65 — nơi chốn là một THỰC THỂ, không phải chữ tự do.
+ *
+ * `parentUnit` là thứ DUY NHẤT phân biệt hai "Quang Trung" (Định Hoá vs Vũng Tàu). Nó không phải
+ * trang trí, nên nó nằm trên bảng chứ không nhét vào một cột ghi chú.
+ *
+ * `*Folded` là AD-16: mọi so khớp tên đi qua bản đã gấp dấu, tên gốc giữ nguyên dấu.
+ * `mergedInto` là AD-3, dựng sẵn cho việc gộp (chưa làm ở 5-7 — xem deferred-work.md).
+ */
+export const place = pgTable(
+  'place',
+  {
+    id: uuid('id').primaryKey(),
+    clanId: uuid('clan_id')
+      .notNull()
+      .references(() => clan.id),
+    name: text('name').notNull(),
+    nameFolded: text('name_folded').notNull(),
+    /** Đơn vị hành chính cha: "Định Hoá, Thái Nguyên". Trống là hợp lệ (FR-65). */
+    parentUnit: text('parent_unit').notNull().default(''),
+    parentUnitFolded: text('parent_unit_folded').notNull().default(''),
+    mergedInto: uuid('merged_into'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    index('place_folded_idx').on(t.clanId, t.nameFolded),
+    /**
+     * Ràng buộc THẬT cho phép chống trùng của FR-65. Phép so trong `addPlaceOps` là đọc-rồi-ghi,
+     * nên hai người tạo cùng lúc đều lọt qua nó; chỉ chỉ mục này mới chặn được (vá 25/08).
+     */
+    uniqueIndex('place_folded_uq').on(t.clanId, t.nameFolded, t.parentUnitFolded),
+  ],
+);
 
 export const person = pgTable(
   'person',
@@ -159,6 +195,8 @@ export const assertion = pgTable(
     objectPersonId: uuid('object_person_id').references(() => person.id),
     /** union-partner: the union joined. */
     unionId: uuid('union_id').references(() => union.id),
+    /** kind 'place' (FR-65): which place. Meaningless for every other kind. */
+    placeId: uuid('place_id').references(() => place.id),
     value: jsonb('value').notNull().default(sql`'{}'::jsonb`),
     sourceId: uuid('source_id')
       .notNull()
@@ -195,7 +233,13 @@ export const attachment = pgTable(
       .notNull()
       .references(() => person.id),
     role: text('role').$type<'admin' | 'branch-head' | 'member'>().notNull().default('member'),
-    status: text('status').$type<'pending' | 'active'>().notNull().default('pending'),
+    /**
+     * `rejected` thêm 25/08/2026 (story 5-5). Hàng bị từ chối GIỮ LẠI, không xoá — cùng tinh
+     * thần AD-4: thứ từng được ghi thì không rời khỏi sổ. Và vì `requestAttachmentOp` đã có
+     * nhánh "hàng cũ không `active` thì dùng lại, đặt về `pending`", người bị từ chối vẫn xin
+     * lại được mà không vướng `attachment_account_clan_uq`.
+     */
+    status: text('status').$type<'pending' | 'active' | 'rejected'>().notNull().default('pending'),
     vouchedByAttachmentId: uuid('vouched_by_attachment_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },
@@ -265,7 +309,19 @@ export const revision = pgTable(
       .references(() => clan.id),
     accountId: text('account_id').notNull(),
     entity: text('entity')
-      .$type<'person' | 'assertion' | 'source' | 'union' | 'recording' | 'attachment' | 'merge'>()
+      .$type<
+        | 'person'
+        | 'assertion'
+        | 'source'
+        | 'union'
+        | 'recording'
+        | 'attachment'
+        | 'merge'
+        /** FR-65, story 5-7. `$type` là TS-only nên thêm giá trị không cần migration. */
+        | 'place'
+        /** AD-14, story 5-8 — sửa tên họ / chữ đệm / đề từ. */
+        | 'clan'
+      >()
       .notNull(),
     entityId: uuid('entity_id').notNull(),
     action: text('action')
@@ -344,6 +400,7 @@ export const mergeProposal = pgTable(
 /** Every clan-partitioned table — the RLS migration and the AD-20 schema gate iterate this list. */
 export const PARTITIONED_TABLES = [
   'person',
+  'place',
   'source',
   'union',
   'assertion',

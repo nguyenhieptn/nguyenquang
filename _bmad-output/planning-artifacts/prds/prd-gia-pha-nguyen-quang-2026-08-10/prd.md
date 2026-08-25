@@ -2,7 +2,7 @@
 title: "PRD — Gia phả dòng họ Nguyễn Quang"
 status: final
 created: 2026-08-10
-updated: 2026-08-10
+updated: 2026-08-24
 ---
 
 # Gia phả dòng họ Nguyễn Quang
@@ -151,6 +151,42 @@ Mặc định với người còn sống: **chỉ năm sinh, không ngày tháng
 
 **FR-39 — Nhật ký sửa.** *(gộp FR-5 cũ)*
 Ai sửa, khi nào, từ giá trị nào sang giá trị nào. Xem lại được cây tại một thời điểm bất kỳ trong quá khứ.
+
+---
+
+## 5b. Xây gì thêm — Đợt 2
+
+> Thêm 24/08/2026. §5 là Đợt 1 và đã chốt; mục này không sửa gì ở trên.
+> Sinh từ buổi thiết kế lại phân hệ quản trị (`_bmad-output/brainstorming/brainstorm-thiet-ke-lai-admin-2026-08-23/`),
+> gắn với Epic 5 ở `_bmad-output/planning-artifacts/epics/epics-dot-2.md`.
+
+**FR-65 — Nơi chốn là dữ liệu, không phải chữ.**
+
+Dòng họ không ở một chỗ. Có nhánh ở **Quang Trung, Định Hoá (Thái Nguyên)**, có nhánh ở **Quang Trung, Vũng Tàu** — hai tên giống hệt nhau, hai nơi khác hẳn nhau. Tên xã phường ở Việt Nam trùng nhau hàng loạt, nên nơi chốn để dưới dạng chữ tự do là **không dùng được**: không tra được, không gom nhóm được, không điều hướng theo được, và hai lần gõ cùng một cái tên thành hai nơi khác nhau.
+
+**Nơi phải là một thực thể**, mang tên và **đơn vị hành chính cha** — đủ để phân biệt hai cái "Quang Trung". Toạ độ là tuỳ chọn, để trống được.
+
+**Gắn vào người bằng khẳng định, như mọi dữ liệu khác.** Có nguồn (FR-1), có mức tin cậy (FR-2), vào Tầng tồn nghi trước (FR-3), ghi nhật ký (FR-39). Không có ngoại lệ nào cho nơi.
+
+**Ít nhất ba vai:**
+
+| Vai | Ghi gì | Ghi chú |
+|---|---|---|
+| **Quê quán** | nguyên quán của người | phả cổ luôn chép |
+| **Trú quán** | nơi đang ở / từng ở | có mốc thời gian thì càng tốt, không bắt buộc |
+| **Nơi an táng** | mộ phần | phả Việt chép cả *nguyên táng · cải táng · di táng* — ba lần táng là **ba khẳng định cùng đúng**, xếp theo thời gian, không phải mâu thuẫn. Đợt 2 chỉ cần chứa được một; phân loại ba là việc sau |
+
+**Nhập không được chặn luồng.** NFR-5 buộc thêm một người ≤ 4 màn ≤ 3 phút. Nên **không** có bước "tạo danh mục nơi trước rồi mới nhập người". Người nhập **gõ tự do**; hệ thống so khớp với các nơi đã có, bày ra vài ứng viên kèm mức chắc chắn, và người nhập **chọn một hoặc tạo mới ngay tại chỗ**. Dùng lại đúng bộ máy so khớp của FR-48 — không dựng cái mới.
+
+**Trùng thì gộp được, gộp nhầm thì tách được.** Y hệt FR-48 với người: hai "Quang Trung" nhập rời nhau, sau phát hiện là một, phải gộp lại được; gộp sai phải tách ra được.
+
+**Nơi đi qua bán kính riêng tư.** Nơi ở của người **còn sống** là địa chỉ — theo FR-37 và mặc định ở §11, phải ẩn với người ngoài bán kính 3 bậc. Quê quán của người đã khuất thì không. Nơi không được là cửa hậu làm rò thứ FR-37 đang giữ.
+
+**Trống là hợp lệ.** Phần lớn các cụ trong phả không còn ai nhớ chính xác quê quán. Bỏ trống là một trạng thái đúng, không phải một lỗi cần nhắc.
+
+**Không thuộc FR này:** bản đồ, tích hợp dịch vụ bản đồ ngoài, bắt buộc toạ độ GPS, tự động chuẩn hoá theo danh mục hành chính nhà nước.
+
+**Cái nó mở khoá.** FR-65 là nền dữ liệu mà mấy thứ đã nằm sẵn trong backlog đều đứng lên trên: **FR-62 bản đồ di cư** (§7), **trang "Đất tổ" cho từng địa danh** và **QR mộ phần & bản đồ tảo mộ** (`addendum.md` §E). Không có FR-65 thì không cái nào trong số đó viết được.
 
 ---
 

@@ -18,6 +18,7 @@ import {
   getAncestryPathOps,
   getBranchViewOps,
   getClanOverviewOps,
+  getNeighborhoodOps,
   relationshipDistanceOps,
   searchPersonsOps,
   type RawPersonCard,
@@ -122,6 +123,60 @@ export async function getAncestryPath(personId: string): Promise<Result<Ancestry
   if (!raw.ok) return raw;
   const names = await accountNames(accountIdsOf(raw.value.steps));
   return ok({ ...raw.value, steps: raw.value.steps.map((s) => finishCard(s, names)) });
+}
+
+/**
+ * Story 5-2 — vùng lân cận quanh một NEO, cho canvas của bàn làm việc.
+ *
+ * Vì sao phải có bề mặt riêng thay vì để adapter gọi `bfsDistances`: `docs/build-contract.md` cấm
+ * `app/` import thẳng tầng ops của core. Và vùng lân cận là cấu trúc DẪN XUẤT (AD-5) — quy đổi
+ * "cha nằm ngoài vùng ⇒ gốc của bố cục" là việc của core, không phải của màn.
+ */
+export type NeighborhoodNode = CoupleNode & {
+  /** Node cha, CHỈ khi cha cũng nằm trong vùng. `null` ⇒ gốc của bố cục (xem `xepCay`). */
+  parentNodeId: string | null;
+  /** Khoảng cách BFS tới neo; `0` là chính neo. */
+  distance: number;
+  /** Cụ xa nhất hiện biết của mảnh (FR-63) — KHÁC với "tình cờ đứng ở rìa bán kính". */
+  isFragmentRoot: boolean;
+};
+export type Neighborhood = {
+  anchorPersonId: string;
+  radius: number;
+  nodes: NeighborhoodNode[];
+  /**
+   * `true` khi bán kính đã trùm hết mảnh — nới thêm KHÔNG ra thêm node nào.
+   *
+   * So theo TẬP NODE, không theo số người trong bán kính: bạn đời ngoài bán kính vẫn hiện trên
+   * thẻ, nên hai con số ấy lệch nhau và phép so cũ báo "chưa cạn" khi màn thật ra không đổi.
+   */
+  exhausted: boolean;
+  /**
+   * Đã chạm bán kính lớn nhất. KHÁC `exhausted`: vùng có thể chưa cạn, nhưng không nới thêm được.
+   * Màn cần phân biệt để nói đúng lý do nút "mở thêm một đời" bị tắt.
+   */
+  atMaxRadius: boolean;
+};
+export async function getNeighborhood(
+  anchorPersonId: string,
+  radius: number,
+): Promise<Result<Neighborhood>> {
+  const viewer = await resolveViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  const raw = await withClanContext(viewer.clanId, (tx) =>
+    getNeighborhoodOps(tx, viewer, anchorPersonId, radius),
+  );
+  if (!raw.ok) return raw;
+  const cards = raw.value.nodes.flatMap((n) => [n.person, ...n.partners]);
+  const names = await accountNames(accountIdsOf(cards));
+  return ok({
+    ...raw.value,
+    nodes: raw.value.nodes.map((n) => ({
+      ...n,
+      person: finishCard(n.person, names),
+      partners: n.partners.map((p) => finishCard(p, names)),
+    })),
+  });
 }
 
 /** FR-11/FR-48 — folded-name search with đời + chi context, radius-filtered (AD-16). */

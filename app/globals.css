@@ -158,8 +158,8 @@
    * màu: khối này luôn có viền trái đặc + câu chữ nói rõ bot thấy gì. */
   --color-canh-bao-nen: #e8edf3;
 
-  /* ── BỀ MẶT B (bàn duyệt) — khung TRẦN ────────────────────────────────────
-   * DESIGN.md § Colors › Bề mặt B. Bàn duyệt KHÔNG mặc giấy dó: khung là đồ
+  /* ── BỀ MẶT B (bàn làm việc) — khung TRẦN ────────────────────────────────────
+   * DESIGN.md § Colors › Bề mặt B. Bàn làm việc KHÔNG mặc giấy dó: khung là đồ
    * nghề của người vận hành, không phải nội dung của dòng họ.
    * Ranh giới: pixel nào biểu diễn MỘT KHẲNG ĐỊNH VỀ NGƯỜI THẬT thì vẫn theo
    * luật bề mặt A (serif-phả, nét đứt tồn nghi, chip tin cậy). Còn lại trần. */
@@ -202,4 +202,49 @@
       var(--muted) 10px
     );
   }
+}
+
+/* ── Nút phóng/thu của React Flow — CỐ Ý NẰM NGOÀI MỌI `@layer` ────────────────────────────
+ * `@xyflow/react/dist/style.css` không có một `@layer` nào. CSS không phân lớp THẮNG CSS phân
+ * lớp bất kể độ đặc hiệu, mà Tailwind v4 phát toàn bộ utilities vào `@layer utilities` — nên
+ * `[&_button]:size-11` đứng trên `<Controls>` suốt Đợt 1 và chưa từng áp một pixel nào. Nút vẫn
+ * 26px, dưới sàn chạm 44px của `EXPERIENCE.md § Accessibility Floor`, và không ai thấy vì màn
+ * trông vẫn bình thường.
+ *
+ * Hai lối vá, dùng đúng lối cho từng thứ:
+ *   · Thứ xyflow ĐÃ mở biến ra thì đặt biến. Biến không đấu lớp với ai — nó chỉ là giá trị mà
+ *     chính quy tắc của xyflow đọc vào. Sạch hơn `!important`, và không đè mất hover của họ.
+ *   · Thứ họ ghi cứng (26×26, 12px icon) thì `!important` — thứ duy nhất thắng bất kể lớp.
+ *
+ * Đặt ở đây, ngoài `@layer`, vì thứ tự nạp giữa tệp này và CSS mà component `import` là KHÔNG
+ * bảo đảm; `!important` làm nó không còn phụ thuộc vào thứ tự nữa.
+ */
+/* KÍCH THƯỚC áp cho MỌI bề mặt: sàn chạm 44px là luật của cả sản phẩm, không của riêng bàn làm
+ * việc — bề mặt A cũng có canvas cây (`components/pha/khung-cay.tsx`) và cũng cầm bằng ngón tay.
+ * Bóng đổ cũng vậy: `DESIGN.md` cấm đổ bóng ở bất cứ đâu. */
+.react-flow__controls {
+  --xy-controls-box-shadow: none;
+}
+
+/* MÀU thì KHÔNG toàn cục. Bề mặt A là giấy dó (`bg-card`), bề mặt B là bàn trần (`ban-o`) —
+ * `DESIGN.md § Colors › Bề mặt B`. Bản vá đầu 25/08 đặt màu ở `.react-flow__controls` trần, nên
+ * nó lặng lẽ sơn bảng màu bàn làm việc lên cả canvas công khai. Cùng lớp lỗi mà chính nó đang
+ * sửa: một luật đặt rộng hơn phạm vi nó thuộc về. */
+.van-nut-cay-admin {
+  --xy-controls-button-background-color: var(--color-ban-o);
+  --xy-controls-button-background-color-hover: var(--color-ban-nen);
+  --xy-controls-button-border-color: var(--color-ban-vien);
+  --xy-controls-button-color: var(--color-foreground);
+  --xy-controls-button-color-hover: var(--color-foreground);
+}
+
+.react-flow__controls-button {
+  width: 44px !important;
+  height: 44px !important;
+  padding: 12px !important;
+}
+
+.react-flow__controls-button svg {
+  max-width: 18px !important;
+  max-height: 18px !important;
 }

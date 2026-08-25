@@ -427,9 +427,75 @@ export const NGUOI: Nguoi[] = [
     tinCay: 'theo-loi-ke',
     manhId: 'm-b',
   },
+
+  // ── Vợ (PRD §11: con dâu GHI TÊN THẬT ĐẦY ĐỦ) ─────────────────────────────
+  //
+  // Thêm 24/08/2026 để bàn làm việc có ca thật mà vẽ: một node trên canvas phải gộp cả người
+  // bạn đời vào CÙNG MỘT THẺ, không tách thành hai node — hai node cạnh nhau đọc thành hai
+  // người rời, mà vợ chồng là một chỗ trong phả.
+  //
+  // Người kết hôn vào họ có `chaId: null` nên KHÔNG bao giờ là con của ai — BFS cha-con không
+  // chạm tới họ, và đó là lý do canvas phải đi tìm họ qua `voChongId` chứ không qua cạnh.
+  {
+    id: 'n-041',
+    hoTen: 'Phạm Thị Nhàn',
+    gioiTinh: 'nu',
+    namSinh: 1925,
+    namMat: 2003,
+    conSong: false,
+    chaId: null,
+    meId: null,
+    voChongId: 'n-004',
+    ketHonVaoHo: true,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-042',
+    hoTen: 'Đỗ Thị Vân',
+    gioiTinh: 'nu',
+    namSinh: 1953,
+    conSong: true,
+    chaId: null,
+    meId: null,
+    voChongId: 'n-005',
+    ketHonVaoHo: true,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    id: 'n-043',
+    hoTen: 'Lê Thị Thu Hà',
+    gioiTinh: 'nu',
+    namSinh: 1981,
+    conSong: true,
+    chaId: null,
+    meId: null,
+    voChongId: 'n-007',
+    ketHonVaoHo: true,
+    tang: 'chinh-pha',
+    tinCay: 'chac-chan',
+    manhId: 'm-a',
+  },
+  {
+    // Vừa được khai, chưa đối chiếu — thẻ của ông Hùng vì thế mang chất liệu tồn nghi ở dòng vợ.
+    id: 'n-044',
+    hoTen: 'Bùi Thị Mến',
+    gioiTinh: 'nu',
+    conSong: true,
+    chaId: null,
+    meId: null,
+    voChongId: 'n-009',
+    ketHonVaoHo: true,
+    tang: 'ton-nghi',
+    tinCay: 'theo-loi-ke',
+    manhId: 'm-a',
+  },
 ];
 
-/** Người đang đăng nhập ở màn BÀN DUYỆT — bán kính riêng tư (FR-37) tính từ đây. */
+/** Người đang đăng nhập ở màn BÀN LÀM VIỆC — bán kính riêng tư (FR-37) tính từ đây. */
 export const TOI_ID = 'n-007';
 
 /**
@@ -534,6 +600,19 @@ export const KHANG_DINH: KhangDinh[] = [
     ngayKhai: '2026-08-12',
     tinCay: 'ton-nghi',
     tang: 'ton-nghi',
+  },
+  {
+    // MÂU THUẪN cố ý: cùng một người, HAI năm sinh khác nhau, từ hai nguồn khác nhau, ở hai
+    // TẦNG khác nhau. Đây là ca mà panel chồng khẳng định phải xử được — và là lý do panel
+    // không thể là một cái form có ô "năm sinh".
+    id: 'k-008',
+    veNguoiId: 'n-009',
+    menhDe: 'Nguyễn Quang Hùng sinh năm 1973',
+    nguon: 'Sổ hộ khẩu cũ — ảnh chụp 07/2026',
+    nguoiKhai: 'Nguyễn Quang Hiệp',
+    ngayKhai: '2026-07-04',
+    tinCay: 'chac-chan',
+    tang: 'chinh-pha',
   },
   {
     // Cùng một người, hai khẳng định KHÁC MỨC TIN CẬY. Cố ý: mức tin cậy gắn vào KHẲNG ĐỊNH chứ
@@ -769,7 +848,7 @@ export const SO_MANH_CHUA_NOI = MANH.length;
 /** Tổng giờ ghi âm đã thu — chỉ số M3 của PRD §9. */
 export const GIO_GHI_AM = LOI_KE.reduce((s, l) => s + l.thoiLuong, 0) / 3600;
 
-// ── BÀN DUYỆT — nạp khung dòng họ (FR-51 + FR-48) ───────────────────────────
+// ── BÀN LÀM VIỆC — nạp khung dòng họ (FR-51 + FR-48) ───────────────────────────
 //
 // Đây là dữ liệu của bề mặt B: các DÒNG trong file CSV Hiệp điền tay ngoài hệ thống, ở khoảnh
 // khắc TRƯỚC khi được ghi vào phả. Chúng chưa phải `Nguoi` — một dòng CSV chỉ trở thành người
@@ -1148,3 +1227,95 @@ export const THONG_BAO_NODE: ThongBaoNode[] = [
     ],
   },
 ];
+
+// ── Xin vào phả (FR-64) ─────────────────────────────────────────────────────
+//
+// Người đã có TÀI KHOẢN nhưng chưa GẮN NODE. Hai lớp tách rời (PRD §5, FR-64): tài khoản chứng
+// minh sở hữu email; gắn node chứng minh *là người này trong dòng họ*, và việc ấy cần người
+// trong họ bảo lãnh hoặc quản trị xác nhận.
+//
+// ⚠️ Trên production luồng này ĐANG ĐỨT: `listPendingAttachments`/`approveAttachment` có trong
+// core nhưng không màn nào gọi, nên người xin nằm `pending` vĩnh viễn. Đây là lý do story 5-5
+// tồn tại — và lý do mock này có mặt trong xưởng trước khi có màn thật.
+
+export type XinVaoPha = {
+  id: string;
+  hoTen: string;
+  taiKhoan: string;
+  /** Người này nhận mình là ai TRONG PHẢ — câu tự khai, chưa phải sự thật. */
+  nhanLaGi: string;
+  /** Node họ nhận là chỗ của mình — canvas vẽ node MỜ cạnh đúng chỗ này. */
+  canhNguoiId: string;
+  xinNgay: string;
+  /** Ai trong họ bảo lãnh; `null` = chưa ai, quản trị phải tự đối chiếu. */
+  baoLanh: string | null;
+};
+
+export const XIN_VAO_PHA: XinVaoPha[] = [
+  {
+    id: 'x-001',
+    hoTen: 'Nguyễn Thị Bích',
+    taiKhoan: 'bich.nt',
+    nhanLaGi: 'con gái cụ Nguyễn Quang Hoạch',
+    canhNguoiId: 'n-005',
+    xinNgay: '21/08/2026',
+    baoLanh: 'Nguyễn Quang Hiệp',
+  },
+  {
+    // Không ai bảo lãnh — ca khó, và là ca phải bày được. Duyệt vội ở đây là gắn người lạ vào phả.
+    id: 'x-002',
+    hoTen: 'Nguyễn Quang Tân',
+    taiKhoan: 'tan.nq',
+    nhanLaGi: 'cháu nội cụ Nguyễn Quang Đường',
+    canhNguoiId: 'n-031',
+    xinNgay: '23/08/2026',
+    baoLanh: null,
+  },
+];
+
+// ── Nơi chốn (FR-65) ────────────────────────────────────────────────────────
+//
+// Tên xã phường ở Việt Nam TRÙNG NHAU hàng loạt, nên nơi không thể là chữ tự do: phải là thực
+// thể mang tên + ĐƠN VỊ CHA. Dòng họ này ở nhiều nơi — Quang Trung (Định Hoá) và Quang Trung
+// (Vũng Tàu) là hai chỗ khác hẳn, cùng một cái tên.
+
+export type Noi = {
+  id: string;
+  ten: string;
+  /** Đơn vị hành chính cha — thứ DUY NHẤT phân biệt được hai cái "Quang Trung". */
+  thuoc: string;
+  /** Bao nhiêu người trong phả gắn với nơi này — tín hiệu để chấm điểm khi gõ tự do. */
+  soNguoi: number;
+};
+
+export const NOI: Noi[] = [
+  { id: 'noi-qt-dh', ten: 'Quang Trung', thuoc: 'Định Hoá, Thái Nguyên', soNguoi: 37 },
+  { id: 'noi-qt-vt', ten: 'Quang Trung', thuoc: 'Vũng Tàu', soNguoi: 5 },
+  { id: 'noi-qt-hd', ten: 'Quang Trung', thuoc: 'Hà Đông, Hà Nội', soNguoi: 0 },
+  { id: 'noi-phu-dinh', ten: 'Phú Đình', thuoc: 'Định Hoá, Thái Nguyên', soNguoi: 12 },
+];
+
+/** Nơi gắn với một người, xếp theo thời gian — chồng NỐI TIẾP, không phải chồng mâu thuẫn. */
+export type NoiCuaNguoi = {
+  noiId: string;
+  vai: 'que-quan' | 'tru-quan';
+  /** Câu mô tả mốc thời gian; để trống khi phả không chép mốc nào. */
+  moc?: string;
+};
+
+export const NOI_CUA_NGUOI: Record<string, NoiCuaNguoi[]> = {
+  'n-009': [
+    { noiId: 'noi-qt-dh', vai: 'que-quan' },
+    { noiId: 'noi-qt-dh', vai: 'tru-quan', moc: 'đến 1994' },
+    { noiId: 'noi-qt-vt', vai: 'tru-quan', moc: 'từ 1994' },
+  ],
+};
+
+export const NHAN_VAI_NOI: Record<NoiCuaNguoi['vai'], string> = {
+  'que-quan': 'Quê quán',
+  'tru-quan': 'Trú quán',
+};
+
+export function noiTheoId(id: string): Noi | undefined {
+  return NOI.find((n) => n.id === id);
+}

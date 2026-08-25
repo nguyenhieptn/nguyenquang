@@ -154,14 +154,60 @@ qua lại và ghép lại trong đầu.
 > CSV sống trong state trình duyệt, `core/seed` không có chỗ gửi tệp tạm ở server, nên không URL
 > nào khác đọc lại được bảng đang mở. Chip *Cần xem lại* vì thế soi vào URL bằng
 > `history.replaceState` trên đúng route ấy: chỉ trỏ được, F5 giữ được chỗ đang đứng, mà không
-> điều hướng thật — điều hướng thật sẽ ném mất chính bảng vừa lọc. Mục *Xem trước* trên thanh
-> chrome vẫn còn, làm trang chỉ đường sang bước Nạp khung, không phải nơi bày bảng.
+> điều hướng thật — điều hướng thật sẽ ném mất chính bảng vừa lọc.
+>
+> **Sửa 24/08/2026 — mục *Xem trước* đã BỎ HẲN.** Nó từng còn trên thanh chrome làm trang chỉ
+> đường sang bước Nạp khung. Một mục điều hướng mà đích đến là "hãy sang mục khác" thì không phải
+> điều hướng, nó là một lời xin lỗi có URL. Câu giải thích của nó (*"bảng xem trước mở ra ngay
+> sau khi chọn tệp"*) chuyển thành một câu dẫn ở đầu màn Nạp khung — thông tin không rơi mất,
+> chỉ đổi chỗ về đúng nơi việc ấy xảy ra. Địa chỉ cũ `/ban-duyet/xem-truoc` chuyển hướng 308 về
+> `/admin/nap-khung`.
 
 #### Chrome của bề mặt B
 
-Thanh trên cùng, không dính đáy: **Bàn duyệt** + bốn mục *Nạp khung · Xem trước · Hàng chờ duyệt ·
-Mảnh chưa nối*. Đây là chrome **trần** (xem `DESIGN.md § Colors › Bề mặt B`) — nền xám ngà, chữ
-không chân, không đề từ Hán-Nôm, không nền giấy.
+> **Sửa 24/08/2026 (story 5-1) — thanh ngang bốn mục đã thay bằng MỘT TRANG có thanh việc trái.**
+> Bản cũ để *từng trang tự ghép chrome*. Đếm được trước khi xoá: hai trong bốn màn chính quên hẳn
+> điều hướng, mọi màn lỗi và màn tải cũng quên, và bốn bề rộng khác nhau (720 / 900 / 1100 / 1280)
+> không theo hệ nào. Chừng nào chrome còn do trang tự ghép thì sẽ luôn có trang quên — nên quyền
+> sở hữu chuyển hẳn về `app/admin/layout.tsx`.
+
+Bàn làm việc `/admin` là **một trang**, ăn hết khung nhìn:
+
+- **Thanh trên** không dính đáy: **Bàn làm việc** · ô tìm người · nhãn *ai đang vận hành* (FR-39).
+  Ô tìm **dời tâm canvas**: chọn một người là sang màn Cây gia phả với người ấy làm tâm. Neo đi
+  qua đường dẫn (`?neo=`), nên ô này dùng được từ mọi màn của bàn — và nút Back thành "về tâm
+  trước" mà không phải dựng lịch sử riêng.
+- **Thanh việc trái** luôn có mặt, và nó có **hai phần**, không phải một:
+  - **Thanh ghi hành động** trên cùng, ngăn bằng một gạch: *Thêm người vào phả*. Nó đứng NGOÀI
+    bản đồ màn vì nó trả lời câu khác — ba nhóm dưới nói *"cái gì đang đợi tôi"*, nút này nói
+    *"tôi muốn làm gì"*. Không mang son: nó chỉ MỞ biểu mẫu, chưa ghi gì.
+  - **Ba nhóm điều hướng** — *Bàn làm việc · Đối chiếu · Sổ dòng họ*, tám mục.
+- Mỗi mục là biểu tượng + nhãn. **Số đang chờ chỉ có ở mục có hàng chờ thật** — hết Đợt 2 là ba
+  mục: *Hàng chờ khẳng định · Duyệt vào phả · Mảnh chưa nối*. Năm mục còn lại KHÔNG có số, và cố
+  ý: *Nạp khung* là một VIỆC chứ không phải hàng chờ, *Trang nhà* và *Cây gia phả* là chỗ đứng,
+  *Nơi chốn* và *Tên họ & đề từ* là sổ tra. Một số 0 trên chúng không mang nghĩa gì, mà một con
+  số vô nghĩa cạnh ba con số có nghĩa thì làm hỏng cả ba.
+- **Thu được** xuống ray hẹp; **thu rồi ray vẫn giữ số**, vì mất số là mất hộp thư đến đúng lúc
+  đang làm việc. Lựa chọn thu/mở nhớ theo người xem. Màn Cây **xin** thu lúc mở (canvas cần bề
+  ngang nhất), nhưng đó là lời xin của một màn: nó không ghi đè lựa chọn đã lưu, và người vận
+  hành mở lại thì bàn thôi hỏi câu ấy trong cả phiên.
+
+> **Sửa 25/08/2026 (code review Epic 5) — ba dòng trên đã trôi khỏi mã.** Bản cũ đếm *ba nhóm*
+> (thiếu hẳn thanh ghi hành động, thứ story 5-4 thêm vào) và nói *"mỗi mục là biểu tượng + nhãn +
+> số đang chờ"* — sai với **5 trong 8** mục. Đúng cái tội mà AC 19 của story 5-1 dựng ra để chặn:
+> tài liệu trải nghiệm nói một đằng, thanh việc làm một nẻo, và người đọc tài liệu tin tài liệu.
+- Số `null` (đọc hỏng) **không bao giờ** hiện thành `0`: một số 0 giả làm người vận hành tin là
+  đã sạch việc rồi bỏ đi.
+- **Một hệ bề rộng**: vùng nội dung lấy trọn bề ngang còn lại; chữ tự giới hạn bằng **độ dài
+  dòng** (`max-w-[70ch]`), không bằng một khung hẹp — nên bảng và canvas vẫn dùng hết màn hình.
+- **Đúng một `<h1>`** mỗi màn, do layout dựng. Các bước bên trong một màn là `<h2>`.
+- Mục đang mở: đậm + gạch trái đặc + `aria-current="page"`. **Không dùng son** — son mang đúng
+  một nghĩa *đã chốt*, mà điều hướng thì không chốt gì cả.
+- **Không mục nào trỏ vào màn chưa tồn tại.** Mỗi story của Epic 5 tự thêm mục của mình khi màn
+  của nó ra đời; đường cụt còn tệ hơn thiếu mục.
+
+Đây là chrome **trần** (xem `DESIGN.md § Colors › Bề mặt B`) — nền xám ngà, chữ không chân,
+không đề từ Hán-Nôm, không nền giấy, không đổ bóng.
 
 **Sàn chữ 17px vẫn áp nguyên cho bề mặt B.** Bảng chật thì **bớt cột**, không thu chữ. Cột nào
 không giúp ra quyết định thì bỏ khỏi bảng — chi tiết còn lại nằm trong khối cảnh báo của đúng
@@ -271,10 +317,18 @@ liên kết cha–con sai làm hỏng phả của cả một chi. Bot chọn s�
 **Bộ lọc** trên đầu bảng: *Tất cả · Người mới · Khớp người có sẵn · Cần xem lại*. Mục cuối là thứ
 thay cho "màn bảng cảnh báo" — cùng một bảng, cùng một dữ liệu, lọc lại.
 
-### Thanh bàn duyệt (bề mặt B)
+### Thanh việc (bề mặt B)
 
-Thanh trên cùng, bốn mục, mục đang mở đậm + `aria-current="page"`. Không dùng son: son mang nghĩa
-*đã chốt*, còn điều hướng thì không chốt gì cả. Chrome trần — xem `DESIGN.md § Colors › Bề mặt B`.
+> **Sửa 24/08/2026 (story 5-1).** Trước đây mục này tên *Thanh bàn duyệt* và tả một thanh ngang
+> bốn mục do từng trang tự render. Component ấy (`components/pha/thanh-ban-duyet.tsx`) đã xoá.
+
+Thanh việc dọc bên trái, do **layout** dựng nên không màn nào quên được — kể cả màn lỗi và màn
+đang tải. Mục = biểu tượng + nhãn; **số đang chờ chỉ có ở mục có hàng chờ thật** (ba trong tám —
+xem § IA ở trên). Thu xuống ray hẹp thì **giữ nguyên số**. Mục
+đang mở đậm + gạch trái đặc + `aria-current="page"`. Không dùng son: son mang nghĩa *đã chốt*,
+còn điều hướng thì không chốt gì cả. Chrome trần — xem `DESIGN.md § Colors › Bề mặt B`.
+
+Đầy đủ ở § IA › Bề mặt B › *Chrome của bề mặt B*.
 
 ## State Patterns
 
@@ -535,3 +589,9 @@ hai thay vì bắt người duyệt tự tưởng tượng nửa còn lại.
   sản phẩm".**
 - **Duyệt lên Tầng chính thức (FR-3).** Hành trình gốc UJ-3 cũng mất; phần còn lại phụ thuộc FR-4
   vốn ngoài Đợt 1.
+- **Ngồi vào bàn làm việc `/admin` (Đợt 2, Epic 5).** Bố cục đã chốt qua brainstorming
+  23–24/08/2026 và có bản dựng thử ở `/uiworkshop/admin-canvas-graph`, nhưng **chưa có nhân vật
+  có tên và chưa có nhịp cao trào**. Ba việc hằng ngày người duyệt tự nêu — thêm từng người ·
+  duyệt người vào phả · ghi thêm thông tin — mới là *danh sách việc*, không phải *một phiên làm
+  việc thật*. Cần người duyệt kể lại một buổi có thật rồi distill; **đừng bịa nhân vật.**
+  `FLOWS` trong `app/uiworkshop/_registry/flows.ts` vì thế vẫn rỗng cho bề mặt này.

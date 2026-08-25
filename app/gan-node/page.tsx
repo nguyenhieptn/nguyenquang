@@ -69,9 +69,28 @@ export default async function Page({
       ? { fullName: ganKet.value.personName, nguCanh: '' }
       : null;
 
+  /**
+   * Lời nhận chỗ lần trước đã bị ban tu phả từ chối (story 5-5).
+   *
+   * Phải NÓI RA. Không nói thì người ấy rơi lại vào luồng nhận chỗ như chưa từng xin, và cứ thế
+   * xin lại đúng người cũ — luồng FR-64 vẫn đứt, chỉ đứt im lặng hơn. Lý do từ chối thì KHÔNG bày
+   * ở đây: nó nằm trong sổ của ban tu phả, không phải một lời nhắn gửi tới người xin.
+   */
+  const daTuChoi =
+    ganKet.ok && ganKet.value && ganKet.value.status === 'rejected'
+      ? ganKet.value.personName
+      : null;
+
   return (
     <div className="flex min-h-dvh flex-col">
       <main className={`${DOC} flex-1 pb-28 pt-7 md:pb-16 md:pt-28`}>
+        {daTuChoi ? (
+          <p className="mb-6 max-w-[60ch] border-l-4 border-destructive bg-canh-bao-nen px-3 py-2 text-[17px]">
+            Lần trước, lời nhận chỗ của{' '}
+            <span className="font-[family-name:var(--font-pha)]">{daTuChoi}</span> chưa được ban tu
+            phả nhận. Chọn lại người, hoặc hỏi ban tu phả trước khi gửi lần nữa.
+          </p>
+        ) : null}
         <NhanCho choSan={dangCho} tiep={tiep} />
       </main>
       <ThanhDieuHuong hienTai="toi" />

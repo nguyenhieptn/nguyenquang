@@ -9,7 +9,8 @@ export default defineConfig({
   out: './db/migrations',
   dialect: 'postgresql',
   dbCredentials: {
-    // eslint-disable-next-line no-restricted-syntax
+    // (Không cần `eslint-disable`: luật `no-restricted-syntax` chặn `process.env` ở `app/` và
+    // `components/`, không chạm tệp cấu hình ở gốc. Chỉ thị thừa làm `npm run lint` cảnh báo.)
     url: process.env.DATABASE_URL_OWNER ?? '',
   },
   strict: true,

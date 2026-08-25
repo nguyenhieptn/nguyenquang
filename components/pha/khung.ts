@@ -25,5 +25,5 @@ export const DOC = 'mx-auto w-full max-w-2xl px-5 md:px-8';
 /** Bố cục nhiều cột — 1024px. Trang chủ, màn chủ cũ. Đọc được ở mức này **nhờ có cột**. */
 export const KHUNG = 'mx-auto w-full max-w-5xl px-5 md:px-8';
 
-/** Tràn viền, chỉ chừa lề. Canvas cây, bảng bàn duyệt, bảng token. */
+/** Tràn viền, chỉ chừa lề. Canvas cây, bảng bàn làm việc, bảng token. */
 export const RONG = 'w-full px-5 md:px-8';

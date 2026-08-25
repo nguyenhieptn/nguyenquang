@@ -4,7 +4,7 @@ import path from 'node:path';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['core/**/*.test.ts', 'db/**/*.test.ts', 'components/**/*.test.ts'],
+    include: ['core/**/*.test.ts', 'db/**/*.test.ts', 'components/**/*.test.ts', 'app/**/*.test.ts'],
     // so-khop dùng node:test với runner riêng (npm run test:so-khop) — không phải file vitest.
     exclude: ['core/so-khop/**'],
     setupFiles: ['./vitest.setup.ts'],

@@ -178,7 +178,7 @@ nơi, và chi phí giữ chúng đồng bộ với nhau đã lớn hơn giá tr�
 | `components/pha` | `chan-trang` · `khung` · `o-tim` · `tam-phim` · `thanh-dieu-huong` · `tin-cay` · `vach` |
 
 Đã xoá khỏi `components/pha`: `cay-ca-toc`, `cay-gia-pha`, `cay-tai-dong`, `thanh-ban-duyet`,
-`khung-cay` — hết người dùng sau khi các màn cây và bàn duyệt biến mất.
+`khung-cay` — hết người dùng sau khi các màn cây và bàn làm việc biến mất.
 
 ### Bốn chỗ phải vá theo, không chỗ nào là tuỳ chọn
 
@@ -230,7 +230,7 @@ là lựa chọn có ý thức, không phải tai nạn. Cần lại thì phải
 
 | File | Trạng thái |
 |---|---|
-| `app/uiworkshop/_registry/outline.ts` | ✔ **đã điền** — 2 bề mặt (Người trong họ · Bàn duyệt), 15 FR Đợt 1 trong `PLANNED_REQS` |
+| `app/uiworkshop/_registry/outline.ts` | ✔ **đã điền** — 2 bề mặt (Người trong họ · Bàn làm việc), 15 FR Đợt 1 trong `PLANNED_REQS` |
 | `app/uiworkshop/_mock/seed.ts` | ✔ **đã điền** — người/khẳng định/lời kể/mảnh, đời và mã chi là hàm dẫn xuất |
 | `specs/frontend-stack.md` | ✔ **đã viết lại** theo stack thật |
 | `_bmad/custom/*.toml` + `ux-assets/react-key-screens.md` | ✔ đã thay `<PROJECT>` |

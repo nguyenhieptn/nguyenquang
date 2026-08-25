@@ -1,6 +1,6 @@
 /**
  * Bootstrap — how a deployment gets its clan and its first admin (story 1-4).
- * `scripts/bootstrap-clan.ts` is a thin wrapper over these two functions; tests call them
+ * `scripts/create-admin.ts` is a thin wrapper over these two functions; tests call them
  * directly. Nothing clan-specific is hard-coded here (AD-14) — name and settings arrive as
  * arguments; the script carries the Nguyễn Quang defaults as configuration.
  *
@@ -27,28 +27,43 @@ import { assertion, attachment, authUser, clan, notification, person, source } f
 import { writeRevision } from '@/core/revision';
 import { projectPerson } from '@/core/assertion/ops';
 import { auth } from './ba';
+import { soleClanId } from './clan-registry';
 import { boDau } from '@/core/so-khop';
 
 export type EnsureClanArgs = {
   name: string;
   /** AD-14: surname, middle name, motto… — data, not code. */
   settings?: Record<string, unknown>;
-  /** Existing deployment clan id (GIAPHA_CLAN_ID) — reused when its row exists. */
-  existingClanId?: string | null;
 };
 
-/** Idempotent: reuses `existingClanId` when that clan row exists, otherwise creates one. */
+/**
+ * Idempotent: dùng lại dòng họ đã có trong database, chưa có thì tạo.
+ *
+ * Trước 25/08/2026 hàm này nhận `existingClanId` do người gọi đọc từ `GIAPHA_CLAN_ID`. Nay id
+ * là sự thật nằm trong DB và `soleClanId()` đọc thẳng ra — người gọi không phải mang theo nữa,
+ * và không còn đường cho env lệch khỏi dữ liệu.
+ */
 export async function ensureClan(args: EnsureClanArgs): Promise<{ clanId: string; created: boolean }> {
-  if (args.existingClanId) {
-    const rows = await withClanContext(args.existingClanId, (tx) =>
-      tx.select({ id: clan.id }).from(clan).where(eq(clan.id, args.existingClanId!)),
+  /**
+   * Kiểm hàng CÓ THẬT trước khi dùng lại (khôi phục 25/08 sau code review).
+   *
+   * `soleClanId()` trả `GIAPHA_CLAN_ID` chỉ sau một phép khớp regex — nó không tra database. Mọi
+   * bản triển khai đang chạy vẫn còn biến ấy trong `.env` (script thôi GHI nó, nhưng không xoá
+   * được cái đã có), nên trỏ vào một database đã dựng lại là `ensureClan` báo "dùng lại" cho một
+   * dòng họ không tồn tại, rồi `createAdmin` chết vì khoá ngoại — từ chính cái script sinh ra để
+   * bootstrap được ở mọi trạng thái.
+   */
+  const daCo = await soleClanId();
+  if (daCo) {
+    const rows = await withClanContext(daCo, (tx) =>
+      tx.select({ id: clan.id }).from(clan).where(eq(clan.id, daCo)),
     );
-    if (rows.length > 0) return { clanId: args.existingClanId, created: false };
+    if (rows.length > 0) return { clanId: daCo, created: false };
   }
 
   const id = uuidv7();
-  // clan rows are themselves RLS-guarded (visible only as current context, WITH CHECK id =
-  // context) — creation therefore happens under the new clan's own context.
+  // Ghi vào `clan` vẫn bị RLS gác (`WITH CHECK id = current_clan_id()`) — đọc thì mở từ
+  // migration 0002, ghi thì không. Nên vẫn phải tạo dưới context của chính dòng họ mới.
   await withClanContext(id, async (tx) => {
     await tx.insert(clan).values({ id, name: args.name, settings: args.settings ?? {} });
   });

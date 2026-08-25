@@ -10,6 +10,7 @@ import { withClanContext, ownerPool } from '@/db';
 import { assertion, clan, notification, person, revision } from '@/db/schema';
 import type { GuestContext, SessionContext } from '@/core/identity/session';
 import { createPersonOp } from '@/core/person/ops';
+import { DON_TRI } from '@/core/person/chong';
 import {
   addAssertionOp,
   hideAssertionOp,
@@ -342,5 +343,83 @@ describe('malformed ids (Postgres 22P02)', () => {
       });
       expect(added.ok === false && added.error.code).toBe('not-found');
     });
+  });
+});
+
+describe('một giá trị chính thức cho mỗi mục đơn trị (#21 — 25/08)', () => {
+  /**
+   * `promoteAssertionOp` KHÔNG hạ giá trị cũ, và hệ không có phép hạ tầng. Nên nếu nó cho nâng
+   * khi đã có một giá trị chính thức cùng loại thì sinh ra HAI sự thật sống về cùng một chuyện,
+   * và không màn nào gỡ được.
+   *
+   * Gác ở core chứ không ở giao diện: cột phải màn cây đã ẩn nút nâng, nhưng `/admin/hang-cho`
+   * duyệt hàng loạt gọi thẳng op này (AD-24).
+   */
+  it('nâng khẳng định thứ hai cùng loại thì bị từ chối, kèm id giá trị đang giữ', async () => {
+    const res = await withClanContext(clanId, async (tx) => {
+      const p = await createPersonOp(tx, admin, {
+        fullName: 'Nguyễn Quang Đơn Trị',
+        source: { kind: 'told-by', description: 'S21 test' },
+      });
+      if (!p.ok) throw new Error('không dựng được người');
+
+      const a1 = await addAssertionOp(tx, admin, {
+          personId: p.value.personId,
+          spec: { kind: 'birth', value: { date: '1912-01-01', precision: 'year' } },
+          source: { kind: 'told-by', description: 'gia phả cũ' },
+        });
+      const a2 = await addAssertionOp(tx, admin, {
+          personId: p.value.personId,
+          spec: { kind: 'birth', value: { date: '1915-01-01', precision: 'year' } },
+          source: { kind: 'told-by', description: 'lời cụ Bảng' },
+        });
+      if (!a1.ok || !a2.ok) throw new Error('không ghi được khẳng định');
+
+      const nang1 = await promoteAssertionOp(tx, admin, { assertionId: a1.value.assertionId });
+      const nang2 = await promoteAssertionOp(tx, admin, { assertionId: a2.value.assertionId });
+      return { nang1, nang2, giu: a1.value.assertionId };
+    });
+
+    expect(res.nang1.ok).toBe(true);
+    expect(res.nang2.ok).toBe(false);
+    if (res.nang2.ok) return;
+    expect(res.nang2.error.code).toBe('conflict');
+    // Màn phải chỉ được ĐÍCH DANH dòng cần loại trước, không bắt người dùng tự dò.
+    expect(res.nang2.error.detail?.dangGiuAssertionId).toBe(res.giu);
+  });
+
+  it('loại giá trị đang giữ rồi thì nâng được — đường đổi ý vẫn mở, chỉ là hai bước', async () => {
+    const res = await withClanContext(clanId, async (tx) => {
+      const p = await createPersonOp(tx, admin, {
+        fullName: 'Nguyễn Quang Đổi Ý',
+        source: { kind: 'told-by', description: 'S21 test' },
+      });
+      if (!p.ok) throw new Error('không dựng được người');
+      const a1 = await addAssertionOp(tx, admin, {
+          personId: p.value.personId,
+          spec: { kind: 'birth', value: { date: '1912-01-01', precision: 'year' } },
+          source: { kind: 'told-by', description: 'gia phả cũ' },
+        });
+      const a2 = await addAssertionOp(tx, admin, {
+          personId: p.value.personId,
+          spec: { kind: 'birth', value: { date: '1915-01-01', precision: 'year' } },
+          source: { kind: 'told-by', description: 'lời cụ Bảng' },
+        });
+      if (!a1.ok || !a2.ok) throw new Error('không ghi được khẳng định');
+      await promoteAssertionOp(tx, admin, { assertionId: a1.value.assertionId });
+      await rejectAssertionOp(tx, admin, {
+        assertionId: a1.value.assertionId,
+        note: 'chọn giá trị khác',
+      });
+      return promoteAssertionOp(tx, admin, { assertionId: a2.value.assertionId });
+    });
+    expect(res.ok).toBe(true);
+  });
+
+  it('loại KHÔNG đơn trị (nơi chốn) thì nâng bao nhiêu cũng được — ba vai cùng đúng', async () => {
+    // FR-65: quê quán · trú quán · nơi an táng cùng đúng một lúc, nên `place` không đơn trị.
+    expect(DON_TRI.place).toBe(false);
+    expect(DON_TRI['parent-child']).toBe(false);
+    expect(DON_TRI.birth).toBe(true);
   });
 });

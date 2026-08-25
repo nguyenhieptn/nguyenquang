@@ -18,6 +18,7 @@ export {
   detachSelf,
   listPendingAttachments,
   requestAttachment,
+  rejectAttachment,
 } from './attachment';
 export type { AttachmentRole, PendingAttachment } from './attachment';
 
@@ -33,5 +34,5 @@ export {
 } from './privacy';
 export type { PrivacySubject, PrivacyViewer, Visibility } from './privacy';
 
-export { getClanInfo, getMyAttachment, getMyPersonFlags } from './info';
+export { getClanInfo, getMyAttachment, getMyPersonFlags, updateClanInfo } from './info';
 export type { ClanInfo, ClanSettings, MyAttachment, MyPersonFlags } from './info';

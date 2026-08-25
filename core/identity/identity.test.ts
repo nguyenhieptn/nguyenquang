@@ -13,20 +13,23 @@ import {
   assertion,
   attachment,
   authUser,
+  clan,
   notification,
   person,
   revision,
   source,
 } from '@/db/schema';
+import { getClanInfoOp, updateClanInfoOp } from './info';
 import { auth } from './ba';
 import { resolveSessionImpl, guestContextImpl } from './auth';
-import { createAdmin, ensureClan } from './bootstrap';
+import { createAdmin } from './bootstrap';
 import type { SessionContext } from './session';
 import {
   approveAttachmentOp,
   detachSelfOp,
   getMyNotificationsOp,
   listPendingAttachmentsOp,
+  rejectAttachmentOp,
   markNotificationSeenOp,
   requestAttachmentOp,
   updateSelfVisibilityOp,
@@ -63,9 +66,20 @@ async function insertPerson(fullName: string): Promise<string> {
 
 beforeAll(async () => {
   envBefore = process.env.GIAPHA_CLAN_ID;
-  const made = await ensureClan({ name: `S14 Clan ${run}`, settings: { surname: 'Thử' } });
-  clanId = made.clanId;
-  expect(made.created).toBe(true);
+
+  /**
+   * Dựng THẲNG dòng họ tạm, không mượn `ensureClan`. Từ 25/08/2026 `ensureClan` là hàm bootstrap
+   * thật: nó dùng lại dòng họ đã có trong database thay vì tạo mới, nên ở một DB đã bootstrap thì
+   * `created` sẽ là `false` và test sẽ chạy nhờ vào dòng họ thật — đúng thứ bộ test này phải
+   * tránh. Cùng nếp với `core/gates/rls.gate.test.ts`.
+   */
+  clanId = uuidv7();
+  await withClanContext(clanId, (tx) =>
+    tx.insert(clan).values({ id: clanId, name: `S14 Clan ${run}`, settings: { surname: 'Thử' } }),
+  );
+
+  // Ghim: DB lúc này có cả dòng họ thật lẫn dòng họ tạm này, nên `soleClanId()` phải được bảo
+  // đang hỏi về cái nào. Đây là lý do DUY NHẤT biến môi trường ấy còn tồn tại.
   process.env.GIAPHA_CLAN_ID = clanId;
 
   const admin = await createAdmin({
@@ -257,20 +271,170 @@ describe('attachment flow (FR-64, AD-8)', () => {
 });
 
 describe('guest context (FR-11 public view)', () => {
-  it('no cookie ⇒ no session; guest context carries the sole clan; unset env ⇒ null (lazy read)', async () => {
+  /**
+   * Tiểu mục "bỏ biến môi trường ⇒ null" đã gỡ 25/08/2026: nguồn của clan id nay là bảng `clan`
+   * trong database, nên gỡ chốt ghim KHÔNG cho `null` — nó cho dòng họ đầu tiên của triển khai.
+   * Trường hợp "chưa bootstrap ⇒ null" vẫn còn nguyên trong `soleClanId()`, chỉ là dựng lại nó ở
+   * đây phải xoá sạch dòng họ của cả máy, cái giá quá đắt cho một nhánh hai dòng.
+   */
+  it('no cookie ⇒ no session; guest context carries the pinned clan', async () => {
     expect(await resolveSessionImpl(new Headers())).toBeNull();
 
     const guest = await guestContextImpl();
     expect(guest).toEqual({ accountId: null, clanId, personId: null, role: 'guest' });
+  });
+});
 
-    const saved = process.env.GIAPHA_CLAN_ID;
-    delete process.env.GIAPHA_CLAN_ID;
-    try {
-      expect(await guestContextImpl()).toBeNull();
-      expect(await resolveSessionImpl(new Headers({ cookie: member1Cookie }))).toBeNull();
-    } finally {
-      process.env.GIAPHA_CLAN_ID = saved;
+describe('sổ dòng họ — đường ghi ClanSettings (story 5-8)', () => {
+  const adminCtx = () => ctx(adminAccountId, 'admin', adminPersonId);
+
+  it('quản trị sửa được, và sửa TỪNG PHẦN — khoá không gửi thì giữ nguyên', async () => {
+    await withClanContext(clanId, (tx) =>
+      updateClanInfoOp(tx, adminCtx(), {
+        settings: { surname: 'Nguyễn', middleName: 'Quang', motto: '光前裕後' },
+      }),
+    );
+
+    // Chỉ gửi `middleName`. Ba khoá kia PHẢI còn nguyên — `settings` là một cột jsonb, nên ghi đè
+    // cả cụm là cách nhanh nhất xoá mất đề từ khi ai đó chỉ định sửa chữ đệm.
+    const ra = await withClanContext(clanId, (tx) =>
+      updateClanInfoOp(tx, adminCtx(), { settings: { middleName: 'Văn' } }),
+    );
+    expect(ra.ok).toBe(true);
+    if (!ra.ok) return;
+    expect(ra.value.settings.middleName).toBe('Văn');
+    expect(ra.value.settings.surname).toBe('Nguyễn');
+    expect(ra.value.settings.motto).toBe('光前裕後');
+  });
+
+  it('chuỗi rỗng XOÁ khoá, không lưu chuỗi rỗng', async () => {
+    await withClanContext(clanId, (tx) =>
+      updateClanInfoOp(tx, adminCtx(), { settings: { mottoPhonetic: 'Quang tiền dụ hậu' } }),
+    );
+    const ra = await withClanContext(clanId, (tx) =>
+      updateClanInfoOp(tx, adminCtx(), { settings: { mottoPhonetic: '   ' } }),
+    );
+    expect(ra.ok).toBe(true);
+    if (!ra.ok) return;
+    // `getClanInfoOp` vốn coi `''` như vắng, nên lưu `''` là để lại một giá trị mà chính hàm đọc
+    // không thừa nhận.
+    expect(ra.value.settings.mottoPhonetic).toBeUndefined();
+  });
+
+  it('tên dòng họ KHÔNG được để trống — nó là tiêu đề của cả sản phẩm', async () => {
+    const ra = await withClanContext(clanId, (tx) =>
+      updateClanInfoOp(tx, adminCtx(), { name: '  ' }),
+    );
+    expect(!ra.ok && ra.error.code === 'invalid').toBe(true);
+  });
+
+  it('trưởng chi và thành viên KHÔNG sửa được', async () => {
+    for (const vai of ['branch-head', 'member', 'guest'] as const) {
+      const ra = await withClanContext(clanId, (tx) =>
+        updateClanInfoOp(tx, ctx(adminAccountId, vai, adminPersonId), {
+          settings: { surname: 'Trần' },
+        }),
+      );
+      expect(!ra.ok && ra.error.code === 'forbidden', vai).toBe(true);
     }
+  });
+
+  it('getClanInfo đọc lại đúng thứ vừa ghi', async () => {
+    await withClanContext(clanId, (tx) =>
+      updateClanInfoOp(tx, adminCtx(), { name: 'Dòng họ Thử', settings: { surname: 'Thử' } }),
+    );
+    const doc = await withClanContext(clanId, (tx) => getClanInfoOp(tx, adminCtx()));
+    expect(doc.ok).toBe(true);
+    if (!doc.ok) return;
+    expect(doc.value.name).toBe('Dòng họ Thử');
+    expect(doc.value.settings.surname).toBe('Thử');
+  });
+});
+
+describe('từ chối yêu cầu vào phả (story 5-5)', () => {
+  it('từ chối rồi thì vắng khỏi hàng chờ, và người ấy XIN LẠI được', async () => {
+    const acc = `s14-acc-tu-choi-${run}`;
+    const nodeA = await insertPerson(`S14 Bị từ chối A ${run}`);
+    const nodeB = await insertPerson(`S14 Bị từ chối B ${run}`);
+    const adminCtx = ctx(adminAccountId, 'admin', adminPersonId);
+
+    const xin = await withClanContext(clanId, (tx) =>
+      requestAttachmentOp(tx, ctx(acc, 'guest'), { personId: nodeA }),
+    );
+    expect(xin.ok).toBe(true);
+    const attId = xin.ok ? xin.value.attachmentId : '';
+
+    const truoc = await withClanContext(clanId, (tx) => listPendingAttachmentsOp(tx, adminCtx));
+    expect(truoc.ok && truoc.value.some((r) => r.attachmentId === attId)).toBe(true);
+
+    const tuChoi = await withClanContext(clanId, (tx) =>
+      rejectAttachmentOp(tx, adminCtx, { attachmentId: attId, note: 'nhận nhầm người' }),
+    );
+    expect(tuChoi.ok).toBe(true);
+
+    const sau = await withClanContext(clanId, (tx) => listPendingAttachmentsOp(tx, adminCtx));
+    expect(sau.ok && sau.value.some((r) => r.attachmentId === attId)).toBe(false);
+
+    /**
+     * ĐÂY là chỗ dễ vỡ nhất khi thêm một trạng thái: `attachment_account_clan_uq` là unique trên
+     * (clanId, accountId), nên nếu hàng bị từ chối không được dùng lại thì người ấy bị khoá vĩnh
+     * viễn khỏi phả — một lần từ chối hoá thành một lệnh cấm.
+     */
+    const xinLai = await withClanContext(clanId, (tx) =>
+      requestAttachmentOp(tx, ctx(acc, 'guest'), { personId: nodeB }),
+    );
+    expect(xinLai.ok).toBe(true);
+    expect(xinLai.ok && xinLai.value.attachmentId).toBe(attId); // đúng hàng cũ, không sinh hàng mới
+
+    const lai = await withClanContext(clanId, (tx) => listPendingAttachmentsOp(tx, adminCtx));
+    expect(lai.ok && lai.value.some((r) => r.attachmentId === attId)).toBe(true);
+  });
+
+  it('vai không đủ quyền thì không từ chối được', async () => {
+    const acc = `s14-acc-tc2-${run}`;
+    const node = await insertPerson(`S14 Bị từ chối C ${run}`);
+    const xin = await withClanContext(clanId, (tx) =>
+      requestAttachmentOp(tx, ctx(acc, 'guest'), { personId: node }),
+    );
+    const attId = xin.ok ? xin.value.attachmentId : '';
+
+    const khach = await withClanContext(clanId, (tx) =>
+      rejectAttachmentOp(tx, ctx(acc, 'guest'), { attachmentId: attId, note: 'thử' }),
+    );
+    expect(!khach.ok && khach.error.code === 'forbidden').toBe(true);
+  });
+
+  it('yêu cầu ĐÃ DUYỆT thì không từ chối được — gỡ gắn là việc khác', async () => {
+    const acc = `s14-acc-tc3-${run}`;
+    const node = await insertPerson(`S14 Đã duyệt ${run}`);
+    const adminCtx = ctx(adminAccountId, 'admin', adminPersonId);
+    const xin = await withClanContext(clanId, (tx) =>
+      requestAttachmentOp(tx, ctx(acc, 'guest'), { personId: node }),
+    );
+    const attId = xin.ok ? xin.value.attachmentId : '';
+    await withClanContext(clanId, (tx) => approveAttachmentOp(tx, adminCtx, { attachmentId: attId }));
+
+    const tuChoi = await withClanContext(clanId, (tx) =>
+      rejectAttachmentOp(tx, adminCtx, { attachmentId: attId, note: 'muộn rồi' }),
+    );
+    expect(!tuChoi.ok && tuChoi.error.code === 'conflict').toBe(true);
+  });
+
+  it('từ chối hai lần thì lần sau là conflict', async () => {
+    const acc = `s14-acc-tc4-${run}`;
+    const node = await insertPerson(`S14 Từ chối đúp ${run}`);
+    const adminCtx = ctx(adminAccountId, 'admin', adminPersonId);
+    const xin = await withClanContext(clanId, (tx) =>
+      requestAttachmentOp(tx, ctx(acc, 'guest'), { personId: node }),
+    );
+    const attId = xin.ok ? xin.value.attachmentId : '';
+    await withClanContext(clanId, (tx) =>
+      rejectAttachmentOp(tx, adminCtx, { attachmentId: attId, note: 'lần một' }),
+    );
+    const lanHai = await withClanContext(clanId, (tx) =>
+      rejectAttachmentOp(tx, adminCtx, { attachmentId: attId, note: 'lần hai' }),
+    );
+    expect(!lanHai.ok && lanHai.error.code === 'conflict').toBe(true);
   });
 });
 

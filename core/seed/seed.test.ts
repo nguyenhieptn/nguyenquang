@@ -148,6 +148,68 @@ describe('previewSeed — no writes, nothing preselected', () => {
     }
   });
 
+  /**
+   * HỒI QUY 24/08/2026 — trước bản sửa, `resolveByName` lấy dòng trùng tên ĐẦU TIÊN trong tệp
+   * mà không kiểm có dòng thứ hai không, nên người con nối âm thầm vào nhầm cha (sai cả chi) và
+   * lệnh nạp vẫn báo thành công. Đây là ca chắc chắn gặp khi cả họ chung chữ đệm.
+   */
+  it('hai dòng TRÙNG TÊN cha ⇒ KHÔNG đoán: con vào phả mà không có mối cha–con', async () => {
+    const parsed = parseSeedCsv(
+      csvOf(
+        'S18 Hùng Trùng Tên,nam,1943,,,,Chi Nhất,bác cả',
+        'S18 Hùng Trùng Tên,nam,1961,,,,Chi Ba,chú út — trùng tên với dòng trên',
+        'S18 Con Của Chú Út,nam,1990,,S18 Hùng Trùng Tên,,Chi Ba,cha là người sinh 1961',
+      ),
+    );
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    const committed = await withClanContext(clanId, (tx) =>
+      commitSeedOp(tx, admin, { rows: parsed.value, decisions: {} }),
+    );
+    expect(committed.ok).toBe(true);
+    if (!committed.ok) return;
+    expect(committed.value.created).toBe(3);
+
+    await withClanContext(clanId, async (tx) => {
+      const [con] = await tx
+        .select()
+        .from(person)
+        .where(eq(person.nameFolded, 's18 con cua chu ut'));
+      const edges = await tx
+        .select()
+        .from(assertion)
+        .where(and(eq(assertion.subjectPersonId, con!.id), eq(assertion.kind, 'parent-child')));
+      // KHÔNG mối nào — thà thiếu còn hơn nối nhầm. Nối tay ở màn Mảnh chưa nối.
+      expect(edges).toHaveLength(0);
+    });
+  });
+
+  it('xem trước cảnh báo father-ambiguous, và KHÔNG nhầm nó với father-not-found', async () => {
+    const parsed = parseSeedCsv(
+      csvOf(
+        'S18 Xem Trước Trùng,nam,1940,,,,,',
+        'S18 Xem Trước Trùng,nam,1958,,,,,',
+        'S18 Con Mơ Hồ,nam,1988,,S18 Xem Trước Trùng,,,', // hai dòng cùng tên ⇒ mơ hồ
+        'S18 Con Mất Cha,nam,1988,,S18 Không Ai Tên Thế,,,', // không ai ⇒ không tìm thấy
+        'S18 Con Của Ất,nam,1945,,S18 Nguyễn Văn Ất,,,', // HAI người trong PHẢ trùng tên ⇒ mơ hồ
+      ),
+    );
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    const preview = await withClanContext(clanId, (tx) => previewSeedOp(tx, admin, parsed.value));
+    expect(preview.ok).toBe(true);
+    if (!preview.ok) return;
+    const canhBaoCua = (ten: string) =>
+      preview.value.rows.find((r) => r.hoTen === ten)!.warnings;
+
+    expect(canhBaoCua('S18 Con Mơ Hồ')).toContain('father-ambiguous');
+    expect(canhBaoCua('S18 Con Mơ Hồ')).not.toContain('father-not-found');
+
+    expect(canhBaoCua('S18 Con Mất Cha')).toContain('father-not-found');
+    expect(canhBaoCua('S18 Con Mất Cha')).not.toContain('father-ambiguous');
+
+    // Mơ hồ vì trong PHẢ có hai người trùng tên, không phải vì trong tệp.
+    expect(canhBaoCua('S18 Con Của Ất')).toContain('father-ambiguous');
+  });
+
   it('a father named but found NOWHERE gets the father-not-found warning; one found in the file does not', async () => {
     const parsed = parseSeedCsv(
       csvOf(

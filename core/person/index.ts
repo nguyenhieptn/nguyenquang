@@ -15,6 +15,9 @@ import { resolveViewer } from '@/core/identity/session';
 import { withClanContext } from '@/db';
 import { lookupAccountNames } from '@/core/assertion/ops';
 import { getPersonOps, type RawPersonAssertion } from './read-ops';
+import { xepChong, type AssertionStack } from './chong';
+
+export type { AssertionStack, StackKind } from './chong';
 import type { RawPersonCard } from '@/core/tree/ops';
 
 export type SourceKind = 'self' | 'told-by' | 'document' | 'recording' | 'seed-import';
@@ -51,6 +54,12 @@ export type PersonProfile = {
   visibility: Visibility;
   /** ONLY when visibility === 'full': every live assertion about the person. */
   assertions?: PersonAssertion[];
+  /**
+   * Story 5-3 — chính `assertions` ở trên, đã xếp thành CHỒNG và phân loại mâu thuẫn / nối tiếp.
+   * Dẫn xuất, không phải một lượt đọc thứ hai. Vắng cùng lúc với `assertions`, tức khi người xem
+   * không có tầm nhìn đầy đủ với người này (AD-13/AD-21).
+   */
+  stacks?: AssertionStack[];
   /** Set when the requested id was a merged tombstone — the winner is returned (AD-3). */
   redirectedFrom?: string;
 };
@@ -83,7 +92,10 @@ export async function getPerson(personId: string): Promise<Result<PersonProfile>
     },
     visibility: raw.value.visibility,
     ...(raw.value.assertions !== undefined
-      ? { assertions: raw.value.assertions.map((a) => finishAssertion(a, names)) }
+      ? (() => {
+          const assertions = raw.value.assertions!.map((a) => finishAssertion(a, names));
+          return { assertions, stacks: xepChong(assertions) };
+        })()
       : {}),
     ...(raw.value.redirectedFrom !== undefined
       ? { redirectedFrom: raw.value.redirectedFrom }

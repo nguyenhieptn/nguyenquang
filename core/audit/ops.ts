@@ -120,6 +120,16 @@ function describeAssertion(image: Img | null): string {
       return 'quan hệ vợ chồng';
     case 'note':
       return 'ghi chú';
+    case 'place': {
+      const vai = str(value?.role);
+      return vai === 'que-quan'
+        ? 'quê quán'
+        : vai === 'tru-quan'
+          ? 'trú quán'
+          : vai === 'an-tang'
+            ? 'nơi an táng'
+            : 'nơi chốn';
+    }
     default:
       return 'thông tin';
   }

@@ -116,13 +116,19 @@ export async function previewSeedOp(
       warnings.push('duplicate-in-file');
     }
 
-    // FR-63: a named father found NOWHERE — neither on another file row nor in the clan —
-    // is a warning, not an error. The row stays importable and becomes a fragment root.
+    // FR-63: a named father found NOWHERE — neither on another file row nor in the clan — is a
+    // warning, not an error. The row stays importable and becomes a fragment root.
+    //
+    // Found MORE THAN ONCE is the other silent orphan, and it needs saying just as loudly:
+    // commitSeedOp refuses to guess between two people of the same name, so this row also
+    // arrives without its father. Mirrors resolveByName's precedence — the file wins over the
+    // clan, so a single file match settles it even when the clan has several.
     if (row.tenCha) {
       const fatherFolded = chuanHoa(row.tenCha);
-      const inFile = rows.some((r) => r.index !== row.index && foldedOf(r) === fatherFolded);
-      const inClan = (clanMatches.get(fatherFolded) ?? []).length > 0;
-      if (!inFile && !inClan) warnings.push('father-not-found');
+      const inFile = rows.filter((r) => r.index !== row.index && foldedOf(r) === fatherFolded).length;
+      const inClan = (clanMatches.get(fatherFolded) ?? []).length;
+      if (inFile === 0 && inClan === 0) warnings.push('father-not-found');
+      else if (inFile > 1 || (inFile === 0 && inClan > 1)) warnings.push('father-ambiguous');
     }
 
     return {
@@ -193,14 +199,24 @@ export async function commitSeedOp(
   ]);
 
   /**
-   * A name resolves to the FIRST other active file row with that folded name, else to the
-   * clan person carrying it — but only when the clan match is unambiguous. Ambiguity or
-   * absence resolves to null: the row imports without the edge and starts a fragment
-   * (FR-63) — a missing link is repairable, a wrong one corrupts a whole branch.
+   * A name resolves to the one other active file row carrying it, else to the one clan person
+   * carrying it. Ambiguity or absence resolves to null: the row imports without the edge and
+   * starts a fragment (FR-63) — a missing link is repairable, a wrong one corrupts a whole
+   * branch.
+   *
+   * FIXED 24/08/2026 — the file branch used to take the FIRST match without checking for a
+   * second, so the promise above only held for clan matches. Reproduced on a real database:
+   * two rows named 'Nguyễn Quang Hùng' (1943, chi Nhất / 1961, chi Ba) and a child naming that
+   * father attached to the 1943 row — wrong father, wrong branch, no warning on the child's
+   * row, commit reported success. In a clan where everyone shares a middle name that case is
+   * not exotic, it is Tuesday.
    */
   const resolveByName = (folded: string, selfIndex: number): ResolvedRef | null => {
-    const fileMatch = (activeByFolded.get(folded) ?? []).find((r) => r.index !== selfIndex);
-    if (fileMatch) return { kind: 'row', index: fileMatch.index };
+    const fileMatches = (activeByFolded.get(folded) ?? []).filter((r) => r.index !== selfIndex);
+    // Two rows carry the name — refuse. The preview warns with 'father-ambiguous'; the operator
+    // attaches by hand afterwards, where they can see which of the two they mean.
+    if (fileMatches.length > 1) return null;
+    if (fileMatches.length === 1) return { kind: 'row', index: fileMatches[0]!.index };
     const clanMatch = clanMatches.get(folded) ?? [];
     if (clanMatch.length === 1) return { kind: 'person', personId: clanMatch[0]!.personId };
     return null;

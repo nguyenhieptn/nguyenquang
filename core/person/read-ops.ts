@@ -12,6 +12,7 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Tx } from '@/db';
 import { assertion, revision, source } from '@/db/schema';
+import { giaiNoi } from '@/core/place/ops';
 import type { AssertionKind, Confidence, Tier } from '@/db/schema';
 import {
   ANONYMOUS_LABEL,
@@ -164,6 +165,8 @@ function eventText(kind: 'birth' | 'death', v: { date?: string; precision?: stri
 
 const GENDER_VN = { male: 'nam', female: 'nữ', other: 'khác' } as const;
 const RELATION_VN = { blood: 'con ruột', adopted: 'con nuôi', heir: 'con thừa tự' } as const;
+/** Ba vai của FR-65 §5b. Ba lần táng (nguyên/cải/di) chưa phân loại ở Đợt 2. */
+const VAI_NOI = { 'que-quan': 'quê quán', 'tru-quan': 'trú quán', 'an-tang': 'nơi an táng' } as const;
 
 // ── The op ──
 
@@ -229,6 +232,7 @@ export async function getPersonOps(
         value: assertion.value,
         objectPersonId: assertion.objectPersonId,
         unionId: assertion.unionId,
+        placeId: assertion.placeId,
         confidence: assertion.confidence,
         tier: assertion.tier,
         status: assertion.status,
@@ -242,6 +246,24 @@ export async function getPersonOps(
       .innerJoin(source, eq(assertion.sourceId, source.id))
       .where(and(eq(assertion.subjectPersonId, pid), eq(assertion.status, 'live')))
       .orderBy(asc(assertion.createdAt), asc(assertion.id));
+
+    /**
+     * Tên nơi cho `kind: 'place'` — một truy vấn cho mọi nơi được nhắc tới.
+     *
+     * LUÔN dựng kèm đơn vị cha: "Quang Trung" một mình không nói được là Định Hoá hay Vũng Tàu, và
+     * đó đúng là cái hỏng FR-65 sinh ra để chặn.
+     */
+    const placeIds = [...new Set(rows.flatMap((r) => (r.placeId ? [r.placeId] : [])))];
+    const tenNoi = new Map<string, string>();
+    if (placeIds.length > 0) {
+      /**
+       * Qua `giaiNoi` chứ không đọc thẳng (sửa 25/08 sau code review): AD-3 nói một nơi đã gộp
+       * phải đọc ra NƠI THẮNG, y như `person.redirect`. Đọc thẳng `place.id` thì một khẳng định
+       * trỏ vào bên thua sẽ mãi hiện cái tên đã bị gộp đi.
+       */
+      const daGiai = await giaiNoi(tx, placeIds);
+      for (const [id, n] of daGiai) tenNoi.set(id, n.nhan);
+    }
 
     // Union memberships for 'vợ/chồng với <tên>' — one query for every union referenced.
     const unionIds = [...new Set(rows.flatMap((r) => (r.unionId ? [r.unionId] : [])))];
@@ -298,6 +320,14 @@ export async function getPersonOps(
         }
         case 'note':
           return `ghi chú: ${typeof v.text === 'string' ? v.text : ''}`;
+        case 'place': {
+          // LUÔN kèm đơn vị cha. Thiếu nó thì dòng này vô nghĩa đúng theo lý do FR-65 tồn tại:
+          // "Quang Trung" một mình không nói được là Định Hoá hay Vũng Tàu.
+          const vai =
+            VAI_NOI[(typeof v.role === 'string' ? v.role : '') as keyof typeof VAI_NOI] ?? 'nơi';
+          const noi = r.placeId ? (tenNoi.get(r.placeId) ?? 'một nơi chưa rõ') : 'một nơi chưa rõ';
+          return `${vai}: ${noi}`;
+        }
       }
     };
 

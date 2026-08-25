@@ -659,6 +659,233 @@ export async function getBranchViewOps(
   });
 }
 
+/** Bán kính lớn nhất nhận được. Trùng với `BAN_KINH_TOI_DA` của màn — một nguồn, hai chỗ đọc. */
+export const RADIUS_TOI_DA = 6;
+
+export type RawNeighborhoodNode = RawCoupleNode & {
+  parentNodeId: string | null;
+  distance: number;
+  /**
+   * Người này có thật sự là **cụ xa nhất hiện biết** của mảnh, hay chỉ tình cờ đứng ở rìa bán
+   * kính? Hai chuyện khác hẳn nhau, mà `parentNodeId === null` thì không phân biệt được — thẻ
+   * đội vương miện lên một người chỉ vì bán kính cắt ngang là nói dối trên chính cái phả.
+   */
+  isFragmentRoot: boolean;
+};
+
+export type RawNeighborhood = {
+  anchorPersonId: string;
+  radius: number;
+  nodes: RawNeighborhoodNode[];
+  exhausted: boolean;
+  atMaxRadius: boolean;
+};
+
+/**
+ * Vùng lân cận quanh MỘT NEO — story 5-2.
+ *
+ * Khác `getBranchViewOps` ở chỗ nó đi theo CẠNH chứ không theo chi: `bfsDistances` bước cả cạnh
+ * huyết thống lẫn cạnh vợ-chồng (AD-13), nên vùng tự bước sang nhánh khác và sang cả họ nhà vợ.
+ * Đó là điều bàn tu phả cần — làm việc với một người trong quan hệ của họ, không phải với một chi.
+ *
+ * ── `parentNodeId` là lý do hàm này tồn tại ────────────────────────────────────────────────
+ * Vùng lân cận là một lát CẮT RỜI khỏi cây: người ở rìa có cha nằm ngoài vùng. `xepCay()` vốn đã
+ * lặp qua nhiều gốc (`con.get(null)`), nên chỉ cần trả `null` cho những người ấy là bố cục chạy
+ * đúng KHÔNG phải sửa một dòng nào của hàm bố cục. Việc quy đổi này là cấu trúc dẫn xuất nên nó
+ * thuộc về core (AD-5), không để adapter tự suy.
+ *
+ * ── Bạn đời có thể nằm NGOÀI bán kính ─────────────────────────────────────────────────────
+ * `partnerIdsOf` không lọc theo bán kính, đúng như `getBranchViewOps`. Vợ chồng là MỘT chỗ trong
+ * phả; cắt đôi một cặp ở rìa vùng thì thẻ đọc thành một người goá. Hệ quả phải biết: số node
+ * KHÔNG khớp với số phần tử `bfsDistances` trả về.
+ */
+export async function getNeighborhoodOps(
+  tx: Tx,
+  ctx: ViewerContext,
+  anchorPersonId: string,
+  radius: number,
+): Promise<Result<RawNeighborhood>> {
+  if (!Number.isInteger(radius) || radius < 1 || radius > RADIUS_TOI_DA) {
+    return err('invalid', 'radius must be a whole number between 1 and 6');
+  }
+
+  const data = await loadTreeData(tx);
+  const anchor = data.redirect(anchorPersonId);
+  if (!anchor || !data.persons.has(anchor)) return err('not-found', 'person not found');
+
+  const s = computeStructure(data);
+  const within = bfsDistances(data, anchor, radius);
+
+  /** Thứ tự duyệt ổn định. KHÔNG quyết định ai làm node chính — việc ấy tường minh ở dưới. */
+  const xepThanhVien = (tap: Set<string>): string[] =>
+    [...tap].sort((a, b) => {
+      const ga = s.generation.get(a) ?? 0;
+      const gb = s.generation.get(b) ?? 0;
+      if (ga !== gb) return ga - gb;
+      const ca = s.branchCode.get(a) ?? '';
+      const cb = s.branchCode.get(b) ?? '';
+      if (ca !== cb) {
+        if (ca === '') return 1;
+        if (cb === '') return -1;
+        return compareCodes(ca, cb);
+      }
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
+
+  const memberSet = new Set([...within.keys()].filter((id) => data.persons.has(id)));
+  const goc = new Set(s.fragments.map((f) => f.rootId));
+  const partnerIdsOf = (m: string): string[] =>
+    (data.partnersOf.get(m) ?? []).filter((p) => data.persons.has(p));
+
+  /**
+   * Gộp cặp: một cặp vợ chồng cho ĐÚNG MỘT node.
+   *
+   * ── Ai làm CHÍNH (sửa 25/08 sau code review) ──────────────────────────────────────────
+   * Không để thứ tự duyệt quyết. `getBranchViewOps` duyệt trong phạm vi một chi nên người đầu
+   * tiên gặp luôn nằm trên đường máu; ở đây vùng đi theo CẠNH nên nó chạm cả họ nhà vợ, và người
+   * kết hôn vào họ thường đứng trước (họ không có số đời nên `?? 0` đẩy lên đầu).
+   *
+   * Ưu tiên, theo đúng thứ tự:
+   *   1. người mang MÃ CHI — con cái treo vào đường máu, và cạnh lên cha giữ được;
+   *   2. người là GỐC MẢNH — cụ tổ KHÔNG có mã chi (chỉ con cháu mới có), nên nếu chỉ xét mã chi
+   *      thì một cụ tổ có vợ sẽ mất node của mình, `isFragmentRoot` không bao giờ đúng, và neo
+   *      vào cụ trả về một vùng không chứa cụ;
+   *   3. người là NEO — người xem đang hỏi về họ, nên họ phải có mặt bằng chính mình;
+   *   4. cuối cùng mới tới người đầu danh sách.
+   *
+   * ── Vì sao `consumed` phải theo CẢ nhóm của người chính ───────────────────────────────
+   * Trước đây `consumed` chỉ nhận `m` và bạn đời CỦA M, còn node thì phát cho `chinh`. Với một
+   * người hai vợ: lượt vợ-1 phát node chồng, lượt vợ-2 chưa bị đánh dấu nên phát node chồng LẦN
+   * NỮA — hai node trùng id, và `xepCay` khoá vị trí theo id nên hai thẻ chồng khít lên nhau.
+   * Đúng con bug "thẻ đè lên nhau" của commit 5da7a2a, quay lại qua một cửa khác.
+   */
+  const bauNodeChinh = (tap: Set<string>): { id: string; partners: string[] }[] => {
+    const consumed = new Set<string>();
+    const ra: { id: string; partners: string[] }[] = [];
+    for (const m of xepThanhVien(tap)) {
+      if (consumed.has(m)) continue;
+      const nhom = [m, ...partnerIdsOf(m).filter((p) => tap.has(p))];
+      const uuTien =
+        nhom.find((x) => s.branchCode.has(x)) ??
+        nhom.find((x) => goc.has(x)) ??
+        (nhom.includes(anchor) ? anchor : undefined) ??
+        m;
+      /**
+       * Người được ưu tiên có thể ĐÃ có thẻ rồi — họ đứng làm bạn đời trong một cuộc hôn nhân
+       * khác đã xử xong. Phát lại là hai thẻ cùng id, đúng lỗi C3. Khi ấy `m` tự đứng thẻ mình.
+       */
+      const chinh = consumed.has(uuTien) ? m : uuTien;
+
+      /**
+       * Nuốt ĐÚNG BA thứ: `m` (vừa xử xong), bạn đời của người chính (họ nằm trên thẻ này), và
+       * chính người ấy.
+       *
+       * KHÔNG nuốt cả `nhom`. Bản trước làm thế, và nó nuốt luôn những bạn đời KHÁC của `m` — kể
+       * cả người thuộc huyết thống, người đáng có thẻ riêng. Ca thật: một bà goá tái giá, cả hai
+       * đời chồng đều trong bán kính và đều thuộc dòng. Vòng của bà phát thẻ cho chồng thứ nhất
+       * rồi nuốt luôn chồng thứ hai, nên `getNeighborhood(chồng-hai)` trả `anchorPersonId` là ông
+       * mà KHÔNG node nào mang id ấy — đúng triệu chứng C4, qua một cửa khác. Con ông cũng mất
+       * cạnh nối và rơi xuống thành gốc bố cục rời.
+       *
+       * `core/person/chong.ts` đã ghi: *"nhiều đời vợ/chồng là chuyện phả cổ chép thật"*.
+       */
+      consumed.add(m);
+      for (const p of partnerIdsOf(chinh)) if (tap.has(p)) consumed.add(p);
+      consumed.add(chinh);
+      ra.push({ id: chinh, partners: partnerIdsOf(chinh) });
+    }
+    return ra;
+  };
+
+  const primaries = bauNodeChinh(memberSet);
+
+  /** person → node đang BÀY người ấy (làm chính hoặc làm bạn đời). */
+  const nodeOf = new Map<string, string>();
+  for (const n of primaries) {
+    nodeOf.set(n.id, n.id);
+    for (const p of n.partners) if (!nodeOf.has(p)) nodeOf.set(p, n.id);
+  }
+
+  const cardIds = new Set<string>();
+  for (const n of primaries) {
+    cardIds.add(n.id);
+    for (const p of n.partners) cardIds.add(p);
+  }
+  const attribution = await fetchAttribution(tx, [...cardIds]);
+  const today = new Date();
+  const lens = viewerLens(data, ctx);
+  const card = (id: string) => cardOf(lens, s, data.persons.get(id)!, attribution, today);
+
+  const nodes: RawNeighborhoodNode[] = primaries.map((n) => {
+    /**
+     * Con cái LỌC THEO VÙNG, cùng luật với `parentNodeId`.
+     *
+     * Trước đây `childrenIds` liệt kê mọi con của người ấy, kể cả người không có node nào trong
+     * vùng — trong khi `parentNodeId` ngay dưới lại rất cẩn thận trả `null` cho cha ngoài vùng.
+     * Hai trường cạnh nhau trong cùng một object mà nói hai luật ngược nhau: bên nào vẽ cạnh từ
+     * `childrenIds` sẽ dựng ra cạnh treo lơ lửng.
+     *
+     * Và con chỉ được tính cho node chứa CHA CODE của nó, không cho mọi node mà cha ấy xuất hiện:
+     * một người vợ có hai chồng cùng trong vùng thì con của bà với chồng-2 không được treo lên
+     * thẻ của chồng-1.
+     */
+    const trongVung = (c: string) => {
+      const node = nodeOf.get(c);
+      return node !== undefined && node !== n.id;
+    };
+    const childIds = new Set<string>();
+    for (const c of s.codeChildren.get(n.id) ?? []) if (trongVung(c)) childIds.add(c);
+    for (const p of n.partners) {
+      for (const c of s.codeChildren.get(p) ?? []) {
+        if (trongVung(c) && (s.codeParent.get(c) === n.id || s.codeParent.get(c) === p)) {
+          childIds.add(c);
+        }
+      }
+    }
+
+    const parentPersonId = s.codeParent.get(n.id) ?? null;
+    const parentNode = parentPersonId ? (nodeOf.get(parentPersonId) ?? null) : null;
+
+    return {
+      person: card(n.id),
+      partners: n.partners.map(card),
+      childrenIds: [...childIds].sort((a, b) =>
+        compareCodes(s.branchCode.get(a) ?? '', s.branchCode.get(b) ?? ''),
+      ),
+      // `=== n.id` là chốt phòng thân: cha rơi vào chính node này (dữ liệu vòng) thì coi như
+      // không có cha, chứ không tạo một cạnh tự trỏ làm `xepCay` đệ quy vô tận.
+      parentNodeId: parentNode === n.id ? null : parentNode,
+      distance: within.get(n.id) ?? 0,
+      isFragmentRoot: goc.has(n.id),
+    };
+  });
+
+  /**
+   * `exhausted` phải so TẬP NODE, không so số phần tử `bfsDistances` (sửa 25/08 sau code review).
+   *
+   * Hai thứ ấy khác nhau, và chú thích đầu hàm này đã nói rõ: bạn đời ngoài bán kính vẫn hiện
+   * trên thẻ. Ở bán kính 1 người vợ đã nằm trên thẻ chồng nhưng chưa vào `within`; sang bán kính 2
+   * cô ấy vào, nên phép so cũ cho `false` trong khi TẬP NODE y hệt — đúng cái nút "mở thêm một
+   * đời" bấm mãi mà màn không đổi.
+   *
+   * `atMaxRadius` tách riêng vì nó là một sự thật KHÁC: vùng chưa cạn, nhưng không nới thêm được
+   * nữa. Gộp hai thứ vào một cờ thì màn không nói đúng được lý do nút bị tắt.
+   */
+  const atMaxRadius = radius >= RADIUS_TOI_DA;
+  let exhausted = false;
+  if (!atMaxRadius) {
+    // Dùng lại `data` và `s` ĐÃ NẠP — nới bán kính không được tốn thêm một lượt đọc cả cây.
+    const rong = new Set(
+      [...bfsDistances(data, anchor, radius + 1).keys()].filter((id) => data.persons.has(id)),
+    );
+    const b = new Set(bauNodeChinh(rong).map((n) => n.id));
+    const a = new Set(primaries.map((n) => n.id));
+    exhausted = a.size === b.size && [...a].every((id) => b.has(id));
+  }
+
+  return ok({ anchorPersonId: anchor, radius, nodes, exhausted, atMaxRadius });
+}
+
 export async function getAncestryPathOps(
   tx: Tx,
   ctx: ViewerContext,

@@ -54,7 +54,12 @@ export type AssertionSpec =
   | { kind: 'death'; value: GenealogicalDate }
   | { kind: 'parent-child'; parentId: string; relation?: 'blood' | 'adopted' | 'heir' }
   | { kind: 'union-partner'; partnerId: string; unionId?: string }
-  | { kind: 'note'; text: string };
+  | { kind: 'note'; text: string }
+  /**
+   * FR-65 (story 5-7) — nơi chốn. Ba vai của PRD §5b. `placeId` phải là một nơi đã có trong danh
+   * mục; tạo nơi mới là `core/place.addPlace`, một việc riêng và có nhật ký riêng.
+   */
+  | { kind: 'place'; placeId: string; role: 'que-quan' | 'tru-quan' | 'an-tang' };
 
 export type AddedPerson = { personId: string; assertionIds: string[] };
 
