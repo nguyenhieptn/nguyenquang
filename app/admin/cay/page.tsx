@@ -59,6 +59,8 @@ export default async function CayPage({
     neo?: string | string[];
     'ban-kinh'?: string | string[];
     them?: string | string[];
+    /** Người vừa bị tách khỏi neo bằng một lượt gỡ quan hệ — xem § Giữ người vừa bị tách. */
+    giu?: string | string[];
   }>;
 }) {
   const sp = await searchParams;
@@ -84,6 +86,8 @@ export default async function CayPage({
       <ChuaCoGi loi="Phả chưa có ai, nên chưa có cây để mở. Nạp khung xong thì màn này tự có người." />
     );
   }
+
+  const giuParam = Array.isArray(sp.giu) ? sp.giu[0] : sp.giu;
 
   const vung = await getNeighborhood(neoId, banKinh);
   if (!vung.ok) {
@@ -114,11 +118,33 @@ export default async function CayPage({
     ]),
   );
 
+  /**
+   * ── Giữ người vừa bị tách (AC 23, chốt 26/08/2026) ────────────────────────────────────────
+   *
+   * Vùng lân cận đi THEO CẠNH. Gỡ đúng cạnh duy nhất buộc một người vào neo thì họ rơi khỏi bán
+   * kính và biến mất khỏi canvas ngay trước mắt người vừa gỡ — trong một hệ không có nút hoàn
+   * tác. Bán kính tính đúng; cái sai là để người vận hành mất dấu thứ họ vừa động vào.
+   *
+   * Nên `?giu=` giữ họ lại đúng một lượt, và dữ liệu thẻ lấy từ CHÍNH `getNeighborhood` với họ
+   * làm neo — không bịa một thẻ rỗng, không đoán đời và chi. Bán kính 1 vì thứ cần là chỗ đứng
+   * mới của họ, không phải cả nhánh.
+   */
+  let nutGiu: (typeof vung.value.nodes)[number] | null = null;
+  if (giuParam && !vung.value.nodes.some((n) => n.person.personId === giuParam)) {
+    const vungGiu = await getNeighborhood(giuParam, 1);
+    if (vungGiu.ok) {
+      nutGiu =
+        vungGiu.value.nodes.find((n) => n.person.personId === vungGiu.value.anchorPersonId) ?? null;
+    }
+  }
+
   // Dịch sang hình dạng của tầng component. `components/` không import `@/core/*`
   // (`docs/build-contract.md § Phân tầng`), nên chỗ dịch nằm ở đây, một lần, tường minh.
-  const nut: NutCanvas[] = vung.value.nodes.map((n) => ({
+  const nut: NutCanvas[] = [...vung.value.nodes, ...(nutGiu ? [nutGiu] : [])].map((n) => ({
     id: n.person.personId,
-    chaId: n.parentNodeId,
+    // Người được GIỮ đứng như gốc mảnh: cha của họ (nếu có) nằm ngoài vùng đang bày, và một
+    // `chaId` trỏ vào node không có trên hình là đúng con bug "mất cạnh im lặng" của 5-2.
+    chaId: nutGiu && n.person.personId === nutGiu.person.personId ? null : n.parentNodeId,
     the: {
       hoTen: n.person.fullName,
       // CẢ danh sách, không chỉ `partners[0]`. Người vợ thứ hai không có node riêng (vợ chồng

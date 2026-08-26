@@ -25,6 +25,7 @@ import { camNutTam, type HuongThem } from '@/components/admin/dat-nut-tam';
 import {
   ghiThemKhangDinh,
   ghiThemNoi,
+  ghiThemQuanHe,
   loaiKhangDinh,
   nangTang,
   taoNoi,
@@ -33,6 +34,8 @@ import {
   xemHoSo,
 } from './actions';
 import { nhanVaoPha, tuChoiVaoPha } from '../duyet-vao-pha/actions';
+/** Dùng lại ĐÚNG lối tìm của ô tìm trên thanh trên — không dựng đường đọc thứ hai (AD-13/AD-21). */
+import { timNguoi } from '../actions';
 
 /** "18/03/2026" — ngày đủ dùng; giờ phút là nhiễu trên một cột 360px. */
 function ngay(iso: string): string {
@@ -203,6 +206,14 @@ export function CayClient({
    * Nhận `Result<unknown>` chứ không buộc `Result<void>`: ba lối ghi của cột phải trả ba hình
    * dạng khác nhau (`void`, `{ assertionId }`), mà việc phải làm sau đó thì y hệt.
    */
+  /**
+   * Ổn định giữa các lượt vẽ. Bản trước là một mũi tên viết thẳng trong JSX, nên nó mang danh
+   * tính MỚI mỗi lượt vẽ của màn này — mà `ChonNguoi` để `onTim` trong deps của effect tìm kiếm.
+   * Hệ quả: mỗi lượt vẽ lại của `CayClient` là một lượt tìm lại, và một lượt Escape vừa bấm bị
+   * lượt vẽ kế tiếp mở lại.
+   */
+  const timNguoiOnDinh = useCallback(async (tuKhoa: string) => timNguoi(tuKhoa), []);
+
   const sauKhiGhi = useCallback(
     async (res: { ok: true; value: unknown } | { ok: false; error: { message: string } }): Promise<
       string | null
@@ -376,9 +387,29 @@ export function CayClient({
             hoSo={hoSoHienHanh}
             dangTai={dangTai}
             onNangTang={async (id) => sauKhiGhi(await nangTang(id))}
-            onLoai={async (id) =>
-              sauKhiGhi(await loaiKhangDinh(id, 'Loại khi giải mâu thuẫn ở bàn làm việc'))
-            }
+            /**
+             * Ghi chú đi thẳng vào `revision` và Ở LẠI ĐÓ (AD-4) — `rejectAssertionOp` xoá cứng
+             * hàng khẳng định, nên câu này là lời giải thích DUY NHẤT sống sót. Bản trước gắn
+             * cứng "Loại khi giải mâu thuẫn", viết khi nút "Loại" chỉ mọc trên chồng mâu thuẫn;
+             * story 6-1 cho nó mọc trên chồng NỐI TIẾP, thứ không bao giờ mâu thuẫn. Nên nơi gọi
+             * phải nói đúng việc vừa làm.
+             */
+            onLoai={async (id, ghiChu) => {
+              const res = await loaiKhangDinh(id, ghiChu);
+              /**
+               * Gỡ một quan hệ có thể vừa cắt người ở đầu kia ra khỏi vùng lân cận — vùng ấy đi
+               * THEO CẠNH. `?giu=` giữ họ lại đúng một lượt, với dữ liệu thẻ thật (xem
+               * `page.tsx § Giữ người vừa bị tách`), để người vận hành không mất dấu thứ mình
+               * vừa động vào và nối lại được nếu gỡ nhầm.
+               */
+              if (res.ok && res.value.doiTuongId) {
+                router.replace(
+                  `/admin/cay?neo=${encodeURIComponent(neoId)}&ban-kinh=${banKinh}` +
+                    `&giu=${encodeURIComponent(res.value.doiTuongId)}`,
+                );
+              }
+              return sauKhiGhi(res);
+            }}
             onGhiThem={async (loai, giaTri, xuatXu) => {
               if (!chonId) return 'Chưa chọn ai trên cây.';
               // Nạp lại chồng NGAY sau khi ghi: giá trị mới có thể vừa biến một chồng `don` thành
@@ -390,6 +421,31 @@ export function CayClient({
               if (!chonId) return 'Chưa chọn ai trên cây.';
               return sauKhiGhi(await ghiThemNoi(chonId, placeId, vai, xuatXu));
             }}
+            onGhiQuanHe={async (a) => {
+              if (!chonId) return 'Chưa chọn ai trên cây.';
+              // Nạp lại chồng NGAY (thấy quan hệ mới trong cột phải) — và `ghiThemQuanHe` đã
+              // `revalidatePath('/admin','layout')` nên canvas vẽ lại với cạnh mới, số "Mảnh chưa
+              // nối" trên thanh việc cũng theo.
+              const res = await ghiThemQuanHe({ personId: chonId, ...a });
+              if (res.ok && res.value.alreadyLinked) {
+                // Không phải lỗi, cũng không phải "vừa ghi xong". Cặp này đã là vợ chồng trong
+                // phả rồi — nói thẳng thay vì đóng biểu mẫu như thể vừa ghi một khẳng định mới.
+                return 'Hai người này đã là vợ chồng trong phả — không ghi thêm gì.';
+              }
+              /**
+               * Hướng "là con của" ghi khẳng định lên NGƯỜI KIA (`subject` là con). Hồ sơ chỉ nạp
+               * hàng của chính mình, nên chồng đang mở không có dòng nào mới và người vận hành
+               * không thấy gì — kể cả nút gỡ, thứ chỉ tồn tại trên panel người kia.
+               *
+               * Dời chỗ đứng sang họ, đúng nếp 5-4: xác nhận bằng HỆ QUẢ, và lối gỡ nằm ngay đó.
+               */
+              if (res.ok && a.loai === 'parent-child' && a.huong === 'con') {
+                chon(a.nguoiKiaId);
+                return null;
+              }
+              return sauKhiGhi(res);
+            }}
+            onTimNguoi={timNguoiOnDinh}
             onTimNoi={async (ten, donViCha) => {
               const res = await timNoi(ten, donViCha);
               /**

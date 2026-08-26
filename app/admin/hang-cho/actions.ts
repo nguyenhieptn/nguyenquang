@@ -74,9 +74,9 @@ export async function khoiPhucKhangDinh(assertionId: string): Promise<void> {
  * Chữ ký (prev, formData) để dùng thẳng với useActionState.
  */
 export async function traLaiKhangDinh(
-  _truoc: Result<void> | null,
+  _truoc: Result<{ doiTuongId?: string }> | null,
   formData: FormData,
-): Promise<Result<void>> {
+): Promise<Result<{ doiTuongId?: string }>> {
   const assertionId = String(formData.get('assertionId') ?? '');
   const ghiChu = String(formData.get('ghiChu') ?? '').trim();
   if (!assertionId) return err('invalid', 'thiếu mã khẳng định');

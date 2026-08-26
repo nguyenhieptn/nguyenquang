@@ -115,3 +115,42 @@ gốc để lần sau không phải điều tra lại.
   bạn đời, cột co giãn của `<main>`, và CSS nút phóng/thu. `tsc`/`eslint`/`build`/203 test đều
   xanh, nhưng repo không có e2e (`vitest.config.ts` chạy `environment: 'node'`) nên không có gì
   thay được một lượt mở trình duyệt.
+
+## Deferred from: 6-1-noi-nguoi-da-co (2026-08-25)
+
+- **`place` và `note` ghi được mà không gỡ được.** Nút *"Loại"* ở `components/admin/cot-khang-dinh.tsx`
+  chỉ mọc trên chồng **mâu thuẫn**. Bốn loại có `DON_TRI = false` (`core/person/chong.ts:39-47`)
+  là chồng **nối tiếp** nên không bao giờ mâu thuẫn: `parent-child`, `union-partner`, `place`,
+  `note`. Story 6-1 mở nút cho hai loại QUAN HỆ (`loaiDuocDuNoiTiep`) vì nó vừa dựng đường ghi
+  chúng — mở luôn cho `place`/`note` là đổi hành vi của hai loại story ấy không đụng tới.
+
+  Nhưng lỗ thì vẫn nguyên: ghi nhầm một quê quán hay một ghi chú thì không có đường gỡ nào từ
+  panel. *Lý do hoãn: cùng một câu hỏi thiết kế cho cả bốn loại — "mọi khẳng định có nên gỡ được
+  không, kể cả khi không mâu thuẫn?" — đáng một quyết định có chủ ý, không phải một prop nới
+  thêm.* Đường sửa rẻ: bỏ hẳn `loaiDuocDuNoiTiep` và cho `loaiDuoc` luôn đúng.
+
+- **`relation: 'heir'` và `'adopted'` vẽ y hệt `'blood'` trên canvas.** Story 6-1 mở đường ghi ba
+  loại quan hệ máu (phả cổ chép cả ba, `AssertionSpec.relation` đã đón sẵn từ Đợt 1), và panel nói
+  đúng chữ — *"là con thừa tự của X"*. Nhưng cạnh trên cây thì không phân biệt.
+  `EXPERIENCE.md` chưa nói gì về hình của cạnh, nên đây là một quyết định UX chưa có, không phải
+  một chỗ quên nối dây. *Lý do hoãn: cần Sally chốt hình trước; và `DESIGN.md § Colors` không cho
+  phân biệt chỉ bằng màu, nên lối ra nhiều khả năng là nét cạnh cộng một nhãn.*
+
+## Deferred from: code review of story 6-1-noi-nguoi-da-co (2026-08-26)
+
+- **`timNguoi` cắt còn 8 kết quả mà không nói.** `app/admin/actions.ts:32` `.slice(0, 8)` trong
+  khi `searchPersonsOps` trả tới 30. Dòng họ có 12 người trùng tên thì người thứ 9 không bao giờ
+  hiện, và `aria-live` đọc "8 người trùng tên" như thể đã hết. Bộ chọn của 6-1 không có lối lọc
+  nào khác (không theo đời, không theo chi) nên không có đường vòng. *Lý do hoãn: có từ 5-1, và
+  sửa đúng cần một lối lọc chứ không chỉ nâng con số.*
+
+- **Nợ combobox ghi cho ô tìm thanh trên vẫn nguyên.** `chon-nguoi.tsx` chú thích *"Trả ở đây, và
+  trả đủ"*, nhưng thứ được trả là bộ chọn MỚI; `components/admin/khung-admin.tsx:170-200` không
+  nằm trong changeset và mục nợ ở trên vẫn trỏ đúng vào nó. *Lý do hoãn: hai control khác nhau;
+  gộp chúng lại là việc riêng — xem mục dưới.*
+
+- **Hai cài đặt song song của cùng một control "chọn một người".**
+  `app/(pha)/loi-ke/thu/chon-nguoi.tsx` (Đợt 1) và `components/admin/chon-nguoi.tsx` (6-1) đều
+  gọi `timNguoi`, mỗi cái một bộ trạng thái và một mức ngữ nghĩa a11y khác nhau. *Lý do hoãn:
+  gộp chúng cần chốt bề mặt A và bề mặt B dùng chung được tới đâu — bề mặt A có NFR-5 bó vào một
+  câu hỏi một màn.*

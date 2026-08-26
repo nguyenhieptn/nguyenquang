@@ -82,13 +82,18 @@ export async function addAssertion(
   spec: AssertionSpec,
   source: SourceSpec,
   confidence?: Confidence,
-): Promise<Result<{ assertionId: string }>> {
+): Promise<Result<{ assertionId: string; alreadyLinked?: boolean }>> {
   const viewer = await requireViewer();
   if (!viewer) return err('unauthenticated', 'no session and no clan to view');
   return withClanContext(viewer.clanId, async (tx) => {
     const result = await addAssertionOp(tx, viewer, { personId, spec, source, confidence });
     if (!result.ok) return result;
-    return ok({ assertionId: result.value.assertionId });
+    // `alreadyLinked` đi ra tới adapter: "cặp này đã là vợ chồng trong phả" không phải một lỗi,
+    // và cũng không phải "vừa ghi xong" — nó là câu thứ ba, và màn phải nói được câu ấy.
+    return ok({
+      assertionId: result.value.assertionId,
+      ...(result.value.alreadyLinked ? { alreadyLinked: true as const } : {}),
+    });
   });
 }
 
@@ -112,7 +117,10 @@ export async function restoreAssertion(assertionId: string): Promise<Result<void
 }
 
 /** AD-4: losing value leaves live data, stays in the revision log. Needs approval right. */
-export async function rejectAssertion(assertionId: string, note: string): Promise<Result<void>> {
+export async function rejectAssertion(
+  assertionId: string,
+  note: string,
+): Promise<Result<{ doiTuongId?: string }>> {
   const viewer = await requireViewer();
   if (!viewer) return err('unauthenticated', 'no session and no clan to view');
   return withClanContext(viewer.clanId, (tx) => rejectAssertionOp(tx, viewer, { assertionId, note }));

@@ -17,7 +17,16 @@ import { addAssertion, addPerson, promoteAssertion, rejectAssertion } from '@/co
 import type { AssertionSpec, NewPersonInput } from '@/core/assertion';
 import { LOAI_GHI_THEM, type LoaiGhiThem } from '@/components/admin/loai-ghi-them';
 import type { HuongThem } from '@/components/admin/dat-nut-tam';
+import {
+  dungLoiGoiQuanHe,
+  HUONG_QUAN_HE,
+  QUAN_HE_MAU,
+  type HuongQuanHe,
+  type LoaiQuanHe,
+  type QuanHeMau,
+} from '@/components/admin/quan-he-ghi-them';
 import { getPerson, type AssertionStack, type PersonProfile } from '@/core/person';
+import { getAncestryPath } from '@/core/tree';
 import { addPlace, searchPlaces, type UngVienNoiChon } from '@/core/place';
 import { err, type Result } from '@/core/types';
 
@@ -58,7 +67,10 @@ export async function nangTang(assertionId: string): Promise<Result<void>> {
  * AD-4: giá trị thua rời DỮ LIỆU SỐNG nhưng ở lại NHẬT KÝ. Đây không phải xoá, và giao diện
  * không được gọi nó là xoá — `rejectAssertionOp` ghi nguyên hàng vào revision trước khi gỡ.
  */
-export async function loaiKhangDinh(assertionId: string, ghiChu: string): Promise<Result<void>> {
+export async function loaiKhangDinh(
+  assertionId: string,
+  ghiChu: string,
+): Promise<Result<{ doiTuongId?: string }>> {
   const res = await rejectAssertion(assertionId, ghiChu);
   if (res.ok) lamMoiSo();
   return res;
@@ -173,10 +185,14 @@ export async function ghiThemKhangDinh(
   const nguon = xuatXu.trim();
   if (!nguon) return err('invalid', 'Chưa ghi nghe được điều này từ đâu.');
 
-  // `place` KHÔNG đi đường này: giá trị của nó là một `placeId` đã có trong danh mục, cộng một
-  // vai — hai thứ, không phải một chuỗi. Nó có lối riêng là `ghiThemNoi`.
+  // `place` và hai loại QUAN HỆ không đi đường này: giá trị của chúng là một id đã có, cộng một
+  // vai (nơi) hoặc một CHIỀU (cha-con) — hai thứ, không phải một chuỗi. Mỗi loại có lối riêng:
+  // `ghiThemNoi` và `ghiThemQuanHe`.
   if (loai === 'place') {
     return err('invalid', 'Nơi chốn ghi bằng lối riêng, không qua đường này.');
+  }
+  if (loai === 'parent-child' || loai === 'union-partner') {
+    return err('invalid', 'Quan hệ ghi bằng lối riêng, không qua đường này.');
   }
 
   let spec: AssertionSpec;
@@ -208,6 +224,118 @@ export async function ghiThemKhangDinh(
   return res;
 }
 
+
+// ── Quan hệ giữa hai người ĐÃ CÓ (story 6-1) ───────────────────────────────────────────────
+
+export type QuanHeMoi = {
+  /** Người đang mở hồ sơ ở cột phải. */
+  personId: string;
+  /** Người vừa chọn trong bộ chọn. */
+  nguoiKiaId: string;
+  loai: LoaiQuanHe;
+  /** Chỉ có nghĩa với `parent-child`. `union-partner` đối xứng nên bỏ qua. */
+  huong: HuongQuanHe;
+  quanHe: QuanHeMau;
+  xuatXu: string;
+};
+
+/**
+ * Nối hai người ĐÃ CÓ trong phả.
+ *
+ * ── Vì sao đây là một lối riêng, không phải một nhánh của `ghiThemKhangDinh` ──────────────
+ * Giá trị của nó là một `personId` cộng một CHIỀU, không phải một chuỗi. Nhồi vào lối cũ thì
+ * chữ ký hàm phải mang thêm hai tham số chỉ hai loại dùng tới — đúng cái đã khiến `place` được
+ * tách ra ở 5-7.
+ *
+ * ── Chiều tính Ở ĐÂY, không nhận từ client ────────────────────────────────────────────────
+ * `chieuChaCon` là module thuần, dùng chung với biểu mẫu, nên câu người vận hành đọc trên màn và
+ * hàng ghi xuống database sinh ra từ CÙNG một phép tính. Nhưng phép tính chạy lại ở server: đây
+ * là một điểm cuối HTTP thật, POST thẳng vào được (AD-24 nói core vẫn gác QUYỀN, không ai gác hộ
+ * hình dạng dữ liệu).
+ */
+export async function ghiThemQuanHe(
+  a: QuanHeMoi,
+): Promise<Result<{ assertionId: string; alreadyLinked?: boolean }>> {
+  if (a.loai !== 'parent-child' && a.loai !== 'union-partner') {
+    return err('invalid', 'Loại quan hệ này không ghi được từ đây.');
+  }
+  // `huong` và `quanHe` CHỈ có nghĩa với cha-con. Bản trước kiểm cả hai trước khi rẽ loại, nên
+  // một lượt POST `union-partner` thiếu `huong` nhận về "Chưa rõ ai là cha, ai là con." — một câu
+  // nói về thứ loại ấy không có.
+  if (a.loai === 'parent-child') {
+    if (!(HUONG_QUAN_HE as readonly string[]).includes(a.huong)) {
+      return err('invalid', 'Chưa rõ ai là cha, ai là con.');
+    }
+    if (!(QUAN_HE_MAU as readonly string[]).includes(a.quanHe)) {
+      return err('invalid', 'Quan hệ này chưa hợp lệ.');
+    }
+  }
+  if (!a.personId || !a.nguoiKiaId) return err('invalid', 'Chưa chọn đủ hai người.');
+  // Core cũng chặn (`addAssertionOp:361`, `:373`), nhưng chặn ở đây thì lời nhắn nói đúng việc
+  // người vận hành vừa làm, thay vì một câu tiếng Anh của tầng dưới.
+  if (a.personId === a.nguoiKiaId) {
+    return err('invalid', 'Một người không thể là cha mẹ hay vợ chồng của chính mình.');
+  }
+
+  const nguon = a.xuatXu.trim();
+  if (!nguon) return err('invalid', 'Chưa ghi nghe được điều này từ đâu.');
+
+  // Phép ánh xạ (kể cả CHIỀU) nằm trọn ở module thuần, và chạy lại Ở ĐÂY chứ không nhận từ
+  // client: đây là một điểm cuối HTTP thật, POST thẳng vào được.
+  const { personId, spec } = dungLoiGoiQuanHe({
+    loai: a.loai,
+    nguoiNayId: a.personId,
+    nguoiKiaId: a.nguoiKiaId,
+    huong: a.huong,
+    quanHe: a.quanHe,
+  });
+
+  /**
+   * ── Vòng huyết thống: chặn TRƯỚC khi ghi (chốt 26/08/2026, code review 6-1) ───────────────
+   *
+   * Story này là đường ĐẦU TIÊN trong giao diện nối được hai người đã có, nên nó cũng là đường
+   * đầu tiên tạo được vòng: ghi "A là con của B" rồi "B là con của A" đều qua `addAssertionOp`
+   * (nó chỉ chặn tự-làm-cha-mình), và câu xem trước đọc trôi chảy cả hai lượt.
+   *
+   * `computeStructure` không treo — nó có `inStack`/`visited` — nhưng số đời và mã chi tính theo
+   * nhánh BFS nào tới trước, tức lệch IM LẶNG cho cả mảnh. Trong một hệ không có nút xoá, một
+   * vòng ghi vào là một vòng phải đi loại từng cạnh mới gỡ.
+   *
+   * Kiểm qua bề mặt công khai của `core/tree` (AD-1: adapter không tự đọc DB). `getAncestryPath`
+   * đi ngược lên từ người sắp làm CHA; nếu người sắp làm CON đã nằm trên đường ấy thì cạnh mới
+   * khép vòng. Đọc hỏng thì KHÔNG cho ghi: ở đây "chưa biết" phải xử như "có thể sai".
+   */
+  if (spec.kind === 'parent-child') {
+    const duong = await getAncestryPath(spec.parentId);
+    if (!duong.ok) {
+      return err('conflict', 'Chưa đọc được đường lên gốc để kiểm, nên chưa ghi. Thử lại.');
+    }
+    if (duong.value.steps.some((b) => b.personId === personId)) {
+      return err(
+        'conflict',
+        'Không ghi được: người này đã là bậc trên của người kia trong phả, nối thêm sẽ thành vòng.',
+      );
+    }
+  }
+
+  const res = await addAssertion(personId, spec, { kind: 'told-by', description: nguon });
+  /**
+   * Người kia bị GỘP giữa lúc biểu mẫu đang mở: core trả câu tiếng Anh của tầng dưới
+   * (*"parent was merged into another person"*). Câu ấy đúng nhưng không nói phải làm gì, và nó
+   * rơi vào một màn tiếng Việt.
+   */
+  if (!res.ok && /merged into/.test(res.error.message)) {
+    return err(
+      'conflict',
+      'Người vừa chọn đã được gộp vào một người khác trong lúc biểu mẫu đang mở. Chọn lại người còn giữ hồ sơ.',
+    );
+  }
+
+  // Cạnh mới đổi HÌNH của cây, không chỉ đổi một ô chữ: số "Mảnh chưa nối" trên thanh việc do
+  // `app/admin/layout.tsx` dựng, và chính nó là con số story này sinh ra để làm giảm.
+  if (res.ok) lamMoiSo();
+  return res;
+}
 
 // ── Nơi chốn (story 5-7, FR-65) ────────────────────────────────────────────────────────────
 

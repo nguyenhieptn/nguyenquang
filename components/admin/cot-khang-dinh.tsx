@@ -24,6 +24,16 @@ import { useState, useTransition } from 'react';
 import { TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import type { MucTinCay } from './the-nguoi';
+import type { UngVienNguoi } from './tim-nguoi';
+import { loaiDuocDuNoiTiep, type HuongQuanHe, type LoaiQuanHe, type QuanHeMau } from './quan-he-ghi-them';
+
+/** Nhãn dùng trong ghi chú nhật ký — nói đúng thứ vừa bị gỡ, vì câu ấy ở lại vĩnh viễn (AD-4). */
+const NHAN_LOAI_CHONG = (khoa: string): string =>
+  khoa === 'parent-child'
+    ? 'quan hệ cha con'
+    : khoa === 'union-partner'
+      ? 'quan hệ vợ chồng'
+      : 'một khẳng định';
 import { BieuMauGhiThem, type VaiNoi } from './bieu-mau-ghi-them';
 import type { UngVienNoi } from './chon-noi';
 import { ghiThemDuoc, type LoaiGhiThem } from './loai-ghi-them';
@@ -77,13 +87,22 @@ type Props = {
   hoSo: HoSoPanel | null;
   dangTai: boolean;
   onNangTang: (assertionId: string) => Promise<string | null>;
-  onLoai: (assertionId: string) => Promise<string | null>;
+  onLoai: (assertionId: string, ghiChu: string) => Promise<string | null>;
   /** Story 5-6 — ghi thêm một khẳng định cho chính người đang bày. */
   onGhiThem: (loai: LoaiGhiThem, giaTri: string, xuatXu: string) => Promise<string | null>;
   /** Story 5-7 — nơi đi lối riêng: `placeId` + vai, không phải một chuỗi. */
   onGhiNoi: (placeId: string, vai: VaiNoi, xuatXu: string) => Promise<string | null>;
   onTimNoi: (ten: string, donViCha: string) => Promise<UngVienNoi[]>;
   onTaoNoi: (ten: string, donViCha: string) => Promise<{ placeId: string; nhan: string } | string>;
+  /** Story 6-1 — nối vào một người ĐÃ CÓ. Chiều nằm trong `huong`, xem `quan-he-ghi-them.ts`. */
+  onGhiQuanHe: (a: {
+    nguoiKiaId: string;
+    loai: LoaiQuanHe;
+    huong: HuongQuanHe;
+    quanHe: QuanHeMau;
+    xuatXu: string;
+  }) => Promise<string | null>;
+  onTimNguoi: (tuKhoa: string) => Promise<UngVienNguoi[]>;
 };
 
 /**
@@ -108,6 +127,8 @@ function Than({
   onGhiThem,
   onGhiNoi,
   onTimNoi,
+  onGhiQuanHe,
+  onTimNguoi,
   onTaoNoi,
 }: Props) {
   /**
@@ -162,6 +183,10 @@ function Than({
                   onGhiThem={onGhiThem}
                   onGhiNoi={onGhiNoi}
                   onTimNoi={onTimNoi}
+                  onGhiQuanHe={onGhiQuanHe}
+                  onTimNguoi={onTimNguoi}
+                  nguoiNayId={hoSo.personId}
+                  tenNguoiNay={hoSo.hoTen}
                   onTaoNoi={onTaoNoi}
                 />
               ))}
@@ -176,6 +201,10 @@ function Than({
                   onGui={onGhiThem}
                   onGuiNoi={onGhiNoi}
                   onTimNoi={onTimNoi}
+                  onGuiQuanHe={onGhiQuanHe}
+                  onTimNguoi={onTimNguoi}
+                  nguoiNayId={hoSo.personId}
+                  tenNguoiNay={hoSo.hoTen}
                   onTaoNoi={onTaoNoi}
                   onDong={() => setMoGhi(undefined)}
                 />
@@ -209,17 +238,31 @@ function MotChong({
   onGhiThem,
   onGhiNoi,
   onTimNoi,
+  onGhiQuanHe,
+  onTimNguoi,
+  nguoiNayId,
+  tenNguoiNay,
   onTaoNoi,
 }: {
   chong: ChongKhangDinh;
   onNangTang: (assertionId: string) => Promise<string | null>;
-  onLoai: (assertionId: string) => Promise<string | null>;
+  onLoai: (assertionId: string, ghiChu: string) => Promise<string | null>;
   moGhi: LoaiGhiThem | undefined;
   onMoGhi: () => void;
   onDongGhi: () => void;
   onGhiThem: (loai: LoaiGhiThem, giaTri: string, xuatXu: string) => Promise<string | null>;
   onGhiNoi: (placeId: string, vai: VaiNoi, xuatXu: string) => Promise<string | null>;
   onTimNoi: (ten: string, donViCha: string) => Promise<UngVienNoi[]>;
+  onGhiQuanHe: (a: {
+    nguoiKiaId: string;
+    loai: LoaiQuanHe;
+    huong: HuongQuanHe;
+    quanHe: QuanHeMau;
+    xuatXu: string;
+  }) => Promise<string | null>;
+  onTimNguoi: (tuKhoa: string) => Promise<UngVienNguoi[]>;
+  nguoiNayId: string;
+  tenNguoiNay: string;
   onTaoNoi: (ten: string, donViCha: string) => Promise<{ placeId: string; nhan: string } | string>;
 }) {
   const mauThuan = chong.kieu === 'mau-thuan';
@@ -265,10 +308,18 @@ function MotChong({
             key={d.id}
             dong={d}
             mauThuan={mauThuan}
+            onLoaiDong={(id: string) =>
+              onLoai(
+                id,
+                mauThuan
+                  ? 'Loại khi giải mâu thuẫn ở bàn làm việc'
+                  : `Gỡ ${NHAN_LOAI_CHONG(chong.khoa)} ghi nhầm ở bàn làm việc`,
+              )
+            }
             dangGiu={mauThuan && d.chinhThuc}
             nangDuoc={!mauThuan || !coChinhThuc}
+            loaiDuoc={mauThuan || loaiDuocDuNoiTiep(chong.khoa)}
             onNangTang={onNangTang}
-            onLoai={onLoai}
           />
         ))}
       </ul>
@@ -290,6 +341,10 @@ function MotChong({
             onGui={onGhiThem}
             onGuiNoi={onGhiNoi}
             onTimNoi={onTimNoi}
+            onGuiQuanHe={onGhiQuanHe}
+            onTimNguoi={onTimNguoi}
+            nguoiNayId={nguoiNayId}
+            tenNguoiNay={tenNguoiNay}
             onTaoNoi={onTaoNoi}
             onDong={onDongGhi}
           />
@@ -312,8 +367,9 @@ function MotDong({
   mauThuan,
   dangGiu,
   nangDuoc,
+  loaiDuoc,
   onNangTang,
-  onLoai,
+  onLoaiDong,
 }: {
   dong: DongKhangDinh;
   mauThuan: boolean;
@@ -325,8 +381,14 @@ function MotDong({
   dangGiu: boolean;
   /** Xem `coChinhThuc` ở `MotChong`. */
   nangDuoc: boolean;
+  /**
+   * Dòng này gỡ được không. Chồng mâu thuẫn: luôn được (chọn một trong hai giá trị không thể cùng
+   * đúng). Chồng NỐI TIẾP: chỉ hai loại quan hệ — xem `quan-he-ghi-them.ts § loaiDuocDuNoiTiep`.
+   */
+  loaiDuoc: boolean;
   onNangTang: (assertionId: string) => Promise<string | null>;
-  onLoai: (assertionId: string) => Promise<string | null>;
+  /** Đã đóng gói sẵn ghi chú đúng với loại chồng — xem `NHAN_LOAI_CHONG` ở nơi gọi. */
+  onLoaiDong: (assertionId: string) => Promise<string | null>;
 }) {
   const [loi, setLoi] = useState<string | null>(null);
   const [dangChay, batDau] = useTransition();
@@ -370,7 +432,7 @@ function MotDong({
         </p>
       ) : null}
 
-      {(!dong.chinhThuc && nangDuoc) || mauThuan ? (
+      {(!dong.chinhThuc && nangDuoc) || loaiDuoc ? (
         <div className="mt-2 flex flex-wrap gap-2">
           {!dong.chinhThuc && nangDuoc ? (
             <Button
@@ -383,7 +445,7 @@ function MotDong({
               Nâng lên chính thức
             </Button>
           ) : null}
-          {mauThuan ? (
+          {loaiDuoc ? (
             /**
              * "Loại" chứ không phải "Xoá": AD-4 — giá trị này rời dữ liệu sống nhưng ở lại nhật
              * ký, và một ngày nào đó có thể được đọc lại. Gọi nó là xoá là nói dối.
@@ -398,10 +460,10 @@ function MotDong({
               type="button"
               variant="ghost"
               disabled={dangChay}
-              onClick={chay(onLoai)}
+              onClick={chay(onLoaiDong)}
               className="h-11 text-[17px] text-destructive"
             >
-              {dangGiu ? 'Loại giá trị đang giữ' : 'Loại giá trị này'}
+              {dangGiu ? 'Loại giá trị đang giữ' : mauThuan ? 'Loại giá trị này' : 'Loại quan hệ này'}
             </Button>
           ) : null}
         </div>

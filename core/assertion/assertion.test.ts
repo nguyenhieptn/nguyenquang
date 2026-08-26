@@ -5,9 +5,9 @@
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { v7 as uuidv7 } from 'uuid';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { withClanContext, ownerPool } from '@/db';
-import { assertion, clan, notification, person, revision } from '@/db/schema';
+import { assertion, clan, notification, person, revision, union } from '@/db/schema';
 import type { GuestContext, SessionContext } from '@/core/identity/session';
 import { createPersonOp } from '@/core/person/ops';
 import { DON_TRI } from '@/core/person/chong';
@@ -273,6 +273,86 @@ describe('assertion ops', () => {
       });
       expect(selfEdge.ok).toBe(false);
       if (!selfEdge.ok) expect(selfEdge.error.code).toBe('invalid');
+    });
+  });
+
+  /**
+   * Hồi quy cho code review 6-1 — một hôn nhân rời đi TRỌN VẸN.
+   *
+   * Union mới ghi HAI hàng thành viên. Bản trước `rejectAssertionOp` xoá đúng hàng được trỏ tới,
+   * nên gỡ một quan hệ vợ chồng ghi nhầm để lại hàng của người kia sống tiếp, và hồ sơ họ đọc là
+   * "vợ/chồng (chưa rõ với ai)" vĩnh viễn.
+   */
+  it('loại MỘT thành viên union ⇒ cả union rời đi: hai hàng thành viên và cả hàng union', async () => {
+    const chong = await makePerson('S12 Chồng Gỡ');
+    const vo = await makePerson('S12 Vợ Gỡ');
+    const { id: cuaChong, unionId } = await withClanContext(clanId, async (tx) => {
+      const res = await addAssertionOp(tx, member, {
+        personId: chong,
+        spec: { kind: 'union-partner', partnerId: vo },
+        source: { kind: 'self' },
+      });
+      if (!res.ok) throw new Error(res.error.message);
+      return { id: res.value.assertionId, unionId: res.value.unionId! };
+    });
+
+    await withClanContext(clanId, async (tx) => {
+      const truoc = await tx.select().from(assertion).where(eq(assertion.unionId, unionId));
+      expect(truoc).toHaveLength(2); // một hàng mỗi người
+      const ra = await rejectAssertionOp(tx, admin, { assertionId: cuaChong, note: 'S12 ghi nhầm' });
+      expect(ra.ok).toBe(true);
+      // Người ở đầu kia được trả về, để màn giữ họ lại trên canvas (AC 23 của story 6-1).
+      if (ra.ok) expect(ra.value.doiTuongId).toBe(vo);
+
+      const sau = await tx.select().from(assertion).where(eq(assertion.unionId, unionId));
+      expect(sau).toHaveLength(0);
+      const conUnion = await tx.select().from(union).where(eq(union.id, unionId));
+      expect(conUnion).toHaveLength(0);
+      // AD-4: cả hai hàng đều để lại dấu, không hàng nào biến mất khỏi nhật ký.
+      const revs = await tx.select().from(revision).where(eq(revision.action, 'remove'));
+      expect(revs.filter((r) => truoc.some((t) => t.id === r.entityId))).toHaveLength(2);
+    });
+  });
+
+  /**
+   * Hồi quy cho code review 6-1 — cùng một cặp thì cùng một union.
+   *
+   * Bản trước luôn đúc union mới, nên hai người cùng chép một đám cưới ⇒ hai union, và cột phải
+   * của cả hai in hai dòng "vợ/chồng với …" y hệt — đọc như một người hai vợ.
+   */
+  it('ghi lại đúng cặp ấy ⇒ alreadyLinked, KHÔNG đẻ union thứ hai', async () => {
+    const a = await makePerson('S12 Cặp Trùng A');
+    const b = await makePerson('S12 Cặp Trùng B');
+    const lan1 = await withClanContext(clanId, (tx) =>
+      addAssertionOp(tx, member, {
+        personId: a,
+        spec: { kind: 'union-partner', partnerId: b },
+        source: { kind: 'self' },
+      }),
+    );
+    expect(lan1.ok).toBe(true);
+
+    // Lượt hai đi từ phía NGƯỜI KIA — đúng cách hai người vận hành chép cùng một đám cưới.
+    const lan2 = await withClanContext(clanId, (tx) =>
+      addAssertionOp(tx, member, {
+        personId: b,
+        spec: { kind: 'union-partner', partnerId: a },
+        source: { kind: 'self' },
+      }),
+    );
+    expect(lan2.ok).toBe(true);
+    if (!lan1.ok || !lan2.ok) return;
+    expect(lan2.value.alreadyLinked).toBe(true);
+    expect(lan2.value.unionId).toBe(lan1.value.unionId);
+    expect(lan2.value.assertionIds).toEqual([]);
+
+    await withClanContext(clanId, async (tx) => {
+      const hang = await tx
+        .select()
+        .from(assertion)
+        .where(and(eq(assertion.kind, 'union-partner'), inArray(assertion.subjectPersonId, [a, b])));
+      expect(hang).toHaveLength(2); // vẫn đúng hai, không thành bốn
+      expect(new Set(hang.map((h) => h.unionId)).size).toBe(1);
     });
   });
 

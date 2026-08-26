@@ -1,9 +1,9 @@
-# Sprint status — Gia phả Nguyễn Quang, Đợt 1 + Đợt 2
+# Sprint status — Gia phả Nguyễn Quang, Đợt 1 + Đợt 2 + Đợt 3
 # Sinh bởi sprint planning 22/08/2026. Cấu trúc: xem planning-artifacts/epics/epics.md
-# (Đợt 1, epic 1-4) và planning-artifacts/epics/epics-dot-2.md (Đợt 2, epic 5).
+# (Đợt 1, epic 1-4), epics-dot-2.md (Đợt 2, epic 5), epics-dot-3.md (Đợt 3, epic 6).
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
-last_updated: 2026-08-25
+last_updated: 2026-08-26
 project: Gia phả dòng họ Nguyễn Quang
 project_key: giapha
 tracking_system: sprint-status.yaml
@@ -68,4 +68,63 @@ development_status:
   5-7-noi-chon: done
   # thêm 24/08 sau khi soi lại thanh việc — ClanSettings đọc được mà không ghi được
   5-8-so-dong-ho: done
-  epic-5-retrospective: optional
+  # Retro 25/08 — biên bản: epic-5-retro-2026-08-25.md. Chạy trên phả THẬT, nên nó bắt được bốn
+  # thứ không bài test nào thấy: bản đang chạy trên VPN là bản 23/08; cây gãy đôi vì node quản trị
+  # thiếu năm sinh; ba người vợ biến mất không cảnh báo; script CLI không in `row.warnings`.
+  epic-5-retrospective: done
+
+  # ── Đợt 3 ── cấu trúc ở planning-artifacts/epics/epics-dot-3.md
+  #
+  # Cắt theo một ĐỘNG TỪ: SỬA. Epic 5 dựng xong đường GHI cho năm thực thể và đường SỬA cho đúng
+  # một (sổ dòng họ). Bằng chứng: cây gãy làm hai mảnh vì thiếu một cạnh cha-con, và không đường
+  # nào trong bàn làm việc nối lại được — chỉ bộ nạp khung ghi được cạnh ấy.
+  #
+  # 6-1 trước (dựng bộ chọn người mà 6-5 dùng lại). 6-2 · 6-3 · 6-4 song song. 6-5 sau 6-1.
+  # 6-6 sau khi có màn để đo.
+  epic-6: in-progress
+  # Code review 26/08 — ba tầng đối kháng, 19 patch + 2 decision đã vá, 3 mục vào deferred-work.
+  # KHÔNG chốt done: AC 28 (nghiệm thu trên phả thật) chưa ai bấm, T9 còn trống. Chốt done với
+  # một AC chưa đạt là đúng lớp lỗi lượt review vừa bắt.
+  6-1-noi-nguoi-da-co: in-progress
+  6-2-tai-khoan-va-vai: backlog
+  6-3-nap-khung-noi-that: backlog
+  6-4-sua-va-gop-noi: backlog
+  6-5-man-mau-thuan: backlog
+  6-6-do-that-tren-trinh-duyet: backlog
+  epic-6-retrospective: optional
+
+# ── Việc chốt từ retro Epic 5 (25/08/2026) ──
+# Loại: story → vào Đợt 3 (epics-dot-3.md) · sửa → vá có chủ ý · vận hành → không phải mã.
+action_items:
+  - epic: 5
+    action: "Nối hai người ĐÃ CÓ trong phả — bộ chọn người + ghi parent-child/union-partner"
+    owner: "Đợt 3, story đầu tiên"
+    status: open
+  - epic: 5
+    action: "Người dùng & vai — màn quản lý tài khoản; truyền `role` khi duyệt vào phả"
+    owner: "Đợt 3"
+    status: open
+  - epic: 5
+    action: "Thêm cảnh báo `spouse-not-found`, và cho script CLI in `row.warnings`"
+    owner: "Đợt 3, sớm"
+    status: open
+  - epic: 5
+    action: "previewSeedOp nhận `decisions` — cảnh báo xem trước đang tính mù quyết định"
+    owner: "Đợt 3, sớm"
+    status: open
+  # Làm sớm 26/08 vì nó chặn chính lượt dựng lại database. Cờ `--nam-sinh`, và bootstrap ghi năm
+  # sinh bằng MỘT KHẲNG ĐỊNH nữa cùng nguồn (AD-9/AD-19), không ghi thẳng cột chiếu. Ba bài test
+  # ở core/identity/identity.test.ts. Kiểm chứng: lượt gieo sau đó "bỏ qua 0" thay vì bỏ dòng của
+  # quản trị. CHƯA qua code review — đi cùng changeset với story 6-1.
+  - epic: 5
+    action: "create-admin.ts nhận năm sinh (node bootstrap thiếu năm sinh làm cây gãy đôi)"
+    owner: "Đợt 3"
+    status: done
+  - epic: 5
+    action: "Bấm thử 5 nút ghi và nhìn 4 nhóm vá hình ảnh trước khi dòng họ nhập hàng loạt"
+    owner: "Hiệp"
+    status: open
+  - epic: 5
+    action: "Chèn một lượt soi sau mỗi 2-3 story, không dồn bảy story một phiên"
+    owner: "nếp làm việc, từ Đợt 3"
+    status: open

@@ -1,18 +1,42 @@
 /**
- * Năm loại ghi thêm được và phép kiểm giá trị (story 5-6) — test THUẦN.
+ * Loại ghi thêm được và phép kiểm giá trị (story 5-6, mở rộng 5-7 và 6-1) — test THUẦN.
  */
 import { describe, it, expect } from 'vitest';
-import { ghiThemDuoc, kiemGiaTri, KIEU_O, LOAI_GHI_THEM, NHAN_LOAI } from './loai-ghi-them';
+import {
+  ghiThemDuoc,
+  kiemGiaTri,
+  KIEU_O,
+  laLoaiChon,
+  laQuanHe,
+  LOAI_GHI_THEM,
+  NHAN_LOAI,
+} from './loai-ghi-them';
 
 describe('loại khẳng định ghi thêm được từ cột phải', () => {
-  it('đúng sáu loại, và HAI loại quan hệ bị loại ra', () => {
-    // `place` vào từ story 5-7 (FR-65) — nó là một bộ chọn có danh mục, không phải một ô nhập,
-    // nên `KIEU_O` cho nó kiểu riêng và biểu mẫu xử riêng.
-    expect([...LOAI_GHI_THEM]).toEqual(['name', 'gender', 'birth', 'death', 'place', 'note']);
-    // Hai loại này cần chọn một NGƯỜI KHÁC làm đối tượng — một bộ chọn người, không phải một ô
-    // nhập. Bày ra rồi báo lỗi là một lựa chọn chỉ để từ chối.
-    expect(ghiThemDuoc('parent-child')).toBe(false);
-    expect(ghiThemDuoc('union-partner')).toBe(false);
+  it('đúng tám loại — cả tám loại của schema đều ghi thêm được', () => {
+    // `place` vào từ 5-7 (FR-65), hai loại quan hệ vào từ 6-1. Cả ba là BỘ CHỌN, không phải ô
+    // nhập, nên `KIEU_O` cho chúng kiểu riêng và biểu mẫu xử riêng.
+    expect([...LOAI_GHI_THEM]).toEqual([
+      'name',
+      'gender',
+      'birth',
+      'death',
+      'place',
+      'note',
+      'parent-child',
+      'union-partner',
+    ]);
+    expect(ghiThemDuoc('parent-child')).toBe(true);
+    expect(ghiThemDuoc('union-partner')).toBe(true);
+    expect(ghiThemDuoc('khong-co-loai-nay')).toBe(false);
+  });
+
+  it('ba loại đi lối bộ chọn, năm loại đi lối ô nhập', () => {
+    expect(LOAI_GHI_THEM.filter(laLoaiChon)).toEqual(['place', 'parent-child', 'union-partner']);
+  });
+
+  it('đúng hai loại là QUAN HỆ — chúng cần một người thứ hai', () => {
+    expect(LOAI_GHI_THEM.filter(laQuanHe)).toEqual(['parent-child', 'union-partner']);
   });
 
   it('mỗi loại có nhãn và kiểu ô riêng — không loại nào rơi ra ngoài', () => {

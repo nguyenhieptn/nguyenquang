@@ -262,6 +262,12 @@ export type AddedAssertions = {
   assertionIds: string[];
   /** Set when a union row was involved. */
   unionId?: string;
+  /**
+   * Cặp này ĐÃ có hôn nhân trong phả nên không ghi thêm gì; `assertionId` là hàng thành viên sẵn
+   * có của chính người được hỏi. Nơi gọi nói câu khác cho ca này — "đã có rồi" không phải "vừa
+   * ghi xong", và cũng không phải một lỗi.
+   */
+  alreadyLinked?: boolean;
 };
 
 async function insertAssertionRow(
@@ -447,6 +453,58 @@ export async function addAssertionOp(
       );
       break;
     case 'union-partner': {
+      /**
+       * ── Cùng một cặp thì cùng một union (sửa 26/08/2026, code review 6-1) ─────────────────
+       *
+       * Bản trước: không có `spec.unionId` thì LUÔN đúc một union mới. Hai người trong ban tu
+       * phả cùng chép một đám cưới ⇒ hai hàng `union` + bốn khẳng định, và cột phải của cả hai
+       * người in hai dòng "vợ/chồng với …" y hệt nhau — đọc như một người hai vợ, trên đúng
+       * bảng mà "nhiều đời vợ" là chuyện phả cổ chép thật.
+       *
+       * Tìm union ĐANG SỐNG mà cả hai người cùng là thành viên rồi nhập vào đó. Không tìm thấy
+       * thì mới đúc mới. Đây là phép so trong một transaction, không phải hàng rào chống đua —
+       * `union` không có unique index nào để dựa vào, nên hai lượt ghi ĐỒNG THỜI vẫn có thể ra
+       * hai union. Ca ấy hiếm hơn hẳn ca gõ trùng, và lối gỡ nay có thật (xem `rejectAssertionOp`).
+       */
+      const unionChung = spec.unionId
+        ? []
+        : await tx
+            .select({
+              id: assertion.id,
+              unionId: assertion.unionId,
+              subjectPersonId: assertion.subjectPersonId,
+            })
+            .from(assertion)
+            .where(
+              and(
+                eq(assertion.kind, 'union-partner'),
+                eq(assertion.status, 'live'),
+                inArray(assertion.subjectPersonId, [args.personId, spec.partnerId]),
+              ),
+            );
+      const demTheoUnion = new Map<string, Set<string>>();
+      for (const r of unionChung) {
+        if (!r.unionId) continue;
+        const nguoi = demTheoUnion.get(r.unionId) ?? new Set<string>();
+        nguoi.add(r.subjectPersonId);
+        demTheoUnion.set(r.unionId, nguoi);
+      }
+      const daCoUnion = [...demTheoUnion.entries()].find(([, nguoi]) => nguoi.size === 2)?.[0];
+
+      if (daCoUnion) {
+        // Cặp này đã có hôn nhân trong phả. Không ghi thêm gì — ghi nữa là đẻ bản trùng, mà
+        // trùng thì phải gỡ mới hết. Trả về hàng SẴN CÓ của chính người được hỏi.
+        const cuaMinh = unionChung.find(
+          (r) => r.unionId === daCoUnion && r.subjectPersonId === args.personId,
+        )!;
+        return ok({
+          assertionId: cuaMinh.id,
+          assertionIds: [],
+          unionId: daCoUnion,
+          alreadyLinked: true,
+        });
+      }
+
       if (spec.unionId) {
         unionId = spec.unionId;
       } else {
@@ -667,7 +725,7 @@ export async function rejectAssertionOp(
   tx: Tx,
   viewer: ViewerContext,
   args: { assertionId: string; note: string },
-): Promise<Result<void>> {
+): Promise<Result<{ doiTuongId?: string }>> {
   const gate = gateApprover(viewer);
   if (!gate.ok) return gate;
   const ctx = gate.value;
@@ -675,20 +733,91 @@ export async function rejectAssertionOp(
   const row = await loadAssertion(tx, args.assertionId);
   if (!row) return err('not-found', 'assertion not found in this clan');
 
-  await writeRevision(tx, {
-    clanId: ctx.clanId,
-    accountId: ctx.accountId,
-    entity: 'assertion',
-    entityId: row.id,
-    action: 'remove',
-    before: row, // the FULL row — point-in-time reconstruction depends on it
-    note: args.note,
-  });
-  await tx.delete(assertion).where(eq(assertion.id, row.id));
+  /**
+   * ── Một hôn nhân rời đi TRỌN VẸN, không rời một nửa (sửa 26/08/2026, code review 6-1) ─────
+   *
+   * Dựng một union mới ghi HAI khẳng định thành viên, một hàng mỗi người (xem nhánh
+   * `union-partner` của `addAssertionOp`). Bản trước xoá đúng hàng được trỏ tới, nên gỡ một quan
+   * hệ vợ chồng ghi nhầm để lại hàng của người kia sống tiếp — và `core/person/read-ops.ts` dựng
+   * nhãn từ `unionMembers` nay chỉ còn một mình họ, nên hồ sơ ấy đọc là
+   * **"vợ/chồng (chưa rõ với ai)"**, vĩnh viễn, cộng một hàng `union` không ai chạm tới nữa.
+   *
+   * Người vận hành bấm "Loại quan hệ này" đang nói về QUAN HỆ, không về một nửa của nó. Nên loại
+   * một thành viên là giải tán cả union: mọi hàng thành viên còn sống đi cùng nó, mỗi hàng một
+   * revision riêng (AD-10), rồi tới chính hàng `union`.
+   */
+  const cungUnion =
+    row.kind === 'union-partner' && row.unionId
+      ? await tx
+          .select()
+          .from(assertion)
+          .where(
+            and(
+              eq(assertion.unionId, row.unionId),
+              eq(assertion.kind, 'union-partner'),
+              eq(assertion.status, 'live'),
+            ),
+          )
+      : [];
+  // Hàng được trỏ tới luôn đi đầu: nó là hàng mang `note` của người vận hành.
+  const canXoa = cungUnion.length > 0 ? [row, ...cungUnion.filter((r) => r.id !== row.id)] : [row];
 
-  if (isProjectedKind(row.kind)) await projectPerson(tx, row.subjectPersonId);
+  for (const r of canXoa) {
+    await writeRevision(tx, {
+      clanId: ctx.clanId,
+      accountId: ctx.accountId,
+      entity: 'assertion',
+      entityId: r.id,
+      action: 'remove',
+      before: r, // the FULL row — point-in-time reconstruction depends on it
+      note:
+        r.id === row.id
+          ? args.note
+          : `${args.note} (đi cùng lượt giải tán union ${row.unionId})`,
+    });
+    await tx.delete(assertion).where(eq(assertion.id, r.id));
+  }
 
-  return ok(undefined);
+  if (row.kind === 'union-partner' && row.unionId) {
+    const conLai = await tx
+      .select({ id: assertion.id })
+      .from(assertion)
+      .where(and(eq(assertion.unionId, row.unionId), eq(assertion.status, 'live')));
+    // Chỉ dọn hàng `union` khi KHÔNG còn khẳng định nào trỏ vào nó — một union mồ côi đọc được
+    // là một union đã giải tán, nhưng một union còn thành viên thì không được đụng.
+    if (conLai.length === 0) {
+      await writeRevision(tx, {
+        clanId: ctx.clanId,
+        accountId: ctx.accountId,
+        entity: 'union',
+        entityId: row.unionId,
+        action: 'remove',
+        before: { id: row.unionId },
+        note: args.note,
+      });
+      await tx.delete(union).where(eq(union.id, row.unionId));
+    }
+  }
+
+  for (const pid of new Set(canXoa.filter((r) => isProjectedKind(r.kind)).map((r) => r.subjectPersonId))) {
+    await projectPerson(tx, pid);
+  }
+
+  /**
+   * Người ở ĐẦU KIA của quan hệ vừa gỡ — thứ nơi gọi không có cách nào tự biết.
+   *
+   * Vùng lân cận của canvas đi theo cạnh, nên gỡ cạnh duy nhất buộc họ vào neo là họ rơi khỏi
+   * khung nhìn ngay lúc ấy. Trả id ra để màn giữ họ lại được một lượt (AC 23) thay vì để người
+   * vận hành mất dấu thứ mình vừa động vào.
+   */
+  const doiTuongId =
+    row.kind === 'parent-child'
+      ? (row.objectPersonId ?? undefined)
+      : row.kind === 'union-partner'
+        ? canXoa.find((r) => r.subjectPersonId !== row.subjectPersonId)?.subjectPersonId
+        : undefined;
+
+  return ok(doiTuongId ? { doiTuongId } : {});
 }
 
 // ── Pending queue (FR-3, surface B) ─────────────────────────────────────────
