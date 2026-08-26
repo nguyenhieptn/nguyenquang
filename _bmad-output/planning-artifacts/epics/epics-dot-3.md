@@ -38,8 +38,31 @@ này rồi để trống chủ; Đợt 3 nhận.
 | 6-5 | `6-5-man-mau-thuan` — mục *Mâu thuẫn* trên thanh việc (5-3 AC 23 hoãn có lý do: cần phép đọc quét cả dòng họ). Kèm hai lớp mâu thuẫn phép xếp chồng hiện **không thấy**: hai khẳng định `parent-child` cùng giới + cùng `relation`, và hai khẳng định cùng vai `que-quan` khác nơi | FR-1, FR-2, FR-3 | AD-4, AD-18 |
 | 6-6 | `6-6-do-that-tren-trinh-duyet` — kịch bản đo bằng trình duyệt thật: sàn chạm 44px, sàn chữ 17px, nhãn không đè tên, đệm đáy, ngân sách bề ngang 1280px. Repo **không có e2e** (`vitest.config.ts` chạy `environment: 'node'`) | NFR-5, Accessibility Floor | AD-20 |
 
+| 6-7 | `6-7-ho-so-day-du-o-cot-phai` — cột phải bày **tiểu sử cơ bản** (năm sinh–mất · đời · chi · tầng · ai ghi) và **quan hệ** (cha mẹ · con · vợ chồng), mỗi mục sửa được tại chỗ. `getPerson` đã trả `card` và `relations`; `xemHoSo` đang vứt cả hai | FR-1, FR-2, FR-37 | AD-13, AD-21 |
+| 6-8 | `6-8-duyet-theo-nguoi` — hàng chờ gom theo **NGƯỜI**, duyệt trọn một người bằng một cú bấm. `duyetHangLoat` đã có; thiếu phép gom và một lối chọn cả nhóm. Đơn vị HÀNH ĐỘNG vẫn là khẳng định (AD-9), đơn vị CHÚ Ý là con người | FR-3, FR-1 | AD-9, AD-22 |
+
 **Thứ tự phụ thuộc:** 6-1 trước (nó dựng bộ chọn người mà 6-5 dùng lại). 6-2 · 6-3 · 6-4 chạy
-song song từ đầu — không cái nào phụ thuộc cái nào. 6-5 sau 6-1. 6-6 sau khi có màn để đo.
+song song từ đầu — không cái nào phụ thuộc cái nào. 6-5 sau 6-1. 6-6 sau khi có màn để đo. **6-7 và 6-8 chen lên trước 6-4/6-5** — xem ghi chú dưới.
+
+> ### Phản hồi từ lượt bấm thật đầu tiên — 26/08/2026
+>
+> Hiệp mở bàn làm việc trên phả thật và nói hai câu:
+>
+> > *"Cách duyệt thông tin vào cây đang khá phức tạp — nên hiện all của một người rồi duyệt một
+> > thể, duyệt từng nội dung thông tin rất nhiều mục."*
+> >
+> > *"Sidebar hiện thông tin của một người chưa đầy đủ. Cần hiện basic biography và các nội dung
+> > có thể xem, chỉnh sửa được luôn."*
+>
+> **Cả hai đều rẻ hơn vẻ ngoài, vì `core/` đã tính sẵn thứ đang thiếu.** `xemHoSo`
+> (`app/admin/cay/actions.ts`) nhận trọn `PersonProfile` rồi giữ đúng bốn trường, vứt `card`
+> (năm sinh–mất · đời · chi · tầng · xuất xứ) và `relations` (cha mẹ · con · vợ chồng). Còn
+> `duyetHangLoat` thì đã chạy được từ story 3-3 — hàng chờ chỉ thiếu phép gom.
+>
+> **Và đây là món nợ tài liệu của 3-3 đến hạn.** Chú thích đầu `app/admin/hang-cho/page.tsx` tự
+> khai: *"hành trình gốc của việc duyệt (UJ-3) đã mất; màn dựng từ § IA, không từ một hành trình
+> có thật."* Màn ấy dựng từ sơ đồ thông tin, và lượt bấm đầu tiên của một người thật cho thấy sơ
+> đồ không thay được hành trình. 6-8 là chỗ trả món nợ ấy, không chỉ là một lượt gom dòng.
 
 > ### Vì sao 6-3 xếp cao dù nghe như việc vặt
 >

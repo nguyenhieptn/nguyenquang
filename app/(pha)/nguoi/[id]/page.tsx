@@ -27,6 +27,7 @@ import { notFound, redirect } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import type { PersonCard } from '@/core/tree';
 import { getPerson, type PersonAssertion } from '@/core/person';
 import { getPersonHistory } from '@/core/audit';
@@ -400,7 +401,7 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
           )}
         </article>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" />
+      <ThanhDieuHuong hienTai="gia-pha" banLamViec={await coBanLamViec()} />
     </>
   );
 }

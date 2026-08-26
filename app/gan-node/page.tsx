@@ -29,6 +29,7 @@ import { redirect } from 'next/navigation';
 import { getMyAttachment, resolveSession } from '@/core/identity';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import { NhanCho } from './nhan-cho';
 
 export const metadata: Metadata = { title: 'Nhận chỗ của mình' };
@@ -93,7 +94,7 @@ export default async function Page({
         ) : null}
         <NhanCho choSan={dangCho} tiep={tiep} />
       </main>
-      <ThanhDieuHuong hienTai="toi" />
+      <ThanhDieuHuong hienTai="toi" banLamViec={await coBanLamViec()} />
     </div>
   );
 }

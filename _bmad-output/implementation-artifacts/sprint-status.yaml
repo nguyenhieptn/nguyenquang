@@ -91,6 +91,10 @@ development_status:
   6-4-sua-va-gop-noi: backlog
   6-5-man-mau-thuan: backlog
   6-6-do-that-tren-trinh-duyet: backlog
+  # Thêm 26/08 từ lượt bấm thật đầu tiên trên phả sạch. Cả hai rẻ hơn vẻ ngoài: `xemHoSo` đang
+  # vứt `card` + `relations` mà `getPerson` đã tính, và `duyetHangLoat` thì đã chạy được từ 3-3.
+  6-7-ho-so-day-du-o-cot-phai: review
+  6-8-duyet-theo-nguoi: backlog
   epic-6-retrospective: optional
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──

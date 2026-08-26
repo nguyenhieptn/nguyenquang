@@ -17,6 +17,7 @@
 import { redirect } from 'next/navigation';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import { getClanInfo, resolveSession } from '@/core/identity';
 import { getPerson } from '@/core/person';
 import type { NguoiDaChon } from './chon-nguoi';
@@ -66,7 +67,7 @@ export default async function Page({
           <MoiGanVaoPha viecMuonLam="Thu lời kể" />
         )}
       </main>
-      <ThanhDieuHuong hienTai="loi-ke" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="loi-ke" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </>
   );
 }

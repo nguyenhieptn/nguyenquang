@@ -9,19 +9,20 @@
  */
 import Link from 'next/link';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 
 /**
  * Vỏ của mọi bước. KHÔNG nới rộng trên máy: một câu hỏi một màn là ràng buộc BỐ CỤC, và một
  * câu hỏi kéo ngang 1280px không đọc ra như một câu hỏi (prototype đã chốt, giữ nguyên khung
  * hẹp thay vì DOC 672px — cùng lý do màn "không tìm thấy" cố tình không nới).
  */
-export function KhungThem({ children }: { children: React.ReactNode }) {
+export async function KhungThem({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
       <main className="mx-auto w-full max-w-md flex-1 px-5 pb-28 pt-7 md:max-w-lg md:pb-16 md:pt-28">
         {children}
       </main>
-      <ThanhDieuHuong hienTai="them" />
+      <ThanhDieuHuong hienTai="them" banLamViec={await coBanLamViec()} />
     </div>
   );
 }

@@ -31,6 +31,7 @@ import { redirect } from 'next/navigation';
 import { resolveSession } from '@/core/identity';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import { FormDangNhap } from './form-dang-nhap';
 
 export const metadata: Metadata = { title: 'Đăng nhập' };
@@ -96,7 +97,7 @@ export default async function Page({
           </p>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="toi" />
+      <ThanhDieuHuong hienTai="toi" banLamViec={await coBanLamViec()} />
     </div>
   );
 }

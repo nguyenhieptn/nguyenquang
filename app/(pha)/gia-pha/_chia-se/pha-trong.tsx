@@ -7,8 +7,9 @@
 import Link from 'next/link';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 
-export function PhaTrong({ tenPha }: { tenPha?: string }) {
+export async function PhaTrong({ tenPha }: { tenPha?: string }) {
   return (
     <>
       <main className="flex-1 pb-28 pt-7 md:pb-16 md:pt-28">
@@ -32,7 +33,7 @@ export function PhaTrong({ tenPha }: { tenPha?: string }) {
           </div>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </>
   );
 }

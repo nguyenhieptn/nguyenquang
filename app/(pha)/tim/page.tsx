@@ -38,6 +38,7 @@ import { Button } from '@/components/ui/button';
 import { DOC } from '@/components/pha/khung';
 import { ChamTinCay } from '@/components/pha/tin-cay';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import { TuaMuc } from '@/components/pha/vach';
 import { getClanOverview, searchPersons, type SearchHit } from '@/core/tree';
 
@@ -322,7 +323,7 @@ export default async function Page({
         <OTimThat tuKhoa={tuKhoa || undefined} />
         {than}
       </main>
-      <ThanhDieuHuong hienTai="them" />
+      <ThanhDieuHuong hienTai="them" banLamViec={await coBanLamViec()} />
     </>
   );
 }

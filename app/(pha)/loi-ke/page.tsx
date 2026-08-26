@@ -20,6 +20,7 @@ import { Mic } from 'lucide-react';
 import { Card, CardBody } from '@/components/ui/card';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import { listRecordings, type RecordingMeta } from '@/core/media';
 import { getClanInfo, resolveSession } from '@/core/identity';
 import { getPerson } from '@/core/person';
@@ -174,7 +175,7 @@ export default async function Page({
           </section>
         )}
       </main>
-      <ThanhDieuHuong hienTai="loi-ke" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="loi-ke" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </>
   );
 }

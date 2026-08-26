@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import {
   getMyAttachment,
   getMyNotifications,
@@ -74,11 +75,11 @@ function TieuDeMuc({ children }: { children: React.ReactNode }) {
   );
 }
 
-function Khung({ children }: { children: React.ReactNode }) {
+async function Khung({ children }: { children: React.ReactNode }) {
   return (
     <>
       <main className={`${DOC} pb-28 pt-7 md:pb-16 md:pt-28`}>{children}</main>
-      <ThanhDieuHuong hienTai="toi" />
+      <ThanhDieuHuong hienTai="toi" banLamViec={await coBanLamViec()} />
     </>
   );
 }
@@ -86,7 +87,7 @@ function Khung({ children }: { children: React.ReactNode }) {
 // ── Ba trạng thái của màn ────────────────────────────────────────────────────
 
 /** Chưa đăng nhập — mời, không chặn: xem cây thì vẫn không cần tài khoản (FR-11). */
-function ChuaDangNhap() {
+async function ChuaDangNhap() {
   return (
     <Khung>
       <h1 className="font-[family-name:var(--font-pha)] text-[27px] leading-tight">

@@ -27,6 +27,7 @@ import Link from 'next/link';
 import { ChamTinCay } from '@/components/pha/tin-cay';
 import { KHUNG, RONG } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 // Tải ĐỘNG theo bề rộng màn: điện thoại không tải một byte React Flow nào.
 // Xem đầu file cay-tai-dong.tsx — `hidden md:block` một mình KHÔNG đủ.
 import { CayGiaPhaTaiDong } from '@/components/pha/cay-tai-dong';
@@ -84,7 +85,7 @@ function DongCap({ cap, minhId }: { cap: CoupleNode; minhId?: string | null }) {
   );
 }
 
-export function ManChi({
+export async function ManChi({
   chi,
   minhId,
   duongVeGoc = [],
@@ -226,7 +227,7 @@ export function ManChi({
           </p>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </>
   );
 }

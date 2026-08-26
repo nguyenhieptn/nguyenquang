@@ -23,6 +23,7 @@ import { Card, CardBody } from '@/components/ui/card';
 import { ChamTinCay, type MucTinCay } from '@/components/pha/tin-cay';
 import { DOC } from '@/components/pha/khung';
 import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 import { getClanInfo, resolveViewer } from '@/core/identity';
 import { getAncestryPath, getBranchView, getClanOverview, type PersonCard } from '@/core/tree';
 import { dongViTri, nhanNgay } from '../_chia-se/chuyen-doi';
@@ -40,7 +41,7 @@ function DongPhu({ n }: { n: PersonCard }) {
 }
 
 /** Chưa có chỗ trong phả: lời mời, KHÔNG phải màn lỗi (EXPERIENCE § Chưa gắn node). */
-function MoiNhanCho({ tenPha }: { tenPha?: string }) {
+async function MoiNhanCho({ tenPha }: { tenPha?: string }) {
   return (
     <>
       <main className="flex-1 pb-28 pt-7 md:pb-8 md:pt-[5.5rem]">
@@ -60,7 +61,7 @@ function MoiNhanCho({ tenPha }: { tenPha?: string }) {
           </div>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </>
   );
 }
@@ -239,7 +240,7 @@ export default async function Page() {
           </Link>
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </>
   );
 }

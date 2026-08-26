@@ -26,6 +26,7 @@
  *      "Tôi" là đặt sau một lần chạm mà người cần nhất lại ít khi đi tới.
  */
 import Link from 'next/link';
+import { resolveSession } from '@/core/identity';
 import { KHUNG } from './khung';
 import { VachDoi } from './vach';
 
@@ -40,6 +41,16 @@ type Duong = { nhan: string; href: string | null };
 const DI_TIEP: Duong[] = [
   { nhan: 'Cả tộc', href: '/gia-pha/ca-toc' },
   { nhan: 'Cây gia tộc', href: '/gia-pha/duong-cua-toi' },
+];
+
+/**
+ * Hai lối dưới đây nằm sau cổng quyền của `app/admin/layout.tsx` (chỉ `admin` và `branch-head`).
+ *
+ * Bản trước bày chúng cho MỌI người: khách bấm vào thì rơi vào màn "Khu vực Ban tu phả" — một
+ * cánh cửa khoá, và không ai giải thích vì sao mình bị chặn. Nợ ấy ghi trong `deferred-work.md`
+ * từ lượt review 5-1; trả ở đây cùng lượt thêm lối vào bàn làm việc trên thanh điều hướng.
+ */
+const DI_TIEP_QUAN_TRI: Duong[] = [
   // "Mảnh chưa nối" (FR-48) sống trên màn hợp nhất của ban duyệt — đó là chỗ duy nhất nối được.
   { nhan: 'Mảnh chưa nối', href: '/admin/hop-nhat' },
   { nhan: 'Bàn làm việc', href: '/admin' },
@@ -91,7 +102,9 @@ function Cot({ tua, duong }: { tua: string; duong: Duong[] }) {
   );
 }
 
-export function ChanTrang({ tenPha = 'Tộc phả' }: { tenPha?: string }) {
+export async function ChanTrang({ tenPha = 'Tộc phả' }: { tenPha?: string }) {
+  const phien = await resolveSession();
+  const quanTri = phien?.role === 'admin' || phien?.role === 'branch-head';
   return (
     // `mt-auto` để chân trang tụt xuống đáy khi trang ngắn; `pb-28` chừa chỗ cho thanh dính đáy
     // của bản điện thoại, nếu không nó che mất hàng cuối.
@@ -117,7 +130,7 @@ export function ChanTrang({ tenPha = 'Tộc phả' }: { tenPha?: string }) {
             </p>
           </div>
 
-          <Cot tua="Đi tiếp" duong={DI_TIEP} />
+          <Cot tua="Đi tiếp" duong={quanTri ? [...DI_TIEP, ...DI_TIEP_QUAN_TRI] : DI_TIEP} />
           <Cot tua="Quyền của người trong phả" duong={QUYEN} />
         </div>
 

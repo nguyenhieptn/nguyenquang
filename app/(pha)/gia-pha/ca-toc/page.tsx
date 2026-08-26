@@ -25,6 +25,7 @@ import { redirect } from 'next/navigation';
 import { Card, CardBody } from '@/components/ui/card';
 import { KHUNG, RONG } from '@/components/pha/khung';
 import { ThanhDieuHuong, tenPhaTuThongTin } from '@/components/pha/thanh-dieu-huong';
+import { coBanLamViec } from '@/lib/vai-quan-tri';
 // Bản máy đi qua CỔNG TẢI ĐỘNG, không import thẳng — xem đầu file cay-tai-dong.tsx.
 import { CayCaTocTaiDong } from '@/components/pha/cay-tai-dong';
 import { getClanInfo, resolveViewer, type ClanSettings } from '@/core/identity';
@@ -242,7 +243,7 @@ export default async function Page() {
           )}
         </div>
       </main>
-      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="gia-pha" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </>
   );
 }

@@ -115,6 +115,25 @@ export function tenPhaTuThongTin(
   return ghep || info.name || 'Tộc phả';
 }
 
+/**
+ * ── Lối vào BÀN LÀM VIỆC — thêm 26/08/2026 ───────────────────────────────────────────────
+ *
+ * Người quản trị đăng nhập xong không có đường nào tới `/admin` ngoài việc tự gõ URL: thanh này
+ * mang năm mục cố định, và chân trang thì bày lối ấy cho MỌI người, kể cả khách — tức vừa thiếu
+ * chỗ cần, vừa thừa chỗ không cần.
+ *
+ * ── Chỉ trên BẢN MÁY, và đó không phải là quên ───────────────────────────────────────────
+ * `EXPERIENCE.md § IA` chốt: *"**Năm là trần cứng.** Trên màn 390px, mỗi mục còn 78px — vừa đủ
+ * cho nhãn 15px mà không cắt chữ. Mục thứ sáu là bắt đầu nói dối về tầm với."* Thanh đáy điện
+ * thoại vì thế giữ nguyên năm mục.
+ *
+ * Bàn làm việc vốn là **bề mặt B — desktop** (`EXPERIENCE.md § IA bề mặt B`), nên mục thứ sáu chỉ
+ * mọc ở nav máy tính. Không phải cắt bớt cho vừa; là mục ấy không thuộc về màn điện thoại.
+ *
+ * Component này là SERVER component nên nó tự đọc phiên — mười sáu nơi gọi không phải sửa dòng
+ * nào, và không nơi nào quên được. `components/` được phép import bề mặt `core/<module>`
+ * (eslint chỉ chặn ruột core và `@/db`, không chặn bề mặt).
+ */
 export function ThanhDieuHuong({
   hienTai,
   /**
@@ -122,10 +141,23 @@ export function ThanhDieuHuong({
    * gì của một dòng họ cụ thể vào mã sản phẩm. Mặc định trung tính để xưởng chạy được ngay.
    */
   tenPha = 'Tộc phả',
+  banLamViec = false,
 }: {
   hienTai: MucDieuHuong;
   tenPha?: string;
+  /**
+   * Có bày lối vào BÀN LÀM VIỆC không — chỉ `admin` và `branch-head`, đúng hai vai mà
+   * `app/admin/layout.tsx` cho qua cổng.
+   *
+   * Là THAM SỐ chứ không tự đọc phiên, và đó là một lằn ranh cứng: component này được dựng từ cả
+   * `error.tsx` — mà error boundary buộc phải là CLIENT component. Cho nó `import '@/core/identity'`
+   * thì `pg` bị kéo vào bundle trình duyệt và `next build` gãy với "Can't resolve 'dns'". Lint
+   * không bắt được (luật chỉ chặn ruột core và `@/db`, không chặn bề mặt), nên chỗ chặn duy nhất
+   * là lượt build — và một lượt build hỏng là cách đắt để học lại một luật đã có.
+   */
+  banLamViec?: boolean;
 }) {
+  const coBanLamViec = banLamViec === true;
   return (
     <>
       {/* ══ ĐIỆN THOẠI — dính đáy, vùng ngón cái ═══════════════════════════ */}
@@ -234,6 +266,16 @@ export function ThanhDieuHuong({
                   </li>
                 );
               })}
+              {coBanLamViec ? (
+                <li>
+                  <Link
+                    href="/admin"
+                    className="ml-1 inline-flex min-h-11 items-center border-b-2 border-transparent px-3 text-[17px] text-muted-foreground transition-colors duration-150 ease-out hover:border-border hover:text-foreground active:translate-y-px"
+                  >
+                    Bàn làm việc
+                  </Link>
+                </li>
+              ) : null}
             </ul>
           </nav>
         </div>

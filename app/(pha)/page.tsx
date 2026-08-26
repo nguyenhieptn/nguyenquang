@@ -51,6 +51,7 @@ import { KHUNG } from "@/components/pha/khung";
 import { OTim } from "@/components/pha/o-tim";
 import { TamPhim } from "@/components/pha/tam-phim";
 import { ThanhDieuHuong, tenPhaTuThongTin } from "@/components/pha/thanh-dieu-huong";
+import { coBanLamViec } from "@/lib/vai-quan-tri";
 import { TuaMuc } from "@/components/pha/vach";
 import { getRecentAdditions } from "@/core/audit";
 import { getClanInfo, resolveViewer } from "@/core/identity";
@@ -362,7 +363,7 @@ export default async function Page() {
       </main>
 
       <ChanTrang tenPha={tenPha} />
-      <ThanhDieuHuong hienTai="trang-chu" tenPha={tenPha} />
+      <ThanhDieuHuong hienTai="trang-chu" tenPha={tenPha} banLamViec={await coBanLamViec()} />
     </div>
   );
 }
