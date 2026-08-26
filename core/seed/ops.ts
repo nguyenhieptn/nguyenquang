@@ -258,7 +258,10 @@ export async function commitSeedOp(
   // ── Writes — everything tentative (AD-9), everything sourced 'seed-import' ──
   const seedSource: SourceSpec = {
     kind: 'seed-import',
-    description: `Nạp khung từ tệp CSV (${rows.length} dòng)`,
+    // Số dòng của TỆP không nói gì về một người: nó tả lượt nhập, không tả sự thật đang đứng
+    // trước mắt người đọc. Số ấy thuộc về báo cáo của lượt nạp (`commitSeedOp` trả `created`,
+    // `linked`, `skipped`), không thuộc về xuất xứ của từng khẳng định.
+    description: 'Nạp khung từ tệp CSV',
   };
   /** One shared source row for the edges and unions this import wires itself. */
   const sharedSourceId = await createSourceOp(tx, ctx, seedSource);

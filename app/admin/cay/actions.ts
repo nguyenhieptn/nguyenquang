@@ -30,9 +30,26 @@ import { getAncestryPath } from '@/core/tree';
 import { addPlace, searchPlaces, type UngVienNoiChon } from '@/core/place';
 import { err, type Result } from '@/core/types';
 
+/** Một người trong nhóm quan hệ — đủ để bày chip và dời tâm sang họ. */
+export type ChipQuanHe = { personId: string; hoTen: string };
+
 export type HoSoNguoi = {
   personId: string;
   hoTen: string;
+  /**
+   * Story 6-7 — tiểu sử cơ bản, rút từ `PersonCard`.
+   *
+   * `getPerson` đã tính trọn `card` từ Đợt 1; bản trước `xemHoSo` giữ đúng bốn trường và vứt nó.
+   * Đây không phải một lượt đọc thêm, chỉ là thôi vứt.
+   */
+  tieuSu: {
+    /** NGUYÊN chuỗi của core — mang luật FR-37 (người sống chỉ hiện NĂM). Đừng ghép lại. */
+    lifespan: string;
+    doi: number | null;
+    chi: string | null;
+  };
+  /** Ba nhóm quan hệ; mỗi thẻ đã lọc RIÊNG theo bán kính, và không đi cùng `chong`. */
+  quanHe: { chaMe: ChipQuanHe[]; banDoi: ChipQuanHe[]; con: ChipQuanHe[] };
   /** Vắng khi người xem không có tầm nhìn đầy đủ với người này (AD-13/AD-21) — KHÔNG phải lỗi. */
   chong?: AssertionStack[];
   visibility: PersonProfile['visibility'];
@@ -47,6 +64,21 @@ export async function xemHoSo(personId: string): Promise<Result<HoSoNguoi>> {
     value: {
       personId: v.card.personId,
       hoTen: v.card.fullName,
+      tieuSu: {
+        lifespan: v.card.lifespan,
+        doi: v.card.generation,
+        chi: v.card.branchCode,
+      },
+      /**
+       * `relations` lọc TỪNG thẻ riêng theo bán kính và KHÔNG đi cùng `stacks`: một người ngoài
+       * tầm nhìn đầy đủ vẫn có thể có quan hệ xem được. Buộc hai thứ vào nhau là giấu mất một
+       * nửa mà không có lý do nào.
+       */
+      quanHe: {
+        chaMe: v.relations.parents.map((c) => ({ personId: c.personId, hoTen: c.fullName })),
+        banDoi: v.relations.partners.map((c) => ({ personId: c.personId, hoTen: c.fullName })),
+        con: v.relations.children.map((c) => ({ personId: c.personId, hoTen: c.fullName })),
+      },
       ...(v.stacks !== undefined ? { chong: v.stacks } : {}),
       visibility: v.visibility,
     },

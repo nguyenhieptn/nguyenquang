@@ -153,6 +153,8 @@ export function CayClient({
       setHoSo({
         personId: v.personId,
         hoTen: v.hoTen,
+        tieuSu: v.tieuSu,
+        quanHe: v.quanHe,
         // `chong` vắng nghĩa là NGOÀI BÁN KÍNH RIÊNG TƯ, không phải "chưa có gì" — cột phải nói
         // hai chuyện ấy bằng hai câu khác nhau, nên `null` mang đúng nghĩa thứ nhất.
         chong:
@@ -446,6 +448,8 @@ export function CayClient({
               return sauKhiGhi(res);
             }}
             onTimNguoi={timNguoiOnDinh}
+            /* Chip quan hệ dời tâm canvas — cùng lối "Đặt làm tâm" đã có, không dựng đường thứ hai. */
+            onMoNguoi={doiNeo}
             onTimNoi={async (ten, donViCha) => {
               const res = await timNoi(ten, donViCha);
               /**
