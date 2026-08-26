@@ -20,9 +20,9 @@
  * Every insert still writes its revision in the same transaction (AD-10), and the new living
  * person gets their 'added-to-tree' notification (AD-15).
  */
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
-import { dbGlobal, withClanContext } from '@/db';
+import { dbGlobal, withClanContext, type Tx } from '@/db';
 import { assertion, attachment, authUser, clan, notification, person, source } from '@/db/schema';
 import { writeRevision } from '@/core/revision';
 import { projectPerson } from '@/core/assertion/ops';
@@ -77,12 +77,28 @@ export type CreateAdminArgs = {
   name: string;
   /** Bỏ trống thì suy từ `name` (bỏ dấu, thường hoá, cách → chấm). */
   username?: string;
+  /**
+   * Năm sinh, bốn chữ số. Tuỳ chọn, nhưng ĐỪNG bỏ khi người này cũng có mặt trong bảng tính gieo.
+   *
+   * ── Vì sao một trường tuỳ chọn lại đáng có chú thích dài thế này ─────────────────────────
+   * Node bootstrap trước đây chỉ mang `{ fullName }`. Bộ nạp khung xếp một dòng là "khớp người
+   * có sẵn" chỉ khi **năm sinh cũng khớp** (`core/seed/ops.ts:110` — `yearsNear`), mà
+   * `yearsNear(1986, null)` là `false`. Nên dòng bảng tính của chính người quản trị luôn rơi vào
+   * `nghi-trung`, script gieo không đoán (AD-16) nên bỏ dòng, và `ten_cha` trên dòng ấy không bao
+   * giờ được đọc.
+   *
+   * Hậu quả đo được trên phả thật 25/08/2026: cây gia phả **gãy làm hai mảnh** vì thiếu một cạnh
+   * cha-con — và không ai nghĩ tới việc đổ lỗi cho một ô năm sinh trống ở bước bootstrap.
+   */
+  birthYear?: number;
 };
 
 export type CreatedAdmin = {
   accountId: string;
   personId: string;
   attachmentId: string;
+  /** Có vừa ghi năm sinh trên đường idempotent không — script nói câu khác cho hai ca. */
+  birthYearApplied?: boolean;
   /** false ⇒ the account already had an active attachment; nothing was re-created. */
   created: boolean;
 };
@@ -92,6 +108,83 @@ export type CreatedAdmin = {
  * source kind 'self'), and an 'active' admin attachment. Idempotent per email: an existing
  * account with an active attachment is returned untouched.
  */
+
+/**
+ * Ghi năm sinh cho một người CHƯA có năm sinh nào. Trả `true` nếu vừa ghi.
+ *
+ * Đi cùng đường với mọi khẳng định khác: một hàng `assertion` tầng tồn nghi (AD-9), một `source`
+ * riêng, một `revision` cùng transaction (AD-10), rồi để `projectPerson` chiếu cột (AD-19).
+ */
+async function themNamSinhNeuThieu(
+  tx: Tx,
+  a: {
+    clanId: string;
+    accountId: string;
+    personId: string;
+    birthYear: number;
+    /** Dùng lại nguồn của lượt bootstrap khi có — tên và năm sinh cùng một lời tự khai, một nguồn. */
+    sourceId?: string;
+  },
+): Promise<boolean> {
+  const daCo = await tx
+    .select({ id: assertion.id })
+    .from(assertion)
+    .where(
+      and(
+        eq(assertion.subjectPersonId, a.personId),
+        eq(assertion.kind, 'birth'),
+        eq(assertion.status, 'live'),
+      ),
+    );
+  if (daCo.length > 0) return false;
+
+  let sourceId = a.sourceId;
+  if (!sourceId) {
+    // Đường idempotent: lượt bootstrap gốc đã xong từ lâu, nên năm sinh cần nguồn của riêng nó.
+    sourceId = uuidv7();
+    await tx.insert(source).values({
+      id: sourceId,
+      clanId: a.clanId,
+      kind: 'self',
+      description: 'Tự khai khi khởi tạo hệ thống',
+      createdByAccountId: a.accountId,
+    });
+    await writeRevision(tx, {
+      clanId: a.clanId,
+      accountId: a.accountId,
+      entity: 'source',
+      entityId: sourceId,
+      action: 'create',
+      after: { kind: 'self' },
+    });
+  }
+
+  const id = uuidv7();
+  const hang = {
+    id,
+    clanId: a.clanId,
+    subjectPersonId: a.personId,
+    kind: 'birth' as const,
+    value: { date: `${a.birthYear}-01-01`, precision: 'year' as const },
+    sourceId,
+    confidence: 'chac-chan' as const,
+    tier: 'tentative' as const,
+    status: 'live' as const,
+    createdByAccountId: a.accountId,
+  };
+  await tx.insert(assertion).values(hang);
+  await writeRevision(tx, {
+    clanId: a.clanId,
+    accountId: a.accountId,
+    entity: 'assertion',
+    entityId: id,
+    action: 'create',
+    after: hang,
+  });
+  await projectPerson(tx, a.personId);
+  return true;
+}
+
 export async function createAdmin(args: CreateAdminArgs): Promise<CreatedAdmin> {
   // Account layer (identity tables — dbGlobal, no clan context, AD-8).
   const [existingUser] = await dbGlobal
@@ -130,7 +223,35 @@ export async function createAdmin(args: CreateAdminArgs): Promise<CreatedAdmin> 
       .from(attachment)
       .where(eq(attachment.accountId, accountId));
     if (existing && existing.status === 'active') {
-      return { accountId, personId: existing.personId, attachmentId: existing.id, created: false };
+      /**
+       * ── `birthYear` phải áp được cả trên đường idempotent (sửa 26/08/2026, code review 6-1) ──
+       *
+       * Bản trước trả sớm ngay ở đây, trước mọi dòng đụng `args.birthYear`. Nghĩa là cờ
+       * `--nam-sinh` không chữa được ĐÚNG CA nó sinh ra để chữa, và ca ấy chép ngay trong
+       * doc-comment của `scripts/create-admin.ts`: quản trị ĐÃ tồn tại, cây ĐÃ gãy đôi vì node
+       * ấy thiếu năm sinh, người vận hành chạy lại script kèm cờ — và nhận exit 0 cùng một câu
+       * bình thản, không một khẳng định `birth` nào được ghi.
+       *
+       * Chỉ ghi khi người ấy CHƯA có năm sinh: có rồi mà ghi đè là một khẳng định thứ hai về
+       * cùng một thứ đơn trị, tức một chồng MÂU THUẪN sinh ra từ một script vận hành — không
+       * phải việc của bootstrap (AD-9 để người duyệt quyết chuyện ấy ở bàn làm việc).
+       */
+      const daGhiBirth =
+        args.birthYear === undefined
+          ? false
+          : await themNamSinhNeuThieu(tx, {
+              clanId: args.clanId,
+              accountId,
+              personId: existing.personId,
+              birthYear: args.birthYear,
+            });
+      return {
+        accountId,
+        personId: existing.personId,
+        attachmentId: existing.id,
+        created: false,
+        birthYearApplied: daGhiBirth,
+      };
     }
 
     const personId = uuidv7();
@@ -189,6 +310,16 @@ export async function createAdmin(args: CreateAdminArgs): Promise<CreatedAdmin> 
       action: 'create',
       after: nameAssertion, // FULL row — core/audit's replay reads the image, not the table.
     });
+
+    if (args.birthYear !== undefined) {
+      await themNamSinhNeuThieu(tx, {
+        clanId: args.clanId,
+        accountId,
+        personId,
+        birthYear: args.birthYear,
+        sourceId, // cùng lời tự khai với tên
+      });
+    }
 
     // AD-19: core/assertion owns every projected column on `person`. Bootstrap only supplies
     // the claim; the projection derives fullName / nameFolded / nameTier / isLiving from it.

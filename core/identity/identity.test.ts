@@ -43,6 +43,9 @@ const adminEmail = `s14-admin-${run}@test.local`;
 const member1Email = `s14-member-${run}@test.local`;
 
 let clanId: string;
+/** Dòng họ tạm dựng thêm trong từng bài — dọn cùng lúc với `clanId` ở `afterAll`. */
+const clanPhu: string[] = [];
+const emailPhu: string[] = [];
 let adminAccountId: string;
 let adminPersonId: string;
 let member1AccountId: string;
@@ -108,17 +111,19 @@ afterAll(async () => {
   if (envBefore === undefined) delete process.env.GIAPHA_CLAN_ID;
   else process.env.GIAPHA_CLAN_ID = envBefore;
 
-  if (clanId) {
+  for (const cid of [clanId, ...clanPhu].filter(Boolean)) {
     await owner.query('BEGIN');
-    await owner.query(`SET LOCAL app.clan_id = '${clanId}'`);
+    await owner.query(`SET LOCAL app.clan_id = '${cid}'`);
     for (const tbl of ['notification', 'attachment', 'assertion', 'source', 'revision', 'person']) {
-      await owner.query(`DELETE FROM "${tbl}" WHERE clan_id = $1`, [clanId]);
+      await owner.query(`DELETE FROM "${tbl}" WHERE clan_id = $1`, [cid]);
     }
-    await owner.query('DELETE FROM clan WHERE id = $1', [clanId]);
+    await owner.query('DELETE FROM clan WHERE id = $1', [cid]);
     await owner.query('COMMIT');
   }
   // Identity rows (no RLS) — session/account cascade from user.
-  await dbGlobal.delete(authUser).where(inArray(authUser.email, [adminEmail, member1Email]));
+  await dbGlobal
+    .delete(authUser)
+    .where(inArray(authUser.email, [adminEmail, member1Email, ...emailPhu]));
   await owner.end();
 });
 
@@ -156,6 +161,115 @@ describe('bootstrap (core/identity/bootstrap)', () => {
     expect(again.created).toBe(false);
     expect(again.accountId).toBe(adminAccountId);
     expect(again.personId).toBe(adminPersonId);
+  });
+
+  /**
+   * Story 6-1 / việc A5 của retro Epic 5 — `--nam-sinh` của `scripts/create-admin.ts`.
+   *
+   * Không khai năm sinh thì node bootstrap chỉ có tên, và bộ nạp khung xếp dòng bảng tính của
+   * chính người ấy là `nghi-trung` (`core/seed/ops.ts:110` — `yearsNear(1986, null)` là `false`),
+   * rồi bỏ dòng, rồi `ten_cha` trên dòng ấy không bao giờ được đọc. Cây tách làm hai mảnh rời.
+   * Đo được trên phả thật 25/08/2026 — đây là bài test giữ cho nó không quay lại.
+   */
+  it('khai năm sinh ⇒ có khẳng định birth và cột chiếu `person.birthDate` — thứ bộ nạp khung so', async () => {
+    const clanRieng = uuidv7();
+    await withClanContext(clanRieng, async (tx) => {
+      await tx.insert(clan).values({ id: clanRieng, name: 'S14 Clan Nam Sinh' });
+    });
+    clanPhu.push(clanRieng);
+    const emailRieng = `s14-nam-sinh-${run}@test.local`;
+    emailPhu.push(emailRieng);
+
+    const ad = await createAdmin({
+      clanId: clanRieng,
+      email: emailRieng,
+      password: PW,
+      name: 'S14 Người Có Năm Sinh',
+      birthYear: 1986,
+    });
+
+    await withClanContext(clanRieng, async (tx) => {
+      const claims = await tx.select().from(assertion).where(eq(assertion.subjectPersonId, ad.personId));
+      // Hai khẳng định, cùng MỘT nguồn: năm sinh đi cùng đường với tên, không có lối tắt.
+      expect(claims).toHaveLength(2);
+      expect(new Set(claims.map((c) => c.kind))).toEqual(new Set(['name', 'birth']));
+      expect(new Set(claims.map((c) => c.sourceId)).size).toBe(1);
+      // AD-9: tồn nghi, kể cả người quản trị đầu tiên.
+      expect(claims.every((c) => c.tier === 'tentative')).toBe(true);
+
+      const [p] = await tx.select().from(person).where(eq(person.id, ad.personId));
+      // Đây là cột `previewSeedOp` đọc để so năm sinh. Không có nó thì cây gãy đôi.
+      expect(p.birthDate).toBe('1986-01-01');
+      expect(p.birthTier).toBe('tentative');
+    });
+  });
+
+  /**
+   * Hồi quy cho code review 6-1 — cờ `--nam-sinh` phải chữa được ĐÚNG CA nó sinh ra để chữa.
+   *
+   * Bản trước `createAdmin` trả sớm khi tài khoản đã có attachment `active`, trước mọi dòng đụng
+   * `birthYear`. Nghĩa là: quản trị đã tồn tại, cây đã gãy đôi vì node ấy thiếu năm sinh, người
+   * vận hành chạy lại script kèm cờ — và nhận exit 0 cùng một câu bình thản, không một khẳng
+   * định `birth` nào được ghi.
+   */
+  it('chạy lại với --nam-sinh trên tài khoản ĐÃ CÓ ⇒ ghi bổ sung năm sinh, không bỏ lặng lẽ', async () => {
+    const clanRieng = uuidv7();
+    await withClanContext(clanRieng, async (tx) => {
+      await tx.insert(clan).values({ id: clanRieng, name: 'S14 Clan Chay Lai' });
+    });
+    clanPhu.push(clanRieng);
+    const emailRieng = `s14-chay-lai-${run}@test.local`;
+    emailPhu.push(emailRieng);
+
+    // Lượt đầu KHÔNG khai năm sinh — đúng cách phả thật đã được dựng.
+    const lan1 = await createAdmin({
+      clanId: clanRieng,
+      email: emailRieng,
+      password: PW,
+      name: 'S14 Người Chạy Lại',
+    });
+    await withClanContext(clanRieng, async (tx) => {
+      const [p] = await tx.select().from(person).where(eq(person.id, lan1.personId));
+      expect(p.birthDate).toBeNull();
+    });
+
+    const lan2 = await createAdmin({
+      clanId: clanRieng,
+      email: emailRieng,
+      password: PW,
+      name: 'S14 Người Chạy Lại',
+      birthYear: 1986,
+    });
+    expect(lan2.created).toBe(false);
+    expect(lan2.personId).toBe(lan1.personId); // vẫn đúng người ấy, không đẻ bản trùng
+    expect(lan2.birthYearApplied).toBe(true);
+
+    await withClanContext(clanRieng, async (tx) => {
+      const [p] = await tx.select().from(person).where(eq(person.id, lan1.personId));
+      expect(p.birthDate).toBe('1986-01-01');
+    });
+
+    // Lượt ba: đã có năm sinh rồi thì KHÔNG ghi đè — hai giá trị đơn trị là việc của người duyệt
+    // ở bàn làm việc (AD-9), không phải của một script vận hành.
+    const lan3 = await createAdmin({
+      clanId: clanRieng,
+      email: emailRieng,
+      password: PW,
+      name: 'S14 Người Chạy Lại',
+      birthYear: 1990,
+    });
+    expect(lan3.birthYearApplied).toBe(false);
+    await withClanContext(clanRieng, async (tx) => {
+      const [p] = await tx.select().from(person).where(eq(person.id, lan1.personId));
+      expect(p.birthDate).toBe('1986-01-01');
+    });
+  });
+
+  it('không khai năm sinh ⇒ vẫn đúng một khẳng định tên, không tự bịa năm nào', async () => {
+    await withClanContext(clanId, async (tx) => {
+      const [p] = await tx.select().from(person).where(eq(person.id, adminPersonId));
+      expect(p.birthDate).toBeNull();
+    });
   });
 });
 
