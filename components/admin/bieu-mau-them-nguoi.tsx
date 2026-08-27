@@ -111,12 +111,36 @@ function Than({
    * So với `RONG` chứ không đặt cờ một chiều: xoá hết chữ vừa gõ thì biểu mẫu sạch trở lại, và
    * `Esc` khi ấy nên đóng ngay như lúc chưa ai đụng vào.
    */
-  const dat = <K extends keyof DuLieuThemNguoi>(k: K, v: DuLieuThemNguoi[K]) =>
-    setD((cu) => {
-      const moi = { ...cu, [k]: v };
-      onDoiBan(Object.keys(RONG).some((khoa) => moi[khoa as keyof DuLieuThemNguoi] !== RONG[khoa as keyof typeof RONG]));
-      return moi;
-    });
+  /**
+   * `onDoiBan` gọi NGOÀI updater (sửa 26/08 sau code review).
+   *
+   * Bản trước gọi nó bên trong `setD((cu) => …)`. Updater của `useState` phải THUẦN: React chạy
+   * nó trong pha vẽ của component này, nên `setBanThem` của `CayClient` bắn ra từ đó là
+   * *"Cannot update a component while rendering a different component"* — và StrictMode còn gọi
+   * updater hai lượt. Cùng họ với `react-hooks/set-state-in-effect` mà repo đã vấp bốn lần, chỉ
+   * khác pha nên eslint không có rule nào bắt và bốn cổng vẫn xanh.
+   *
+   * Tính từ `d` trong thân handler thì vừa thuần vừa đúng: `d` là giá trị của lượt vẽ hiện hành,
+   * và mỗi phím gõ đều đi qua đây.
+   */
+  const dat = <K extends keyof DuLieuThemNguoi>(k: K, v: DuLieuThemNguoi[K]) => {
+    // Updater HÀM cho `setD`. Bản vá đầu 26/08 đổi nó thành `setD({ ...d, [k]: v })` để đưa
+    // `onDoiBan` ra ngoài, và đó là đổi quá tay: hai phím gõ trong cùng một nhịp vẽ sẽ đọc chung
+    // một `d` cũ, phím trước bị phím sau ghi đè. (Lượt soi trình duyệt tưởng đã bắt được đúng ca
+    // ấy — thật ra không: số đo hôm đó đọc nhầm nút radio đầu tiên trong cột, mà radio không có
+    // `value` thì `.value` luôn là "on". Đo lại đúng ô tên: 21 ký tự vào đủ 21. Giữ updater hàm
+    // vì nó ĐÚNG, không vì một lần đo.)
+    setD((cu) => ({ ...cu, [k]: v }));
+    // Cờ bẩn thì tính NGOÀI updater. Nó có thể cũ một nhịp, và điều đó không sao: `moi` luôn
+    // mang giá trị VỪA gõ, nên chạm phím đầu tiên là cờ bật; còn nếu sai thì sai về phía "đã
+    // gõ", tức về phía HỎI trước khi bỏ.
+    const moi = { ...d, [k]: v };
+    onDoiBan(
+      Object.keys(RONG).some(
+        (khoa) => moi[khoa as keyof DuLieuThemNguoi] !== RONG[khoa as keyof typeof RONG],
+      ),
+    );
+  };
 
   const namHong = (v: string) => v !== '' && !/^\d{4}$/.test(v);
   const thuTuHong =
@@ -149,7 +173,25 @@ function Than({
   }
 
   return (
-    <div className="px-5 py-5">
+    /**
+     * `<form>` chứ không phải `<div>` (sửa 26/08 sau code review).
+     *
+     * Bản trước là một `<div>` với hai nút `type="button"`, nên `Enter` trong ô tên KHÔNG gửi gì
+     * cả. Hai hậu quả: (a) nhịp *"gõ một mạch"* mà cả story dựng lên để có — `Enter` → điền →
+     * ghi → `Enter` — đứt ở nhịp thứ hai của người ĐẦU TIÊN, phải rê chuột xuống nút; (b) tiền
+     * đề của AC 6, *"chặn `INPUT` vì `Enter` ở đó là **gửi**"*, sai với chính mã trong repo.
+     *
+     * `noValidate`: mọi phép kiểm đã có ở `guiDuoc` + các câu lỗi tiếng Việt ngay dưới từng ô;
+     * bong bóng mặc định của trình duyệt sẽ nói tiếng khác và nói chồng lên chúng.
+     */
+    <form
+      noValidate
+      onSubmit={(e) => {
+        e.preventDefault();
+        if (guiDuoc && !dangGui) void gui();
+      }}
+      className="px-5 py-5"
+    >
       <h2 className="text-[19px] font-semibold">Thêm người vào phả</h2>
 
       {/* Hướng quan hệ đứng TRÊN CÙNG: nó quyết định node mờ rơi vào đâu, nên nó là câu hỏi đầu
@@ -195,7 +237,17 @@ function Than({
 
       <div className="mt-4 flex flex-col gap-3">
         <O nhan="Họ và tên" id={`${id}-ten`} batBuoc>
+          {/*
+            `autoFocus` — AC 12 câu hai, sót ở lượt đầu (sửa 26/08 sau code review).
+
+            Không có nó thì gõ `Enter` trên canvas chỉ MỞ được biểu mẫu: con trỏ vẫn nằm ở thẻ
+            node, chữ gõ tiếp không vào đâu cả, và đường tới ô tên bằng bàn phím phải `Tab` qua
+            từng thẻ node một (React Flow cho mọi node `tabIndex=0`) — cây ba mươi người là ba
+            mươi lần `Tab`. `Than` khoá theo mốc nên nó dựng lại ở mỗi người, tức con trỏ về
+            đúng chỗ ở từng nhịp của "gõ một mạch".
+          */}
           <input
+            autoFocus
             id={`${id}-ten`}
             value={d.hoTen}
             onChange={(e) => {
@@ -283,12 +335,7 @@ function Than({
 
       <div className="mt-4 flex flex-wrap gap-2">
         {/* Son nằm ở đây — nút GỬI, thứ thật sự ghi. Nút mở biểu mẫu trên thanh việc thì không. */}
-        <Button
-          type="button"
-          disabled={!guiDuoc}
-          onClick={() => void gui()}
-          className="h-11 text-[17px]"
-        >
+        <Button type="submit" disabled={!guiDuoc || dangGui} className="h-11 text-[17px]">
           {dangGui ? 'Đang ghi…' : 'Ghi vào phả'}
         </Button>
         {/* Luôn mở — xem chú thích cùng nội dung ở `bieu-mau-ghi-them.tsx`. */}
@@ -296,7 +343,7 @@ function Than({
           Thôi
         </Button>
       </div>
-    </div>
+    </form>
   );
 }
 

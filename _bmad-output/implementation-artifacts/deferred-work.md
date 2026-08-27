@@ -218,6 +218,19 @@ gốc để lần sau không phải điều tra lại.
   với `max-w-[42ch]` / `max-w-[32ch]` — cùng lớp lỗi, chỉ chưa gặp dữ liệu đủ dài để lộ.
   *Lý do hoãn: đó là màn của 6-8, story sắp dựng lại chính hàng chờ ấy — vá bây giờ sẽ bị viết đè.*
 
+## Deferred from: code review of story 6-9 (2026-08-26)
+
+- **`daThayCanhCu` và canvas đọc HAI tập node khác nhau.** `app/admin/cay/cay-client.tsx:399-405`
+  gọi `camNutTam` trên `nut` thô; `components/admin/khung-cay-admin.tsx:144` gọi cùng phép ấy
+  trên `nut` đã lọc `chaId` theo vùng. Chú thích ở `cay-client` khai *"một nguồn sự thật, hai chỗ
+  đọc"* — thực tế là hai nguồn. Hậu quả: câu cảnh báo *"mốc đã có cha"* có thể lệch với hình node
+  mờ mà canvas vẽ. *Lý do hoãn: có sẵn trước story 6-9, không do lượt thay đổi này sinh ra.*
+
+- **`Backspace` trên node đang focus vẫn là `deleteKeyCode` mặc định của React Flow.** `doiNode`
+  (`khung-cay-admin.tsx:291-298`) bỏ qua `type:'remove'` nên không có gì bị xoá thật, nhưng phím
+  vẫn bị React Flow nuốt trên một bề mặt mà AD-4 nói *không có xoá*. *Lý do hoãn: có sẵn trước
+  story 6-9; đúng chỗ chữa là một lượt rà cấu hình React Flow, không phải story phím tắt.*
+
 ## Chốt BỎ — 26/08/2026
 
 Ba việc được nêu và chủ dự án chốt **không làm**. Ghi ra để lần sau không ai đề xuất lại như thể

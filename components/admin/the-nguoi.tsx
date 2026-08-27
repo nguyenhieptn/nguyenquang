@@ -125,30 +125,50 @@ export function TheNguoi({ data, selected }: NodeProps) {
    *
    * Và tên trạng thái vẫn còn nguyên cho trình đọc màn hình ở `sr-only` bên dưới — bỏ chữ khỏi
    * MẮT không phải là bỏ nó khỏi máy đọc.
+   *
+   * ── HAI KÊNH CỘNG DỒN, không phải một chuỗi loại trừ (chốt 26/08 sau code review) ─────────
+   * Bản trước là một chuỗi `? :` nên `selected` NUỐT `coNguoiXin`: bấm vào một node có yêu cầu
+   * vào phả để xem xét thì viền son tắt — mà bấm vào chính nó là lối đi DUY NHẤT để duyệt, và
+   * hàng nhãn chữ thì vừa bỏ. Trên canvas không còn một dấu nào; chỉ cột phải biết. Đó là lối đi
+   * chính của story 5-5, tắt đúng lúc người ta đang đi trên nó.
+   *
+   * Nay hai trục tách hẳn:
+   *   VIỀN  = việc của người ấy   — son: có người xin nhận · xanh: tâm · xám nhạt: thường
+   *   QUẦNG = đang chọn           — cộng thêm, không thay thế
+   * Một node vừa có yêu cầu vừa đang chọn mang cả hai, đọc được cùng lúc. Và vì hai trục dùng
+   * hai THUỘC TÍNH khác nhau (viền vs quầng) chứ không phải hai sắc độ của một thuộc tính, nó
+   * không rơi vào "phân biệt chỉ bằng màu".
+   *
+   * ── `outline`, KHÔNG `ring` (chốt 26/08) ─────────────────────────────────────────────────
+   * `ring-*` của Tailwind biên dịch ra `box-shadow`, mà `docs/build-contract.md:86`
+   * (*"không đổ bóng"*), `DESIGN.md § Elevation` (*"Giấy nằm trên bàn, không lơ lửng"*) và AC 14
+   * của chính story đều cấm. `outline` + `outline-offset` cho đúng cái quầng chủ dự án đặt hàng
+   * mà không phải một cái bóng — hình giữ nguyên, luật giữ nguyên, không tài liệu nào phải sửa.
    */
   const vien = d.sapThem
     ? 'border-2 border-muted-foreground'
-    : selected
-      ? 'border-2 border-foreground ring-4 ring-foreground/25'
-      : d.coNguoiXin
-        ? 'border-2 border-destructive ring-2 ring-destructive/40'
-        : d.laNeo
-          ? 'border-2 border-primary'
-          : 'border border-ban-vien';
+    : d.coNguoiXin
+      ? 'border-2 border-destructive'
+      : d.laNeo
+        ? 'border-2 border-primary'
+        : 'border border-ban-vien';
+  const quang = selected ? 'outline-4 outline-offset-0 outline-foreground/30' : '';
   const net = d.tonNghi || d.sapThem ? 'border-dashed' : '';
   const nen = d.sapThem ? 'bg-ban-nen opacity-70' : d.tonNghi ? 'van-ton-nghi' : 'bg-ban-o';
 
   return (
     /**
-     * KHÔNG `overflow-hidden` ở vỏ. Nhãn "tâm" / "sắp thêm" / "có người xin nhận" ngồi ở
-     * `-top-2.5`, tức là NGOÀI hộp — vỏ cắt thì chúng biến mất, và neo với đang-chọn chỉ còn
-     * phân biệt bằng MÀU VIỀN, đúng thứ `EXPERIENCE.md § Accessibility Floor` cấm.
+     * KHÔNG `overflow-hidden` ở vỏ.
+     *
+     * Lý do CŨ — *"nhãn 'tâm' / 'sắp thêm' / 'có người xin nhận' ngồi ở `-top-2.5`, tức là NGOÀI
+     * hộp"* — đã hết hiệu lực: các nhãn ấy bỏ từ 26/08. Lý do MỚI thì vẫn thật: quầng `outline`
+     * của node đang chọn vẽ ra ngoài mép hộp, và `overflow-hidden` sẽ cắt cụt nó ở bốn cạnh.
      *
      * Chữ vẫn không tràn được: `truncate` tự mang `overflow:hidden` của riêng nó, và khối nội
      * dung bên dưới còn một lớp cắt nữa.
      */
     <div
-      className={`relative rounded-md ${vien} ${net} ${nen}`}
+      className={`relative rounded-md ${vien} ${quang} ${net} ${nen}`}
       style={{ width: d.rong, height: d.cao }}
     >
       <Handle type="target" position={Position.Top} className="!opacity-0" />

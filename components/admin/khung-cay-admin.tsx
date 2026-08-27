@@ -82,12 +82,6 @@ export function KhungCayAdmin({
   /** Story 5-4 — đang mở biểu mẫu thêm người: bày một node MỜ ở chỗ người ấy sẽ rơi vào. */
   themVao?: { mocId: string | null; huong: HuongThem; hoTen: string } | null;
   onMoThem?: () => void;
-  /**
-   * Story 6-9 — phím tắt nhập nhanh. `Enter` thêm con, `Shift+Enter` thêm anh em.
-   *
-   * Canvas KHÔNG tự quyết mốc: nó chỉ báo ra hành động và để nơi gọi tra bố cục. Cha của node
-   * đang chọn nằm trong `nut` (`chaId`), thứ nơi gọi đang giữ.
-   */
 }) {
   const { xinThu } = useThanhViec();
 

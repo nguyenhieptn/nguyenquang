@@ -104,7 +104,14 @@ development_status:
   6-8-duyet-theo-nguoi: backlog
   # Thêm 26/08 từ phản hồi dùng thật: chép một trang phả mười người tốn bốn chặng mỗi người.
   # Enter = con, Shift+Enter = anh em. KHÔNG dùng Tab — nó là phím của trình duyệt.
-  6-9-nhap-nhanh-tren-canvas: review
+  #
+  # Code review 26/08 — ba tầng đối kháng, 20 patch + 2 quyết định, ĐÃ VÁ HẾT, 2 mục vào
+  # deferred-work. Bốn cổng xanh với TOÀN BỘ danh sách ấy trước khi vá. Nặng nhất là một lỗi
+  # ghi sai vào phả: `Enter` sau khi đi bằng `Tab` dùng `chonId` của lượt vẽ TRƯỚC, nên thẻ B
+  # sáng mà biểu mẫu ghi "con của A" — trên một kho không có phép xoá (AD-4). Đã dựng lại đúng
+  # đường ấy trên trình duyệt sau khi vá: thẻ sáng và biểu mẫu nay nói cùng một người.
+  # AC 9/10 (dòng chỉ dẫn <kbd>) KHÔNG đạt theo chữ — chủ dự án chốt bỏ; ghi rõ cái giá ở story.
+  6-9-nhap-nhanh-tren-canvas: done
   epic-6-retrospective: optional
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──

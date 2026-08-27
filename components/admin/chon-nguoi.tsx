@@ -123,9 +123,19 @@ export function ChonNguoi({
        * khoá đổi và bộ chọn mở lại.
        */
       setKetQua((cu) => ({ ...cu, khoa: tuKhoa.trim(), dong: true }));
-      // Đóng từ TRONG ra NGOÀI: danh sách gợi ý là lớp trong cùng, nên nó nuốt `Esc` này và
-      // KHÔNG để biểu mẫu đóng theo. `Esc` lần nữa mới tới lượt biểu mẫu.
-      e.stopPropagation();
+      /**
+       * KHÔNG chặn nổi bọt ở đây (gỡ 26/08 sau code review story 6-9).
+       *
+       * Bản trước gọi `e.stopPropagation()` kèm chú thích *"danh sách gợi ý là lớp trong cùng
+       * nên nó nuốt `Esc` này và KHÔNG để biểu mẫu đóng theo"* — mô tả một lớp lồng nhau **không
+       * tồn tại được**: `ChonNguoi` chỉ sống trong `CotKhangDinh`, mà `cay-client.tsx` dựng
+       * `CotKhangDinh` ở nhánh LOẠI TRỪ với biểu mẫu thêm người. Hai thứ không bao giờ cùng trên
+       * màn, nên hàng rào ấy chưa từng chắn ai.
+       *
+       * `Esc` từ đây đi tiếp lên cửa sổ là vô hại: handler ở đó bỏ qua `Esc` khi không có biểu
+       * mẫu thêm người nào mở. Một hàng rào không ai qua, kèm tài liệu nói ngược, đắt hơn là
+       * không có — Dev Notes của chính story dặn đừng để lại thứ này.
+       */
       return;
     }
     if (!moDanhSach) return;

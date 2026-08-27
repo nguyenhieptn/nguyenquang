@@ -240,7 +240,19 @@ function OTim({ tim }: { tim: HamTim }) {
       ref={hop}
       onKeyDown={(e) => {
         // Escape là lối ra duy nhất không cần chuột. Đóng bảng, giữ nguyên chữ đã gõ.
-        if (e.key === 'Escape') setMo(false);
+        if (e.key !== 'Escape') return;
+        setMo(false);
+        /**
+         * CHẶN NỔI BỌT (sửa 26/08 sau code review story 6-9).
+         *
+         * `app/admin/cay/cay-client.tsx` nghe `keydown` ở cấp CỬA SỔ để `Esc` bỏ biểu mẫu thêm
+         * người. Listener uỷ nhiệm của React nằm ở `document`, tức ngay trước `window` — nên
+         * đóng bảng gợi ý của ô tìm này sẽ đóng luôn biểu mẫu bên kia màn, hoặc tệ hơn: bật câu
+         * hỏi *"bỏ những gì vừa gõ?"* cho một thao tác chẳng liên quan gì tới nó.
+         *
+         * Đóng từ TRONG ra NGOÀI — luật chung của mọi app canvas, và ở đây lớp trong là bảng này.
+         */
+        e.stopPropagation();
       }}
       className="relative w-full max-w-[560px]"
     >

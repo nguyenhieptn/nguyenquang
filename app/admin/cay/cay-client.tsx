@@ -73,10 +73,26 @@ export function CayClient({
    * Neo là chỗ đứng; hồ sơ của chỗ đứng là thứ đáng bày trước tiên.
    */
   const [chonId, setChonId] = useState<string | null>(neoId);
-  /** Câu trả lời cho một phím tắt không dùng được, hoặc câu hỏi trước khi bỏ chữ đã gõ. */
-  const [loiPhim, setLoiPhim] = useState<string | null>(null);
-  /** Đã hỏi "bỏ những gì vừa gõ?" và đang chờ `Esc` lần hai. */
-  const [hoiBo, setHoiBo] = useState(false);
+  /**
+   * Câu trả lời cho một phím tắt không dùng được, hoặc câu hỏi trước khi bỏ chữ đã gõ.
+   *
+   * Mang `lan` chứ không chỉ mang chữ (sửa 26/08 sau code review): gõ `Shift+Enter` lần hai trên
+   * cùng một người đặt lại ĐÚNG chuỗi cũ ⇒ React bail-out ⇒ vùng `role="status"` không đổi ⇒
+   * trình đọc màn hình im hoàn toàn. Người dùng bàn phím gõ hai lần và không nghe gì cả.
+   */
+  const [loiPhim, setLoiPhim] = useState<{ chu: string; lan: number } | null>(null);
+  const noiPhim = useCallback((chu: string | null) => {
+    setLoiPhim((cu) => (chu === null ? null : { chu, lan: (cu?.lan ?? 0) + 1 }));
+  }, []);
+  /**
+   * Đang chờ phím lần hai cho việc gì — `'dong'` (Esc bỏ biểu mẫu) hay `'thay'` (Enter thay biểu
+   * mẫu đang gõ dở bằng một mốc khác).
+   *
+   * MỘT cờ chung mà ghi rõ VIỆC, không phải một `boolean` (sửa 26/08): dùng chung một boolean thì
+   * `Esc` đặt câu hỏi xong, `Enter` ngay sau đó thấy `dangHoi === true` và thay biểu mẫu luôn —
+   * người dùng chưa bao giờ được hỏi về việc thứ hai.
+   */
+  const [hoiBo, setHoiBo] = useState<'dong' | 'thay' | null>(null);
   /** Biểu mẫu thêm người đã bẩn chưa — do CHÍNH biểu mẫu báo ra, gồm cả xuất xứ. */
   const [banThem, setBanThem] = useState(false);
   const [hoSo, setHoSo] = useState<HoSoPanel | null>(null);
@@ -230,6 +246,14 @@ export function CayClient({
   const chon = useCallback(
     (id: string) => {
       setChonId(id);
+      /**
+       * DỌN câu cảnh báo cũ (sửa 26/08 sau code review). § *CHƯA kiểm được* của story khai
+       * *"chọn node khác là hết"* — sai: `chon()` chưa từng đụng tới `loiPhim`. Hậu quả: câu
+       * *"Chưa biết cha của người này…"* treo lại trên canvas và nay nói về một người KHÁC người
+       * đang chọn. Một lời khai sai đứng giữa màn.
+       */
+      noiPhim(null);
+      setHoiBo(null);
       // DỌN NGAY, không đợi lượt nạp về. Giữ lại hồ sơ cũ trong lúc chờ thì cột phải in tên
       // người A trong khi mọi nút trên đó — Nhận vào phả, Nâng tầng, Loại — đang trỏ vào B.
       // "Nhận vào phả" trao quyền ghi và mở bán kính riêng tư: hiện sai tên ở đó là hỏng nặng.
@@ -245,7 +269,7 @@ export function CayClient({
        */
       napHoSo(id, true);
     },
-    [napHoSo],
+    [napHoSo, noiPhim],
   );
 
   /**
@@ -317,6 +341,15 @@ export function CayClient({
     // Biểu mẫu đóng thì nó sạch trở lại — không để cờ bẩn của lượt trước bám sang lượt sau.
     setBanThem(false);
     /**
+     * DỌN cả câu hỏi lẫn cờ chờ (sửa 26/08 sau code review). Bản trước chỉ dọn `banThem`, mà nút
+     * *Thôi* nối thẳng vào đây chứ không đi qua nhánh `Esc` — nên: gõ tên → `Esc` (hiện câu hỏi)
+     * → đổi ý, bấm *Thôi* → câu hỏi treo lại trên canvas trỏ vào một biểu mẫu không còn, VÀ cờ
+     * `hoiBo` vẫn bật. Biểu mẫu MỞ LẦN SAU bị `Esc` bỏ NGAY, mất trắng chữ, không một câu hỏi —
+     * đúng nguyên văn cái tội `phim-canvas.ts` thề đã sửa.
+     */
+    setHoiBo(null);
+    noiPhim(null);
+    /**
      * CHỈ điều hướng khi `?them` thật sự đang ở trên đường dẫn.
      *
      * Lối thường gặp — chọn một người rồi bấm "Thêm người quanh đây" — không hề đụng URL, nên
@@ -329,7 +362,7 @@ export function CayClient({
     if (moThemNgay) {
       router.replace(`/admin/cay?neo=${encodeURIComponent(neoId)}&ban-kinh=${banKinh}`);
     }
-  }, [router, neoId, banKinh, moThemNgay]);
+  }, [router, neoId, banKinh, moThemNgay, noiPhim]);
 
   /**
    * ── Phím tắt nhập nhanh (story 6-9) ──────────────────────────────────────────────────────
@@ -345,54 +378,114 @@ export function CayClient({
       const dich = e.target as HTMLElement | null;
 
       /**
+       * ── BỘ GÕ TIẾNG VIỆT ĐI TRƯỚC MỌI THỨ (sửa 26/08 sau code review) ─────────────────────
+       *
+       * Đây là bàn nhập liệu TIẾNG VIỆT. Gõ Telex `Nguyeen`, chuỗi `Nguyên` đang soạn còn gạch
+       * chân; bấm `Esc` để huỷ chuỗi ấy là thao tác chuẩn của IME. Không chốt ở đây thì cú `Esc`
+       * nhắm vào một dấu gõ hỏng lại nuốt cả người đang nhập.
+       *
+       * `Enter` vốn an toàn nhờ `dangGoTrongO` chặn `INPUT`; `Escape` thì CỐ Ý đi vòng qua hàng
+       * rào ấy (xem ngay dưới), nên nó là cửa duy nhất IME lọt vào được.
+       *
+       * `keyCode === 229` là lối cũ cho trình duyệt/IME không đặt `isComposing` — giữ cả hai.
+       */
+      if (e.isComposing || e.keyCode === 229) return;
+
+      /**
        * `Escape` xử TRƯỚC, và KHÔNG đi qua `dangGoTrongO`: trong một ô nhập, `Enter` là *gửi*
        * còn `Esc` là *thôi* — đó là luật chung của mọi app canvas.
-       *
-       * Bộ chọn người tự nuốt `Esc` của nó (`chon-nguoi.tsx`) và chặn nổi bọt, nên danh sách gợi
-       * ý đang mở thì `Esc` đóng danh sách trước, biểu mẫu sau. Đóng từ TRONG ra NGOÀI.
        */
       const raEsc = hanhDongEsc({
         phim: e.key,
+        lap: e.repeat,
         dangMo: them !== null,
         // Do CHÍNH biểu mẫu báo ra (`onDoiBan`), nên nó phủ mọi ô — kể cả xuất xứ, thứ không
         // chảy ngược lên đây. Bản trước chỉ suy từ họ tên, và gõ mỗi xuất xứ rồi Esc là mất trắng.
         daGo: banThem,
-        dangHoi: hoiBo,
+        dangHoi: hoiBo === 'dong',
       });
       if (raEsc.loai !== 'bo-qua') {
         e.preventDefault();
         if (raEsc.loai === 'hoi') {
-          setHoiBo(true);
-          setLoiPhim('Bỏ những gì vừa gõ? Ấn Esc lần nữa để bỏ.');
+          setHoiBo('dong');
+          noiPhim('Bỏ những gì vừa gõ? Ấn Esc lần nữa để bỏ.');
           return;
         }
-        setHoiBo(false);
-        setLoiPhim(null);
         dongThem();
         return;
       }
+      // `Esc` khi không có biểu mẫu nào mở là lối tắt câu cảnh báo đang treo — lối thoát bằng
+      // bàn phím duy nhất mà bản trước không có. KHÔNG `preventDefault`: phím vẫn thuộc về trang.
+      if (e.key === 'Escape') {
+        noiPhim(null);
+        setHoiBo(null);
+        return;
+      }
+
+      /**
+       * ── MỐC ĐỌC TỪ CHÍNH SỰ KIỆN, KHÔNG TỪ CLOSURE (sửa 26/08 sau code review) ────────────
+       *
+       * `@xyflow/system` khai `elementSelectionKeys = ['Enter',' ','Escape']` và gắn `onKeyDown`
+       * lên MỖI thẻ node (`tabIndex=0`). `Enter` trên thẻ node đang focus gọi `handleNodeClick`
+       * → `onChon(B)` — nhưng đó là một handler React uỷ nhiệm ở `document`, chạy TRƯỚC listener
+       * cửa sổ này, và `setChonId(B)` chỉ *xếp lịch* một lượt vẽ. Closure ở đây vẫn giữ `A`.
+       *
+       * Hậu quả đo được: đi bằng `Tab` tới thẻ B rồi gõ `Enter` ⇒ thẻ B sáng lên, còn biểu mẫu
+       * ghi *"là con của A"*. Một phím, hai việc, hai người khác nhau — trên một cuốn phả mà
+       * AD-4 không cho xoá. Và đúng người dùng bàn phím là đối tượng mà cả quyết định "không
+       * chiếm `Tab`" sinh ra để phục vụ.
+       *
+       * Thẻ node mang `data-id` của React Flow, nên sự kiện tự nói ra nó thuộc về ai.
+       */
+      const idTuSuKien =
+        (dich?.closest('.react-flow__node') as HTMLElement | null)?.dataset.id ?? null;
+      const mocDang = idTuSuKien ?? chonId;
+      const nodeDang = nut.find((n) => n.id === mocDang);
 
       const ra = hanhDongPhim({
         phim: e.key,
         shift: e.shiftKey,
+        boTro: e.ctrlKey || e.metaKey || e.altKey,
+        lap: e.repeat,
         o: dich ? { the: dich.tagName, contentEditable: dich.isContentEditable } : null,
-        chonId,
-        chaCuaChon: nut.find((n) => n.id === chonId)?.chaId ?? null,
+        chonId: mocDang,
+        chaCuaChon: nodeDang?.chaId ?? null,
+        // `laGocManh` (`isFragmentRoot` của core) là thứ DUY NHẤT phân biệt "chưa ai truy ra đời
+        // trên" với "cha nằm ngoài bán kính đang xem". Xem `phim-canvas.ts § cha-ngoai-vung`.
+        laGocManh: nodeDang?.the.laGocManh ?? false,
+        mocDangMo: them?.mocId ?? null,
+        daGo: banThem,
+        dangHoi: hoiBo === 'thay',
       });
       if (ra.loai === 'bo-qua') return;
       e.preventDefault();
-      // Mở một biểu mẫu mới thì câu hỏi cũ hết nghĩa.
-      setHoiBo(false);
-      if (ra.loai === 'thieu-cha') {
-        setLoiPhim('Chưa biết cha của người này, nên chưa thêm anh em được.');
+
+      if (ra.loai === 'hoi-thay') {
+        setHoiBo('thay');
+        noiPhim('Biểu mẫu đang có chữ chưa ghi. Ấn Enter lần nữa để bỏ và mở biểu mẫu mới.');
         return;
       }
-      setLoiPhim(null);
+      if (ra.loai === 'thieu-cha') {
+        setHoiBo(null);
+        noiPhim('Chưa biết cha của người này, nên chưa thêm anh em được.');
+        return;
+      }
+      if (ra.loai === 'cha-ngoai-vung') {
+        setHoiBo(null);
+        noiPhim('Cha của người này chưa hiện trên hình — nới bán kính rồi thử lại.');
+        return;
+      }
+
+      setHoiBo(null);
+      noiPhim(null);
+      // Biểu mẫu mới thì cờ bẩn của biểu mẫu cũ phải rơi theo — `Than` dựng lại rỗng, mà cờ ở
+      // lại thì `Esc` ngay sau đó hỏi "bỏ những gì vừa gõ?" về một biểu mẫu chưa ai đụng vào.
+      setBanThem(false);
       setThem({ mocId: ra.mocId, huong: 'con', hoTen: '' });
     }
     window.addEventListener('keydown', nghe);
     return () => window.removeEventListener('keydown', nghe);
-  }, [chonId, nut, them, hoiBo, banThem, dongThem]);
+  }, [chonId, nut, them, hoiBo, banThem, dongThem, noiPhim]);
 
   // Cùng phép cắm node mờ mà canvas dùng — gọi lại ở đây CHỈ để biết có phải nói câu cảnh báo
   // "mốc đã có cha" hay không. Một nguồn sự thật, hai chỗ đọc.
@@ -417,16 +510,35 @@ export function CayClient({
      * và đo được — không còn gì để trừ.
      */
     <div className="relative flex h-full min-h-[420px] gap-4">
-      {/* Câu trả lời cho một phím tắt không dùng được. Đứng NGAY TRÊN canvas, không phải một
-          băng-rôn ở đầu trang: người vận hành vừa gõ phím ở đây thì câu trả lời phải ở đây. */}
-      {loiPhim ? (
-        <p
-          role="status"
-          className="absolute inset-x-0 top-0 z-20 mx-auto w-fit rounded-md border-l-4 border-destructive bg-canh-bao-nen px-3 py-1.5 text-[17px]"
-        >
-          {loiPhim}
-        </p>
-      ) : null}
+      {/*
+        Câu trả lời cho một phím tắt không dùng được. Đứng NGAY TRÊN canvas, không phải một
+        băng-rôn ở đầu trang: người vận hành vừa gõ phím ở đây thì câu trả lời phải ở đây.
+
+        BA thứ sửa 26/08 sau code review, cả ba chỉ thấy được khi nghĩ tới màn thật:
+
+        1. `role="status"` LUÔN nằm trong DOM, chỉ đổi nội dung con. Live region chèn cùng lúc
+           với chữ là lỗi kinh điển — NVDA/JAWS/VoiceOver thường im. AC 3 hứa "nói một câu"; bản
+           trước không nói với người dùng trình đọc màn hình.
+        2. `key={lan}` để cùng một câu gõ hai lần vẫn được đọc lại. Đặt lại đúng chuỗi cũ thì
+           React bail-out và vùng live không hề đổi.
+        3. `top-16` + `pointer-events-none`. Bản trước `top-0 z-20` nằm ĐÈ lên thanh công cụ
+           (`top-3 z-10`, cao 44px) và không tắt `pointer-events`, nên nó nuốt cú bấm vào chính
+           *Thêm người quanh đây* — sàn chạm 44px còn nguyên trong CSS mà không bấm được.
+      */}
+      <div
+        role="status"
+        aria-live="polite"
+        className="pointer-events-none absolute inset-x-0 top-16 z-20 flex justify-center"
+      >
+        {loiPhim ? (
+          <p
+            key={loiPhim.lan}
+            className="max-w-[70ch] rounded-md border-l-4 border-destructive bg-canh-bao-nen px-3 py-1.5 text-[17px]"
+          >
+            {loiPhim.chu}
+          </p>
+        ) : null}
+      </div>
       <KhungCayAdmin
         neoId={neoId}
         banKinh={banKinh}

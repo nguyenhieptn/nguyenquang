@@ -15,16 +15,43 @@
  * đã mang `chaId` nên tính được ngay, không cần lượt đọc nào.
  */
 
-/** Id của node mờ — chép từ `dat-nut-tam.ts § ID_TAM` để module này không phụ thuộc gì. */
-const ID_TAM = '__sap-them__';
+/**
+ * Id của node mờ. IMPORT chứ không chép (sửa 26/08/2026 sau code review).
+ *
+ * Bản đầu chép tay chuỗi `'__sap-them__'` với lý do *"để module này không phụ thuộc gì"* —
+ * nhưng `dat-nut-tam.ts` là module THUẦN cùng thư mục, nhập nó không tốn gì. Cái giá của bản
+ * chép tay đo được: đổi hằng ở nguồn thì AC 5 hỏng IM LẶNG (node mờ thành mốc hợp lệ) mà cả
+ * 329 bài test vẫn xanh, vì bài test cũng chép tay đúng chuỗi ấy.
+ */
+import { ID_TAM } from './dat-nut-tam';
 
 export type HanhDongPhim =
   /** Mở biểu mẫu thêm CON cho node đang chọn. */
   | { loai: 'them-con'; mocId: string }
   /** Mở biểu mẫu thêm CON cho CHA của node đang chọn — tức một người anh em. */
   | { loai: 'them-anh-em'; mocId: string }
-  /** Node đang chọn chưa biết cha: KHÔNG ghi gì, và nói ra vì sao. */
+  /** Node đang chọn là gốc mảnh THẬT — chưa ai truy ra đời trên. KHÔNG ghi gì, nói ra vì sao. */
   | { loai: 'thieu-cha' }
+  /**
+   * Cha CÓ trong phả nhưng không nằm trong bán kính đang xem, nên bố cục không mang `chaId`.
+   *
+   * Tách khỏi `thieu-cha` là bắt buộc (sửa 26/08/2026 sau code review). `core/tree/ops.ts` cảnh
+   * báo đúng cái bẫy này: *"Người này có thật sự là cụ xa nhất hiện biết của mảnh, hay chỉ tình
+   * cờ đứng ở rìa bán kính? Hai chuyện khác hẳn nhau, mà `parentNodeId === null` thì không phân
+   * biệt được"* — và đẻ ra `isFragmentRoot` để phân biệt. Gộp hai ca lại thì ở bán kính mặc
+   * định, MỌI node ở rìa vùng đều bị báo "chưa biết cha": một câu SAI về cuốn phả, trong một sản
+   * phẩm mà cả kiến trúc dựng lên để không nói sai về cuốn phả.
+   */
+  | { loai: 'cha-ngoai-vung' }
+  /**
+   * Biểu mẫu đang mở CÓ CHỮ chưa ghi, và phím này sẽ thay nó bằng một mốc khác. Hỏi một lần.
+   *
+   * Bản đầu để `Enter` thay biểu mẫu vô điều kiện: `BieuMauThemNguoi` khoá theo mốc
+   * (`key={khoa}`) nên đổi mốc là dựng lại, mất trắng cả tên lẫn xuất xứ, KHÔNG một câu hỏi —
+   * trong khi `Esc` ngay cạnh thì lịch sự hỏi. Cửa `Esc` được bịt, cửa `Enter` để mở toang, mà
+   * `Enter` mới là phím trung tâm của story.
+   */
+  | { loai: 'hoi-thay' }
   /** Không phải việc của canvas — trả phím về cho trình duyệt, KHÔNG `preventDefault`. */
   | { loai: 'bo-qua' };
 
@@ -61,24 +88,56 @@ export function dangGoTrongO(o: ODangGo | null): boolean {
 export function hanhDongPhim(a: {
   phim: string;
   shift: boolean;
+  /**
+   * `ctrl` · `meta` · `alt` — bất kỳ cái nào bật thì tổ hợp thuộc về người khác.
+   * `Ctrl+Enter` / `Cmd+Enter` là thành ngữ *gửi* phổ biến nhất trên web; nuốt nó là mở một
+   * biểu mẫu ghi mà người vận hành không hề định mở.
+   */
+  boTro: boolean;
+  /** `KeyboardEvent.repeat` — phím đang tự lặp vì bị giữ. */
+  lap: boolean;
   /** Phần tử đang giữ con trỏ. `null` khi không xác định được. */
   o: ODangGo | null;
   /** Node đang chọn trên canvas. `null` = chưa chọn ai. */
   chonId: string | null;
-  /** Cha của node đang chọn, do canvas tra từ bố cục. `null` = chưa biết cha. */
+  /** Cha của node đang chọn, do canvas tra từ bố cục. `null` = không có trong bố cục. */
   chaCuaChon: string | null;
+  /** Node đang chọn có phải gốc mảnh THẬT không (`isFragmentRoot` của core). */
+  laGocManh: boolean;
+  /** Biểu mẫu thêm người đang mở cho mốc nào. `null` = không mở. */
+  mocDangMo: string | null;
+  /** Biểu mẫu đang mở đã có chữ chưa. */
+  daGo: boolean;
+  /** Đã hỏi "thay biểu mẫu?" rồi và đang chờ phím lần hai. */
+  dangHoi: boolean;
 }): HanhDongPhim {
   if (a.phim !== 'Enter') return { loai: 'bo-qua' };
+  if (a.boTro) return { loai: 'bo-qua' };
+  // Giữ phím không được vượt qua một câu hỏi: `keydown` tự lặp ~30 lần/giây, nên nhịp lặp ngay
+  // sau nhịp đầu sẽ trả lời hộ người dùng trong 33 mili-giây.
+  if (a.lap) return { loai: 'bo-qua' };
   if (dangGoTrongO(a.o)) return { loai: 'bo-qua' };
   // Chưa chọn ai thì không có mốc để gắn vào. Node mờ chưa tồn tại trong phả nên cũng không phải mốc.
   if (a.chonId === null || a.chonId === ID_TAM) return { loai: 'bo-qua' };
 
-  if (!a.shift) return { loai: 'them-con', mocId: a.chonId };
-  // Anh em: gắn vào CHA. Không có cha thì nói ra — lặng lẽ tạo một người rời là đẻ thêm một mảnh
-  // chưa nối, mà đó đúng là con số bàn làm việc đang cố làm giảm.
-  return a.chaCuaChon === null
-    ? { loai: 'thieu-cha' }
-    : { loai: 'them-anh-em', mocId: a.chaCuaChon };
+  let mocMoi: string;
+  if (!a.shift) {
+    mocMoi = a.chonId;
+  } else if (a.chaCuaChon !== null) {
+    // Anh em: gắn vào CHA — thêm một người con nữa cho cùng người ấy.
+    mocMoi = a.chaCuaChon;
+  } else {
+    // Không có `chaId` trong bố cục. HAI ca khác hẳn nhau, và gộp chúng là nói sai về phả.
+    return a.laGocManh ? { loai: 'thieu-cha' } : { loai: 'cha-ngoai-vung' };
+  }
+
+  // Biểu mẫu đã mở sẵn cho đúng mốc ấy ⇒ không đụng vào. Mở lại là đặt `hoTen` về rỗng, tức
+  // nhãn node mờ trên canvas quay về "người sắp thêm" trong khi ô tên vẫn đầy chữ.
+  if (a.mocDangMo === mocMoi) return { loai: 'bo-qua' };
+  // Thay một biểu mẫu đang có chữ ⇒ hỏi một lần, cùng nhịp hai bước với `Esc`.
+  if (a.mocDangMo !== null && a.daGo && !a.dangHoi) return { loai: 'hoi-thay' };
+
+  return a.shift ? { loai: 'them-anh-em', mocId: mocMoi } : { loai: 'them-con', mocId: mocMoi };
 }
 
 /**
@@ -110,14 +169,22 @@ export type HanhDongEsc =
 
 export function hanhDongEsc(a: {
   phim: string;
+  /** `KeyboardEvent.repeat` — giữ phím không được vượt qua câu hỏi. */
+  lap: boolean;
   /** Biểu mẫu thêm người có đang mở không. */
   dangMo: boolean;
-  /** Đã gõ gì chưa — hôm nay suy từ họ tên, trường duy nhất chảy ngược lên nơi gọi. */
+  /** Đã gõ gì chưa — do CHÍNH biểu mẫu báo ra (`onDoiBan`), nên phủ mọi ô kể cả xuất xứ. */
   daGo: boolean;
-  /** Đã hỏi rồi và đang chờ `Esc` lần hai. */
+  /** Đã hỏi "bỏ chữ vừa gõ?" rồi và đang chờ `Esc` lần hai. */
   dangHoi: boolean;
 }): HanhDongEsc {
   if (a.phim !== 'Escape') return { loai: 'bo-qua' };
+  /**
+   * Giữ `Esc` một giây thì `keydown` tự lặp ~30 lần/giây: nhịp một đặt câu hỏi, nhịp lặp ~33ms
+   * sau trả `dong`. Cửa sổ để người đọc được câu hỏi rộng đúng 33 mili-giây — tức là không có.
+   * Bắt được bằng cách nghĩ tới ngón tay, không bằng cổng nào.
+   */
+  if (a.lap) return { loai: 'bo-qua' };
   if (!a.dangMo) return { loai: 'bo-qua' };
   // Lần hai: người dùng đã đọc câu hỏi và vẫn bấm Esc. Bỏ.
   if (a.dangHoi) return { loai: 'dong' };
