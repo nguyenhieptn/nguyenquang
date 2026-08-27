@@ -87,7 +87,11 @@ development_status:
   # một AC chưa đạt là đúng lớp lỗi lượt review vừa bắt.
   6-1-noi-nguoi-da-co: in-progress
   6-2-tai-khoan-va-vai: backlog
-  6-3-nap-khung-noi-that: backlog
+  # Story 6-3, 26/08. Ba lỗ im lặng của bộ nạp khung — nhưng gốc là MỘT: xem trước và lượt ghi
+  # mỗi bên tự giải tên. Nay một phép, hai chỗ gọi. Lượt soi bằng trình duyệt bắt thêm hai thứ
+  # không cổng nào thấy: dòng bị để lại mất luôn LÝ DO nó bị để lại, và `TableCell` mang
+  # `whitespace-nowrap` nên văn xuôi trong khối cảnh báo chưa từng xuống dòng (lỗi có từ 3-2).
+  6-3-nap-khung-noi-that: review
   6-4-sua-va-gop-noi: backlog
   6-5-man-mau-thuan: backlog
   6-6-do-that-tren-trinh-duyet: backlog
@@ -114,14 +118,16 @@ action_items:
     action: "Người dùng & vai — màn quản lý tài khoản; truyền `role` khi duyệt vào phả"
     owner: "Đợt 3"
     status: open
+  # Làm 26/08 trong story 6-3, cùng với mục dưới — hai mục là hai triệu chứng của MỘT bệnh:
+  # xem trước và lượt ghi mỗi bên tự giải tên theo cách riêng. Nay dùng chung `dungPhepGiaiTen`.
   - epic: 5
     action: "Thêm cảnh báo `spouse-not-found`, và cho script CLI in `row.warnings`"
     owner: "Đợt 3, sớm"
-    status: open
+    status: done
   - epic: 5
     action: "previewSeedOp nhận `decisions` — cảnh báo xem trước đang tính mù quyết định"
     owner: "Đợt 3, sớm"
-    status: open
+    status: done
   # Làm sớm 26/08 vì nó chặn chính lượt dựng lại database. Cờ `--nam-sinh`, và bootstrap ghi năm
   # sinh bằng MỘT KHẲNG ĐỊNH nữa cùng nguồn (AD-9/AD-19), không ghi thẳng cột chiếu. Ba bài test
   # ở core/identity/identity.test.ts. Kiểm chứng: lượt gieo sau đó "bỏ qua 0" thay vì bỏ dòng của

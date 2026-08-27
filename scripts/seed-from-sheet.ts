@@ -31,7 +31,16 @@ import type { SessionContext } from '@/core/identity/session';
 import { soleClanId } from '@/core/identity';
 import { parse } from 'csv-parse/sync';
 import { previewSeedOp, commitSeedOp } from '@/core/seed/ops';
-import { parseSeedCsv, SEED_COLUMNS, type SeedColumn, type SeedDecisions } from '@/core/seed';
+import {
+  parseSeedCsv,
+  SEED_COLUMNS,
+  type SeedColumn,
+  type SeedDecisions,
+  type SeedPreviewRow,
+} from '@/core/seed';
+// Từ vựng cảnh báo dùng chung với màn /admin/nap-khung — xem chú thích đầu module ấy để biết
+// vì sao nó nằm ở components/ mà script vẫn import về, thay vì dựng bảng nhãn thứ hai.
+import { cauCanhBao } from '@/components/admin/canh-bao-nap-khung';
 
 /** Đổi URL edit của Google Sheets thành đường xuất CSV, giữ nguyên `gid` của tab đang mở. */
 function duongXuatCsv(url: string): string {
@@ -95,6 +104,30 @@ function locCotDaBiet(text: string): { csv: string; boQua: string[] } {
   return { csv, boQua };
 }
 
+/**
+ * In MỌI cảnh báo của lượt nạp — thứ script này đã im lặng nuốt cho tới 26/08/2026.
+ *
+ * `previewSeedOp` vẫn luôn tính `warnings` cho từng dòng; script chỉ in danh sách dòng bị *bỏ
+ * qua*, nên một cụ tổ mất cha được tính đúng rồi đi thẳng vào hư không. Retro Epic 5 bắt được
+ * điều ấy bằng cách nhìn cây gia phả, không bằng cách nhìn màn hình.
+ *
+ * In TRƯỚC khi commit chạy: phả không có phép xoá (AD-4), nên một cảnh báo đọc được sau lượt ghi
+ * là một cảnh báo đã muộn.
+ *
+ * Không có cảnh báo nào thì KHÔNG in gì. Một dòng "0 cảnh báo" mỗi lượt chạy là cách nhanh nhất
+ * để người ta thôi đọc phần này.
+ */
+function inCanhBao(rows: SeedPreviewRow[]): void {
+  const co = rows.filter((r) => r.warnings.length > 0);
+  if (co.length === 0) return;
+  console.log(`Cảnh báo trên ${co.length} dòng — đọc trước khi ghi, vì phả không có phép xoá:`);
+  for (const r of co) {
+    for (const loai of r.warnings) {
+      console.log(`  dòng ${r.line} (${r.hoTen}): ${cauCanhBao(loai)}`);
+    }
+  }
+}
+
 async function main() {
   // Kiểm đầu vào TRƯỚC khi chạm DB: bảng tính hỏng thì dừng ở đây, không mở giao dịch nào.
   const { csv, boQua } = locCotDaBiet(await taiBangTinh());
@@ -155,6 +188,23 @@ async function main() {
       // Bỏ qua mà không nói ra thì người chạy tưởng đã gieo đủ — đúng kiểu hỏng khó thấy nhất.
       console.log(`Bỏ qua ${boQua.length} dòng:\n  ${boQua.join('\n  ')}`);
     }
+
+    /**
+     * LƯỢT XEM TRƯỚC THỨ HAI — lần này mang theo `decisions` vừa suy ra (story 6-3).
+     *
+     * Lượt đầu buộc phải mù: quyết định được suy TỪ phân loại của chính nó. Nhưng cảnh báo của
+     * lượt mù ấy nói về một lượt ghi khác với lượt sắp chạy — nó không biết dòng nào sẽ bị bỏ.
+     * Hai chiều sai, cả hai đã xảy ra thật: cảnh báo thừa (bỏ một trong hai dòng trùng tên cha
+     * thì commit nối được), và cảnh báo thiếu (bỏ dòng duy nhất mang tên cha thì commit lặng lẽ
+     * bỏ cha — lần cây gãy làm hai mảnh).
+     *
+     * Xem trước KHÔNG ghi gì, nên chạy hai lượt chỉ tốn một lượt đọc, và cả hai nằm trong đúng
+     * transaction sắp ghi.
+     */
+    const soiLai = await previewSeedOp(tx, ctx, rows.value, decisions);
+    if (!soiLai.ok) throw new Error(soiLai.error.message);
+    inCanhBao(soiLai.value.rows);
+
     return commitSeedOp(tx, ctx, { rows: rows.value, decisions });
   });
   if (!result.ok) throw new Error(result.error.message);

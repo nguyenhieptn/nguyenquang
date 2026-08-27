@@ -6,7 +6,9 @@
  *
  *   getTemplate()               the skeleton CSV the operator downloads and fills outside
  *   parseSeedCsv(text)          pure validation — per-row errors with line numbers
- *   previewSeed(text)           classifies every row (khớp / mới / nghi trùng) — NO writes
+ *   previewSeed(text, dec?)     classifies every row (khớp / mới / nghi trùng) — NO writes.
+ *                               `decisions` là tuỳ chọn và chỉ đổi CẢNH BÁO, không đổi phân
+ *                               loại (story 6-3) — xem chú thích ở `previewSeedOp`.
  *   commitSeed(text, decisions) batch import in ONE transaction, admin/branch-head only
  *
  * Commit writes exclusively through core/person + core/assertion ops, so every person and
@@ -34,6 +36,11 @@ export type SeedCandidate = {
 
 export type SeedRowClassification = 'khop-nguoi-co-san' | 'nguoi-moi' | 'nghi-trung';
 
+/**
+ * Mỗi loại cảnh báo phải nói được CÁI GÌ MẤT, không chỉ *bot thấy gì* — vì mất cái gì mới là
+ * thứ người vận hành phải quyết. Ba loại cuối thêm 26/08/2026 (story 6-3) sau khi phả thật
+ * nuốt ba người vợ và gãy làm hai mảnh mà không một cảnh báo nào bật lên.
+ */
 export type SeedRowWarning =
   /** ten_cha named but found nowhere — row still importable, becomes a fragment root (FR-63). */
   | 'father-not-found'
@@ -43,6 +50,23 @@ export type SeedRowWarning =
    * hand afterwards is the only honest resolution: only a human knows which one is meant.
    */
   | 'father-ambiguous'
+  /**
+   * ten_vo_chong named but found nowhere. MẤT: không union nào được ghi — hai người ấy sẽ
+   * không thành vợ chồng trong phả, và lượt nạp vẫn báo thành công.
+   */
+  | 'spouse-not-found'
+  /**
+   * ten_vo_chong names someone who exists MORE THAN ONCE. Cùng luật với người cha: bộ nạp từ
+   * chối đoán, nên MẤT đúng cái union ấy. Tách riêng khỏi `spouse-not-found` vì việc người vận
+   * hành phải làm khác hẳn — một bên là *tên này chưa có ai*, bên kia là *tên này có hai người*.
+   */
+  | 'spouse-ambiguous'
+  /**
+   * Dòng này đang bị `skip` mà có khai `ten_cha` hoặc `ten_vo_chong`. MẤT: chính những mối nối
+   * ấy — bỏ một dòng là bỏ luôn các quan hệ nó khai, không chỉ bỏ một người. Đây là loại cảnh
+   * báo DUY NHẤT không tính được nếu không truyền `decisions` vào `previewSeed`.
+   */
+  | 'skip-drops-edges'
   /** another row in the same file carries this name — review before committing */
   | 'duplicate-in-file';
 
@@ -89,12 +113,12 @@ async function requireViewer() {
  * (AD-16) + birth-year proximity, duplicates inside the file, fathers found nowhere (FR-63).
  * Approval right required — the preview lists people across the whole clan.
  */
-export async function previewSeed(text: string): Promise<Result<SeedPreview>> {
+export async function previewSeed(text: string, decisions: SeedDecisions = {}): Promise<Result<SeedPreview>> {
   const viewer = await requireViewer();
   if (!viewer) return err('unauthenticated', 'no session and no clan to view');
   const parsed = parseSeedCsv(text);
   if (!parsed.ok) return parsed;
-  return withClanContext(viewer.clanId, (tx) => previewSeedOp(tx, viewer, parsed.value));
+  return withClanContext(viewer.clanId, (tx) => previewSeedOp(tx, viewer, parsed.value, decisions));
 }
 
 /**

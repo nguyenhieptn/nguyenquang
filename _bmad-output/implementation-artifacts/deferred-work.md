@@ -5,7 +5,11 @@ gốc để lần sau không phải điều tra lại.
 
 ## Deferred from: code review of 5-1-vo-admin (2026-08-24)
 
-- **Cảnh báo xem trước của bộ nạp khung tính mù quyết định.** `previewSeedOp` đếm `inFile` trên
+- ✅ **ĐÃ LÀM — story 6-3, 26/08/2026.** `previewSeedOp` nhận `decisions`, và cả nó lẫn
+  `commitSeedOp` nay dùng CHUNG một phép giải tên (`dungPhepGiaiTen`) nên không lệch nhau được
+  nữa. Cả hai chiều sai dưới đây đã có test chốt, và đã đo lại bằng trình duyệt thật.
+
+  **Cảnh báo xem trước của bộ nạp khung tính mù quyết định.** `previewSeedOp` đếm `inFile` trên
   MỌI dòng (`core/seed/ops.ts:128-131`), còn `resolveByName` khi commit chỉ đếm trên `activeByFolded`
   dựng từ những dòng chưa bị `skip` (`:187`, `:216`). `previewSeedOp` không nhận tham số `decisions`
   nên cảnh báo không bao giờ tính lại được. Hai chiều sai: (a) người vận hành bỏ một trong hai dòng
@@ -14,7 +18,11 @@ gốc để lần sau không phải điều tra lại.
   lặng bỏ cha. Sửa đúng cần quyết định kiến trúc: truyền `decisions` vào preview, hay tính lại cảnh
   báo phía client. *Lý do hoãn: thuộc bộ nạp khung, không phải vỏ admin — story 5-1 chỉ dựng vỏ.*
 
-- **Union vợ chồng bị bỏ im lặng khi tên mơ hồ.** Guard `fileMatches.length > 1 → null` mới thêm
+- ✅ **ĐÃ LÀM — story 6-3, 26/08/2026.** Thêm `spouse-not-found` và `spouse-ambiguous`;
+  `loadClanCandidates` của preview nay nạp cả tên vợ chồng; màn Nạp khung có khối cảnh báo riêng
+  cho cả hai, và `scripts/seed-from-sheet.ts` in ra mọi cảnh báo trước khi ghi.
+
+  **Union vợ chồng bị bỏ im lặng khi tên mơ hồ.** Guard `fileMatches.length > 1 → null` mới thêm
   cũng áp cho `resolveByName` ở nhánh vợ/chồng (`core/seed/ops.ts:347`, `:350`), nên một
   `ten_vo_chong` mơ hồ cho `spouseId === undefined` → `continue` → không ghi union, không cảnh báo
   ở bất kỳ bề mặt nào, commit vẫn báo thành công. `SeedRowWarning` (`core/seed/index.ts:38-46`) chỉ
@@ -196,6 +204,19 @@ gốc để lần sau không phải điều tra lại.
   *Lối chữa:* khớp ĐÚNG DẤU xếp trên khớp gấp dấu — "Quản Thị Huyền" đứng đầu khi gõ "Quản".
   `core/so-khop` đã có bộ chấm điểm cho NƠI (`chamDiemNoi`); người thì đang dùng khớp chuỗi con
   trần. *Lý do hoãn: chủ dự án chốt chưa cần (26/08).*
+
+## Deferred from: 6-3-nap-khung-noi-that (2026-08-26)
+
+- **`TableCell` mang `whitespace-nowrap`, nên MỌI văn xuôi đặt trong ô bảng không xuống dòng.**
+  `components/ui/table.tsx:86`. Story 6-3 đã vá tại chỗ cho khối cảnh báo của màn Nạp khung
+  (`whitespace-normal` trên khối), sau khi đo trình duyệt thấy câu *"Nối vào đúng người cha ở màn
+  **Mảnh chưa nối**"* chạy quá mép hộp 56px — `max-w-[70ch]` viết từ story 3-2 chưa từng có hiệu
+  lực, và bốn cổng xanh suốt từ đó.
+
+  **Chỗ CÒN LẠI chưa vá:** `app/admin/hang-cho/bang-cho-duyet.tsx:225` và `:231` đặt `{d.cau}`
+  (câu của một khẳng định) và `{d.nguon}` (xuất xứ do người gõ tay, dài tuỳ ý) trong `TableCell`
+  với `max-w-[42ch]` / `max-w-[32ch]` — cùng lớp lỗi, chỉ chưa gặp dữ liệu đủ dài để lộ.
+  *Lý do hoãn: đó là màn của 6-8, story sắp dựng lại chính hàng chờ ấy — vá bây giờ sẽ bị viết đè.*
 
 ## Chốt BỎ — 26/08/2026
 

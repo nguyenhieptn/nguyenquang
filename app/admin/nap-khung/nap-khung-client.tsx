@@ -18,7 +18,7 @@
  * ĐÂY LÀ CHỖ DUY NHẤT CHẶN ĐƯỢC BẢN TRÙNG RẺ TIỀN: dòng nghi trùng chưa chọn hướng xử lý
  * thì nút ghi đứng yên — thà bắt dừng lại còn hơn cho trôi (FR-48: bot gợi ý, không tự quyết).
  */
-import { Fragment, useActionState, useState, useTransition } from 'react';
+import { Fragment, useActionState, useRef, useState, useTransition } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardBody } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -30,9 +30,20 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  canhBaoHienHanh,
+  huongMacDinh,
+  type LoaiCanhBao,
+} from '@/components/admin/canh-bao-nap-khung';
 import type { SeedCommitResult, SeedDecision, SeedDecisions } from '@/core/seed';
 import type { Result } from '@/core/types';
-import { ghiVaoPha, xemTruoc, type DongXemTruoc, type KetQuaXemTruoc } from './actions';
+import {
+  ghiVaoPha,
+  xemLaiCanhBao,
+  xemTruoc,
+  type DongXemTruoc,
+  type KetQuaXemTruoc,
+} from './actions';
 
 type Loc = 'tat-ca' | 'nguoi-moi' | 'khop' | 'can-xem-lai';
 
@@ -80,7 +91,12 @@ function nhanGioiTinh(g: DongXemTruoc['gioiTinh']): string | null {
   return null;
 }
 
-const canXemLai = (d: DongXemTruoc): boolean => d.phanLoai === 'nghi-trung' || d.canhBao.length > 0;
+/**
+ * `canhBao` truyền vào chứ không đọc `d.canhBao`: từ 26/08/2026 cảnh báo được tính lại theo bộ
+ * quyết định đang chọn, và bản tính lại sống ở một map RIÊNG — xem `canhBaoHienHanh`.
+ */
+const canXemLai = (d: DongXemTruoc, canhBao: readonly LoaiCanhBao[]): boolean =>
+  d.phanLoai === 'nghi-trung' || canhBao.length > 0;
 
 /**
  * Quyết định mặc định cho một dòng:
@@ -89,12 +105,22 @@ const canXemLai = (d: DongXemTruoc): boolean => d.phanLoai === 'nghi-trung' || d
  *     chưa ai nhìn tới (nếp của prototype: checkbox chỉ tích sẵn cho dòng sạch).
  *   · khớp người có sẵn → nối vào đúng ứng viên duy nhất.
  *   · người mới → tạo mới.
+ *
+ * ĐỌC `d.canhBao` — bản MÙ của lượt xem trước đầu tiên, KHÔNG phải bản tính lại theo quyết định
+ * (story 6-3, QĐ-3). Đây là mặc định *bot gợi ý gì khi mới nhìn tệp*, không phải một luật sống:
+ * cho bản tính lại chảy vào đây là dựng một vòng lặp — bấm một nút radio đổi cảnh báo, cảnh báo
+ * đổi mặc định, mặc định đổi quyết định, quyết định đổi cảnh báo.
  */
 function macDinhCua(d: DongXemTruoc): SeedDecision | null {
-  if (d.phanLoai === 'nghi-trung') return null;
-  if (d.canhBao.length > 0) return { action: 'skip' };
-  if (d.phanLoai === 'khop-nguoi-co-san' && d.ungVien[0])
-    return { action: 'link', personId: d.ungVien[0].personId };
+  const huong = huongMacDinh({
+    nghiTrung: d.phanLoai === 'nghi-trung',
+    khopNguoiCoSan: d.phanLoai === 'khop-nguoi-co-san',
+    coUngVien: d.ungVien.length > 0,
+    canhBao: d.canhBao,
+  });
+  if (huong === 'chua-quyet') return null;
+  if (huong === 'de-lai') return { action: 'skip' };
+  if (huong === 'noi-vao-ung-vien') return { action: 'link', personId: d.ungVien[0]!.personId };
   return { action: 'create' };
 }
 
@@ -369,24 +395,38 @@ function LuaChon({
  */
 function KhoiCanhBao({
   dong,
+  canhBao,
   tatCa,
   quyetDinh,
   datQuyetDinh,
 }: {
   dong: DongXemTruoc;
+  /** Cảnh báo ĐANG ĐÚNG theo bộ quyết định hiện hành — không phải `dong.canhBao` (bản mù). */
+  canhBao: readonly LoaiCanhBao[];
   tatCa: DongXemTruoc[];
   quyetDinh: SeedDecision | null;
   datQuyetDinh: (qd: SeedDecision) => void;
 }) {
   const nghiTrung = dong.phanLoai === 'nghi-trung';
-  const chaKhongThay = dong.canhBao.includes('father-not-found');
-  const chaMoHo = dong.canhBao.includes('father-ambiguous');
-  if (!nghiTrung && !chaKhongThay && !chaMoHo) return null;
+  const chaKhongThay = canhBao.includes('father-not-found');
+  const chaMoHo = canhBao.includes('father-ambiguous');
+  const voKhongThay = canhBao.includes('spouse-not-found');
+  const voMoHo = canhBao.includes('spouse-ambiguous');
+  const boMatNoi = canhBao.includes('skip-drops-edges');
+  if (!nghiTrung && !chaKhongThay && !chaMoHo && !voKhongThay && !voMoHo && !boMatNoi) return null;
 
   const tenNhom = `quyet-dinh-${dong.index}`;
 
   return (
-    <div className="space-y-5 border-l-4 border-destructive bg-canh-bao-nen px-5 py-4">
+    /*
+      `whitespace-normal` — KHÔNG phải trang trí (bắt được 26/08/2026 bằng cách đo trình duyệt).
+
+      `TableCell` của `components/ui/table.tsx:86` mang `whitespace-nowrap` — đúng cho ô dữ liệu
+      bảng, sai chết người cho khối văn xuôi này: mọi đoạn nằm trên MỘT dòng, `max-w-[70ch]` viết
+      ra từ story 3-2 chưa từng có hiệu lực, và câu *"Nối vào đúng người cha ở màn **Mảnh chưa
+      nối**"* chạy quá mép hộp 56px, chỉ đọc được nếu cuộn ngang. Bốn cổng xanh suốt từ đó.
+    */
+    <div className="space-y-5 whitespace-normal border-l-4 border-destructive bg-canh-bao-nen px-5 py-4">
       {nghiTrung ? (
         <div>
           <p className="text-[17px] font-semibold text-destructive">Có thể đã có trong phả</p>
@@ -448,6 +488,93 @@ function KhoiCanhBao({
               phu="không ghi trong đợt này, tệp không bị sửa"
             />
           </div>
+        </div>
+      ) : null}
+
+      {/* Để lại một dòng là bỏ luôn các QUAN HỆ dòng ấy khai — không chỉ bỏ một người. Đây là
+          đúng lần cây gia phả gãy làm hai mảnh: dòng của một người đã có trong phả bị để lại vì
+          nghi trùng, nên tên cha ghi trong dòng ấy không bao giờ được đọc. Khối này chỉ tính
+          được khi xem trước biết quyết định hiện hành (story 6-3). */}
+      {boMatNoi ? (
+        <div>
+          <p className="text-[17px] font-semibold text-destructive">
+            Để lại dòng này là bỏ luôn quan hệ nó khai
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px]">
+            Dòng này khai{' '}
+            {dong.tenCha ? (
+              <>
+                cha là <span className="font-[family-name:var(--font-pha)]">{dong.tenCha}</span>
+              </>
+            ) : null}
+            {dong.tenCha && dong.tenVoChong ? ', và ' : null}
+            {dong.tenVoChong ? (
+              <>
+                vợ/chồng là{' '}
+                <span className="font-[family-name:var(--font-pha)]">{dong.tenVoChong}</span>
+              </>
+            ) : null}
+            . Bỏ dòng là bỏ luôn những mối nối ấy.
+          </p>
+          {/* Lối ra KHÁC NHAU theo dòng: chỉ dòng nghi trùng mới có nút *Là cùng cụ này*; dòng
+              thường chỉ có ô tích ở đầu dòng. Chỉ sai chỗ bấm là câu khuyên thành đường cụt. */}
+          <p className="mt-1 max-w-[70ch] text-[17px] text-muted-foreground">
+            {nghiTrung ? (
+              <>
+                Nếu người này <strong>đã có trong phả</strong>, chọn <em>Là cùng cụ này</em> thay vì
+                để lại: dòng sẽ nối vào người có sẵn, không sinh bản trùng, mà các mối nối vẫn được
+                ghi.
+              </>
+            ) : (
+              <>
+                Tích chọn ở đầu dòng để vẫn ghi — cả người lẫn những mối nối ấy.
+              </>
+            )}
+          </p>
+        </div>
+      ) : null}
+
+      {/* Vợ/chồng MƠ HỒ — cùng luật với người cha: có hơn một người mang đúng tên ấy nên bộ nạp
+          từ chối đoán, và union không được ghi. */}
+      {voMoHo ? (
+        <div>
+          <p className="text-[17px] font-semibold text-destructive">
+            Có hơn một người cùng tên vợ/chồng
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px]">
+            Dòng này khai vợ/chồng là{' '}
+            <span className="font-[family-name:var(--font-pha)]">{dong.tenVoChong}</span>, nhưng có
+            hơn một người mang đúng tên ấy. Máy <strong>không đoán</strong> — ghép nhầm vợ chồng là
+            một khẳng định sai về hai người thật.
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px] text-muted-foreground">
+            <span className="font-[family-name:var(--font-pha)]">{dong.hoTen}</span> vẫn ghi được,
+            nhưng <strong>mối vợ chồng thì không</strong>. Nối lại ở cột phải của màn Cây gia phả,
+            nơi nhìn được cả hai người cùng tên rồi mới chọn.
+            {!nghiTrung ? ' Tích chọn ở đầu dòng để vẫn ghi.' : ''}
+          </p>
+        </div>
+      ) : null}
+
+      {/* Vợ/chồng KHÔNG TÌM THẤY — lỗ im lặng nặng nhất trước 26/08/2026: vòng union chỉ nối khi
+          cả hai vế giải được, giải không được thì bỏ qua, và không bề mặt nào nói một chữ. Ba
+          người vợ thật đã đi qua đúng chỗ ấy. */}
+      {voKhongThay ? (
+        <div>
+          <p className="text-[17px] font-semibold text-destructive">
+            Không tìm thấy người vợ/chồng
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px]">
+            Dòng này khai vợ/chồng là{' '}
+            <span className="font-[family-name:var(--font-pha)]">{dong.tenVoChong}</span>, nhưng
+            không có ai tên ấy — cả trong tệp lẫn trong phả.
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px] text-muted-foreground">
+            <span className="font-[family-name:var(--font-pha)]">{dong.hoTen}</span> vẫn ghi được,
+            nhưng <strong>hai người sẽ không thành vợ chồng trong phả</strong>. Thêm người kia vào
+            một dòng của chính tệp này là cách rẻ nhất để union được ghi ngay trong đợt nạp.
+            {!nghiTrung ? ' Tích chọn ở đầu dòng để vẫn ghi.' : ''}
+          </p>
         </div>
       ) : null}
 
@@ -537,10 +664,12 @@ function OSoKhop({ dong }: { dong: DongXemTruoc }) {
 
 function ChipLoc({
   dong,
+  canhBaoCua,
   loc,
   datLoc,
 }: {
   dong: DongXemTruoc[];
+  canhBaoCua: (d: DongXemTruoc) => readonly LoaiCanhBao[];
   loc: Loc;
   datLoc: (loc: Loc) => void;
 }) {
@@ -553,7 +682,11 @@ function ChipLoc({
       so: dong.filter((d) => d.phanLoai === 'khop-nguoi-co-san').length,
     },
     // Mục cuối thay cho "màn bảng cảnh báo": cùng một bảng, cùng dữ liệu, lọc lại.
-    { key: 'can-xem-lai', nhan: 'Cần xem lại', so: dong.filter(canXemLai).length },
+    {
+      key: 'can-xem-lai',
+      nhan: 'Cần xem lại',
+      so: dong.filter((d) => canXemLai(d, canhBaoCua(d))).length,
+    },
   ];
   return (
     <div className="flex flex-wrap gap-2">
@@ -627,11 +760,33 @@ function CaoTrao({ ketQua }: { ketQua: SeedCommitResult }) {
 function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => void }) {
   const { dong, tenTep, vanBan } = ketQua;
 
+
   // Quyết định người vận hành đã đụng tay; dòng chưa đụng dùng mặc định của macDinhCua.
   const [daChon, setDaChon] = useState<Record<number, SeedDecision>>({});
   // Đọc lúc dựng (khối này chỉ dựng ở client, sau khi action trả bảng xem trước — không có
   // bản HTML từ server để lệch nhau), rồi mỗi lần đổi lại soi ngược ra URL.
   const [loc, setLoc] = useState<Loc>(docLocTuUrl);
+  /**
+   * Cảnh báo TÍNH LẠI theo bộ quyết định hiện hành, sống ở một map RIÊNG (story 6-3).
+   *
+   * Riêng chứ không ghi đè vào `dong`, vì `macDinhCua` đọc `d.canhBao` để suy quyết định mặc
+   * định: trộn hai thứ vào nhau là dựng một vòng lặp. Ranh giới ấy giữ được bằng CẤU TRÚC —
+   * bản tính lại vật lý không tới được `macDinhCua` — chứ không bằng một lời hứa trong chú thích.
+   *
+   * Khởi bằng `canhBaoBanDau` — lượt xem trước thứ hai mà `xemTruoc` đã chạy theo đúng bộ mặc
+   * định của màn — nên màn nói thật ngay từ lượt nhìn đầu, không đợi cú bấm đầu tiên.
+   *
+   * Lượt thứ hai hỏng thì `canhBaoBanDau` về rỗng `{}`, và phép tra theo KHOÁ ở `canhBaoHienHanh`
+   * tự rơi từng dòng về bản mù — không cần một trạng thái "chưa có" riêng.
+   *
+   * Một dòng tính ra `[]` thì là rỗng thật, không rơi ngược về bản mù — cũng xem hàm ấy.
+   */
+  const [canhBaoMoi, setCanhBaoMoi] = useState<Record<number, LoaiCanhBao[]> | null>(
+    ketQua.canhBaoBanDau,
+  );
+  /** Số thứ tự lượt soi — đáp về muộn hơn lượt hiện hành thì bỏ, kẻo cảnh báo lùi về quá khứ. */
+  const luotSoi = useRef(0);
+  const [soiHong, setSoiHong] = useState(false);
   const [ketQuaGhi, setKetQuaGhi] = useState<Result<SeedCommitResult> | null>(null);
   /** Lượt ghi không tới nơi được — KHÁC một lượt ghi bị core từ chối. Xem chỗ `catch` dưới. */
   const [loiMang, setLoiMang] = useState(false);
@@ -643,8 +798,46 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
   };
 
   const quyetDinhCua = (d: DongXemTruoc): SeedDecision | null => daChon[d.index] ?? macDinhCua(d);
-  const datQuyetDinh = (index: number, qd: SeedDecision) =>
-    setDaChon((truoc) => ({ ...truoc, [index]: qd }));
+  const canhBaoCua = (d: DongXemTruoc): readonly LoaiCanhBao[] =>
+    canhBaoHienHanh(d.canhBao, canhBaoMoi, d.index);
+
+  /**
+   * Soi lại cảnh báo theo bộ quyết định vừa đổi.
+   *
+   * Gọi từ ĐÚNG chỗ này — event handler của nút radio / ô tích — chứ KHÔNG từ `useEffect`. Repo
+   * này đã vấp `react-hooks/set-state-in-effect` bốn lần (5-1 → 5-3 → 5-7 → 6-1); lần thứ năm
+   * thì không còn là tai nạn. Ở đây effect cũng không cần: quyết định chỉ đổi khi có người bấm.
+   *
+   * Dòng chưa quyết (nghi trùng, `macDinhCua` trả `null`) không có mặt trong `quyetDinh`, nên
+   * core coi là `create` — cùng mặc định với chính core, và cùng giả định mà lượt xem trước mù
+   * đầu tiên đã dùng.
+   */
+  const soiLaiCanhBao = (daChonMoi: Record<number, SeedDecision>) => {
+    const quyetDinh: SeedDecisions = {};
+    for (const d of dong) {
+      const qd = daChonMoi[d.index] ?? macDinhCua(d);
+      if (qd) quyetDinh[d.index] = qd;
+    }
+    const luot = luotSoi.current + 1;
+    luotSoi.current = luot;
+    xemLaiCanhBao(vanBan, quyetDinh)
+      .then((kq) => {
+        if (luot !== luotSoi.current) return; // đã có lượt mới hơn — đáp này là quá khứ
+        setSoiHong(!kq.ok);
+        if (kq.ok) setCanhBaoMoi(kq.value);
+      })
+      .catch(() => {
+        // Đứt mạng ⇒ giữ bản mù và NÓI RA. Cảnh báo tính lại là lớp bổ sung: mất nó thì màn lùi
+        // về đúng trạng thái trước 26/08 — không sai thêm, nhưng cũng không được im như thể đủ.
+        if (luot === luotSoi.current) setSoiHong(true);
+      });
+  };
+
+  const datQuyetDinh = (index: number, qd: SeedDecision) => {
+    const moi = { ...daChon, [index]: qd };
+    setDaChon(moi);
+    soiLaiCanhBao(moi);
+  };
 
   const chuaQuyet = dong.filter((d) => quyetDinhCua(d) === null);
   const seGhi = dong.filter((d) => {
@@ -657,7 +850,7 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
   const dongTheoLoc = dong.filter((d) => {
     if (loc === 'nguoi-moi') return d.phanLoai === 'nguoi-moi';
     if (loc === 'khop') return d.phanLoai === 'khop-nguoi-co-san';
-    if (loc === 'can-xem-lai') return canXemLai(d);
+    if (loc === 'can-xem-lai') return canXemLai(d, canhBaoCua(d));
     return true;
   });
 
@@ -758,8 +951,17 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
         </div>
       ) : null}
 
+      {/* Soi lại hỏng thì NÓI RA. Im lặng ở đây là bày cảnh báo của một bộ quyết định đã cũ mà
+          không ai biết là cũ — đúng lớp hỏng story này sinh ra để bịt. */}
+      {soiHong ? (
+        <p className="mt-3 max-w-[70ch] text-[17px] text-muted-foreground">
+          Chưa soi lại được cảnh báo theo lựa chọn hiện tại — các cảnh báo dưới đây đang tính như
+          thể mọi dòng đều được ghi. Đổi một lựa chọn nữa để thử lại.
+        </p>
+      ) : null}
+
       <div className="mt-6">
-        <ChipLoc dong={dong} loc={loc} datLoc={datLoc} />
+        <ChipLoc dong={dong} canhBaoCua={canhBaoCua} loc={loc} datLoc={datLoc} />
       </div>
 
       <div className="mt-4 overflow-hidden rounded-md border border-ban-vien bg-ban-o">
@@ -841,13 +1043,15 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
                     </TableCell>
                   </TableRow>
 
-                  {nghiTrung ||
-                  d.canhBao.includes('father-not-found') ||
-                  d.canhBao.includes('father-ambiguous') ? (
+                  {/* Một điều kiện, không một danh sách loại chép tay: bản trước liệt kê từng
+                      loại ở đây, nên mỗi loại cảnh báo mới lại phải nhớ sửa hai chỗ — và chỗ
+                      thứ hai là chỗ dễ quên. */}
+                  {canXemLai(d, canhBaoCua(d)) ? (
                     <TableRow className="hover:bg-transparent">
                       <TableCell colSpan={5} className="p-0">
                         <KhoiCanhBao
                           dong={d}
+                          canhBao={canhBaoCua(d)}
                           tatCa={dong}
                           quyetDinh={daChon[d.index] ?? null}
                           datQuyetDinh={(quyet) => datQuyetDinh(d.index, quyet)}

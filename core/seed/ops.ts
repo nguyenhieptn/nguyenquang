@@ -72,12 +72,80 @@ function yearsNear(a: number | null, b: number | null): boolean {
   return a !== null && b !== null && Math.abs(a - b) <= YEAR_NEAR;
 }
 
+// ── Giải một cái tên ra một người — MỘT phép, HAI chỗ gọi ────────────────────
+
+type ResolvedRef = { kind: 'row'; index: number } | { kind: 'person'; personId: string };
+
+/** Vì sao một cái tên không giải ra ai. Preview dịch thành cảnh báo; commit dịch thành bỏ cạnh. */
+type LyDoKhongGiai = 'khong-thay' | 'mo-ho';
+
+type KetQuaGiaiTen = { ok: true; ref: ResolvedRef } | { ok: false; ly: LyDoKhongGiai };
+
+/**
+ * Dựng phép giải tên cho MỘT lượt nạp — dùng chung cho `previewSeedOp` và `commitSeedOp`.
+ *
+ * ── Vì sao phải dùng chung (story 6-3, 26/08/2026) ──────────────────────────────────────
+ * Trước đây mỗi bên tự đếm lấy: preview đếm `inFile`/`inClan` trên MỌI dòng, commit đếm trên
+ * tập dòng chưa bị `skip`, và preview còn không tra tên vợ chồng bao giờ. Ba lỗ im lặng của bộ
+ * nạp khung đều là triệu chứng của đúng cái khe ấy — không phải ba lỗi rời nhau:
+ *   · ba người vợ trong bảng tính vào phả thành 0 union, không một cảnh báo;
+ *   · bỏ một trong hai dòng trùng tên cha ⇒ màn vẫn báo "mất cha" trong khi commit nối được
+ *     (cảnh báo THỪA);
+ *   · bỏ dòng duy nhất mang tên cha ⇒ màn im, commit lặng lẽ bỏ cha (cảnh báo THIẾU) — đây là
+ *     lần cây gia phả gãy làm hai mảnh trên phả thật.
+ * Vá từng ô một sẽ để nguyên cái khe đã sinh ra cả ba. Nên phép đếm chỉ còn ĐÚNG MỘT bản.
+ *
+ * Luật (chốt 24/08/2026, giữ nguyên): **tệp thắng phả** — một dòng khác cùng tên là câu trả lời,
+ * kể cả khi trong phả có nhiều người trùng tên. **HAI** dòng cùng tên thì từ chối đoán: nối nhầm
+ * cha là hỏng phả của cả một chi, còn thiếu một mối nối thì nối lại được.
+ */
+function dungPhepGiaiTen(conLai: SeedRow[], clanMatches: Map<string, ClanCandidate[]>) {
+  const theoTen = new Map<string, SeedRow[]>();
+  for (const row of conLai) {
+    const folded = chuanHoa(row.hoTen);
+    const list = theoTen.get(folded) ?? [];
+    list.push(row);
+    theoTen.set(folded, list);
+  }
+  return (folded: string, selfIndex: number): KetQuaGiaiTen => {
+    const trongTep = (theoTen.get(folded) ?? []).filter((r) => r.index !== selfIndex);
+    if (trongTep.length > 1) return { ok: false, ly: 'mo-ho' };
+    if (trongTep.length === 1) return { ok: true, ref: { kind: 'row', index: trongTep[0]!.index } };
+    const trongPha = clanMatches.get(folded) ?? [];
+    if (trongPha.length === 1) return { ok: true, ref: { kind: 'person', personId: trongPha[0]!.personId } };
+    return { ok: false, ly: trongPha.length === 0 ? 'khong-thay' : 'mo-ho' };
+  };
+}
+
+/** Quyết định của một dòng; vắng mặt nghĩa là `create` — cùng luật ở cả preview lẫn commit. */
+function quyetDinhCua(decisions: SeedDecisions, index: number): SeedDecision {
+  return decisions[index] ?? { action: 'create' };
+}
+
+/** Dòng nào THẬT SỰ được ghi trong lượt này. `skip` đứng ngoài mọi phép giải tên. */
+function dongConLai(rows: SeedRow[], decisions: SeedDecisions): SeedRow[] {
+  return rows.filter((r) => quyetDinhCua(decisions, r.index).action !== 'skip');
+}
+
 // ── Preview (no writes) ──────────────────────────────────────────────────────
 
+/**
+ * ── `decisions` đổi CẢNH BÁO, KHÔNG đổi PHÂN LOẠI (chốt story 6-3) ─────────────────────────
+ * Ranh giới này chống một vòng lặp có thật. Màn Nạp khung suy **quyết định** ra từ **phân loại**
+ * (`macDinhCua` trong `nap-khung-client.tsx`). Nếu quyết định lại quay ngược vào phân loại thì
+ * mỗi lần bấm một nút radio: phân loại đổi → mặc định đổi → quyết định đổi → phân loại đổi.
+ *
+ * Nên phân loại (và `duplicate-in-file`, thứ lái phân loại) vẫn tả **tệp so với phả** và tính
+ * trên MỌI dòng. Chỉ bốn cảnh báo về mối nối — cha, vợ chồng — mới tính trên tập dòng còn lại,
+ * vì chúng tả **lượt ghi sắp tới**, và lượt ghi ấy chỉ đọc những dòng không bị bỏ.
+ *
+ * Vắng `decisions` ⇒ mọi dòng đều còn lại, tức đúng hành vi trước 26/08/2026.
+ */
 export async function previewSeedOp(
   tx: Tx,
   viewer: ViewerContext,
   rows: SeedRow[],
+  decisions: SeedDecisions = {},
 ): Promise<Result<SeedPreview>> {
   const gate = gateApprover(viewer);
   if (!gate.ok) return gate;
@@ -86,10 +154,16 @@ export async function previewSeedOp(
   const nameCounts = new Map<string, number>();
   for (const row of rows) nameCounts.set(foldedOf(row), (nameCounts.get(foldedOf(row)) ?? 0) + 1);
 
+  // Nạp tên của MỌI dòng, kể cả dòng bị bỏ: bản đồ này còn dựng `candidates`, mà ứng viên của
+  // một dòng không được đổi theo quyết định. Tên vợ chồng nay cũng nạp — thiếu nó thì preview
+  // mù về vợ chồng ngay từ tầng dữ liệu, và đó là lý do ba người vợ đi vào phả không một tiếng.
   const clanMatches = await loadClanCandidates(tx, [
     ...rows.map(foldedOf),
     ...rows.filter((r) => r.tenCha).map((r) => chuanHoa(r.tenCha!)),
+    ...rows.filter((r) => r.tenVoChong).map((r) => chuanHoa(r.tenVoChong!)),
   ]);
+
+  const giaiTen = dungPhepGiaiTen(dongConLai(rows, decisions), clanMatches);
 
   const previewRows: SeedPreviewRow[] = rows.map((row) => {
     const folded = foldedOf(row);
@@ -116,19 +190,52 @@ export async function previewSeedOp(
       warnings.push('duplicate-in-file');
     }
 
-    // FR-63: a named father found NOWHERE — neither on another file row nor in the clan — is a
-    // warning, not an error. The row stays importable and becomes a fragment root.
-    //
-    // Found MORE THAN ONCE is the other silent orphan, and it needs saying just as loudly:
-    // commitSeedOp refuses to guess between two people of the same name, so this row also
-    // arrives without its father. Mirrors resolveByName's precedence — the file wins over the
-    // clan, so a single file match settles it even when the clan has several.
+    /**
+     * Bốn cảnh báo về MỐI NỐI, tính bằng đúng phép giải tên mà `commitSeedOp` sắp dùng — nên
+     * chúng không thể lệch với lượt ghi nữa (story 6-3).
+     *
+     * FR-63: một người cha có khai mà không tìm thấy ở đâu là **cảnh báo**, không phải lỗi —
+     * dòng vẫn nạp được và thành gốc tạm của một mảnh. Tìm thấy HAI người cùng tên cũng phải
+     * nói to y như vậy: bộ nạp từ chối đoán, nên dòng ấy cũng vào phả mà không có cha.
+     *
+     * Vợ chồng cũng đúng hai ca ấy, và trước 26/08/2026 KHÔNG ca nào được nói ra: vòng union
+     * chỉ nối khi cả hai vế giải được, còn giải không được thì `continue` — commit vẫn báo
+     * thành công. Ba người vợ thật đã đi qua đúng cái `continue` ấy.
+     */
+    /**
+     * Bỏ một dòng không chỉ bỏ một người: nó bỏ luôn `ten_cha` và `ten_vo_chong` mà dòng ấy khai.
+     * Người vận hành hiểu *"để lại dòng này"* là *"người này đã có trong phả rồi, đừng tạo bản
+     * trùng"* — không phải *"vứt các mối quan hệ dòng này khai"*. Đúng cái hiểu nhầm đã làm cây
+     * gia phả gãy làm hai mảnh: dòng của quản trị bị bỏ vì nghi trùng, nên `ten_cha` của chính
+     * người ấy không bao giờ được đọc.
+     *
+     * Chỉ bật cho `skip`. Dòng `link` vẫn được nối đủ cạnh — `wireParentEdge` và vòng union đều
+     * chạy trên dòng `link`.
+     */
+    if (quyetDinhCua(decisions, row.index).action === 'skip' && (row.tenCha || row.tenVoChong))
+      warnings.push('skip-drops-edges');
+
+    /**
+     * Cảnh báo mối nối tính cho MỌI dòng — kể cả dòng đang bị bỏ.
+     *
+     * SỬA 26/08/2026 sau khi soi bằng trình duyệt. Bản đầu im hẳn cảnh báo mối nối trên dòng bị
+     * bỏ, lý lẽ là *"có nạp đâu mà mất"*. Đo trên màn thật thấy ngay hậu quả: màn Nạp khung để
+     * lại sẵn mọi dòng mang cảnh báo, nên một dòng bị để lại VÌ *"không tìm thấy người vợ/chồng"*
+     * hiện ra chỉ còn *"để lại dòng này là bỏ luôn quan hệ"* — tức **lý do biến mất khỏi màn
+     * đúng lúc người vận hành cần đọc nó** để quyết có tích lại hay không.
+     *
+     * Với dòng bị bỏ, đây là câu trả lời cho *"nếu tôi tích lại thì sao"*. Phép giải tên vốn đã
+     * loại chính dòng đang hỏi ra khỏi tập tra (`selfIndex`), nên câu trả lời cho một dòng bị bỏ
+     * y hệt như khi nó còn nằm trong tập — không cần dựng thêm tập thứ hai.
+     */
     if (row.tenCha) {
-      const fatherFolded = chuanHoa(row.tenCha);
-      const inFile = rows.filter((r) => r.index !== row.index && foldedOf(r) === fatherFolded).length;
-      const inClan = (clanMatches.get(fatherFolded) ?? []).length;
-      if (inFile === 0 && inClan === 0) warnings.push('father-not-found');
-      else if (inFile > 1 || (inFile === 0 && inClan > 1)) warnings.push('father-ambiguous');
+      const cha = giaiTen(chuanHoa(row.tenCha), row.index);
+      if (!cha.ok) warnings.push(cha.ly === 'khong-thay' ? 'father-not-found' : 'father-ambiguous');
+    }
+    if (row.tenVoChong) {
+      const voChong = giaiTen(chuanHoa(row.tenVoChong), row.index);
+      if (!voChong.ok)
+        warnings.push(voChong.ly === 'khong-thay' ? 'spouse-not-found' : 'spouse-ambiguous');
     }
 
     return {
@@ -146,8 +253,6 @@ export async function previewSeedOp(
 }
 
 // ── Commit ───────────────────────────────────────────────────────────────────
-
-type ResolvedRef = { kind: 'row'; index: number } | { kind: 'person'; personId: string };
 
 function mapGender(g: SeedGender | null): NewPersonInput['gender'] {
   if (g === 'nam') return 'male';
@@ -174,7 +279,7 @@ export async function commitSeedOp(
     if (!Number.isInteger(index) || index < 0 || index >= rows.length)
       return err('invalid', `decision for unknown row index '${key}'`);
   }
-  const decisionOf = (index: number): SeedDecision => decisions[index] ?? { action: 'create' };
+  const decisionOf = (index: number): SeedDecision => quyetDinhCua(decisions, index);
 
   for (const row of rows) {
     const decision = decisionOf(row.index);
@@ -184,14 +289,7 @@ export async function commitSeedOp(
     if (target.mergedInto) return err('conflict', `line ${row.line}: linked person was merged into another person`);
   }
 
-  const active = rows.filter((r) => decisionOf(r.index).action !== 'skip');
-  const activeByFolded = new Map<string, SeedRow[]>();
-  for (const row of active) {
-    const folded = chuanHoa(row.hoTen);
-    const list = activeByFolded.get(folded) ?? [];
-    list.push(row);
-    activeByFolded.set(folded, list);
-  }
+  const active = dongConLai(rows, decisions);
 
   const clanMatches = await loadClanCandidates(tx, [
     ...active.filter((r) => r.tenCha).map((r) => chuanHoa(r.tenCha!)),
@@ -199,34 +297,17 @@ export async function commitSeedOp(
   ]);
 
   /**
-   * A name resolves to the one other active file row carrying it, else to the one clan person
-   * carrying it. Ambiguity or absence resolves to null: the row imports without the edge and
-   * starts a fragment (FR-63) — a missing link is repairable, a wrong one corrupts a whole
-   * branch.
-   *
-   * FIXED 24/08/2026 — the file branch used to take the FIRST match without checking for a
-   * second, so the promise above only held for clan matches. Reproduced on a real database:
-   * two rows named 'Nguyễn Quang Hùng' (1943, chi Nhất / 1961, chi Ba) and a child naming that
-   * father attached to the 1943 row — wrong father, wrong branch, no warning on the child's
-   * row, commit reported success. In a clan where everyone shares a middle name that case is
-   * not exotic, it is Tuesday.
+   * ĐÚNG phép giải tên mà `previewSeedOp` vừa dùng để dựng cảnh báo — xem `dungPhepGiaiTen`.
+   * Giải không được thì dòng vẫn nạp, chỉ thiếu cạnh, và thành gốc tạm của một mảnh (FR-63):
+   * một mối nối thiếu thì nối lại được, một mối nối sai thì hỏng cả một chi.
    */
-  const resolveByName = (folded: string, selfIndex: number): ResolvedRef | null => {
-    const fileMatches = (activeByFolded.get(folded) ?? []).filter((r) => r.index !== selfIndex);
-    // Two rows carry the name — refuse. The preview warns with 'father-ambiguous'; the operator
-    // attaches by hand afterwards, where they can see which of the two they mean.
-    if (fileMatches.length > 1) return null;
-    if (fileMatches.length === 1) return { kind: 'row', index: fileMatches[0]!.index };
-    const clanMatch = clanMatches.get(folded) ?? [];
-    if (clanMatch.length === 1) return { kind: 'person', personId: clanMatch[0]!.personId };
-    return null;
-  };
+  const giaiTen = dungPhepGiaiTen(active, clanMatches);
 
   const fatherOf = new Map<number, ResolvedRef>();
   for (const row of active) {
     if (!row.tenCha) continue;
-    const ref = resolveByName(chuanHoa(row.tenCha), row.index);
-    if (ref) fatherOf.set(row.index, ref);
+    const cha = giaiTen(chuanHoa(row.tenCha), row.index);
+    if (cha.ok) fatherOf.set(row.index, cha.ref);
   }
 
   // ── Topological order over in-file father edges: parents before children (Kahn) ──
@@ -347,9 +428,12 @@ export async function commitSeedOp(
   for (const row of active) {
     if (!row.tenVoChong) continue;
     const selfId = personIdOfRow.get(row.index)!;
-    const spouseRef = resolveByName(chuanHoa(row.tenVoChong), row.index);
+    // Giải không được ⇒ không union. Trước 26/08/2026 chỗ này im lặng tuyệt đối; nay preview đã
+    // cảnh báo `spouse-not-found` / `spouse-ambiguous` bằng chính phép giải tên này.
+    const voChong = giaiTen(chuanHoa(row.tenVoChong), row.index);
+    if (!voChong.ok) continue;
     const spouseId =
-      spouseRef?.kind === 'row' ? personIdOfRow.get(spouseRef.index) : spouseRef?.personId;
+      voChong.ref.kind === 'row' ? personIdOfRow.get(voChong.ref.index) : voChong.ref.personId;
     if (!spouseId || spouseId === selfId) continue;
 
     const pairKey = [selfId, spouseId].sort().join('|');
