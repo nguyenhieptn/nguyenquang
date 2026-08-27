@@ -22,6 +22,7 @@ import { CotKhangDinh, type HoSoPanel } from '@/components/admin/cot-khang-dinh'
 import { BieuMauThemNguoi } from '@/components/admin/bieu-mau-them-nguoi';
 import { ThaoTacXinVaoPha } from '@/components/admin/thao-tac-xin-vao-pha';
 import { camNutTam, type HuongThem } from '@/components/admin/dat-nut-tam';
+import { hanhDongEsc, hanhDongPhim } from '@/components/admin/phim-canvas';
 import {
   ghiThemKhangDinh,
   ghiThemNoi,
@@ -72,6 +73,12 @@ export function CayClient({
    * Neo là chỗ đứng; hồ sơ của chỗ đứng là thứ đáng bày trước tiên.
    */
   const [chonId, setChonId] = useState<string | null>(neoId);
+  /** Câu trả lời cho một phím tắt không dùng được, hoặc câu hỏi trước khi bỏ chữ đã gõ. */
+  const [loiPhim, setLoiPhim] = useState<string | null>(null);
+  /** Đã hỏi "bỏ những gì vừa gõ?" và đang chờ `Esc` lần hai. */
+  const [hoiBo, setHoiBo] = useState(false);
+  /** Biểu mẫu thêm người đã bẩn chưa — do CHÍNH biểu mẫu báo ra, gồm cả xuất xứ. */
+  const [banThem, setBanThem] = useState(false);
   const [hoSo, setHoSo] = useState<HoSoPanel | null>(null);
   const [dangTai, batDauTai] = useTransition();
 
@@ -219,6 +226,7 @@ export function CayClient({
     napHoSo(neoId);
   }, [neoId, napHoSo]);
 
+
   const chon = useCallback(
     (id: string) => {
       setChonId(id);
@@ -306,6 +314,8 @@ export function CayClient({
    */
   const dongThem = useCallback(() => {
     setThem(null);
+    // Biểu mẫu đóng thì nó sạch trở lại — không để cờ bẩn của lượt trước bám sang lượt sau.
+    setBanThem(false);
     /**
      * CHỈ điều hướng khi `?them` thật sự đang ở trên đường dẫn.
      *
@@ -320,6 +330,69 @@ export function CayClient({
       router.replace(`/admin/cay?neo=${encodeURIComponent(neoId)}&ban-kinh=${banKinh}`);
     }
   }, [router, neoId, banKinh, moThemNgay]);
+
+  /**
+   * ── Phím tắt nhập nhanh (story 6-9) ──────────────────────────────────────────────────────
+   *
+   * Nghe ở CỬA SỔ, không ở vỏ canvas: ghi xong một người thì trang dời tâm sang người mới và
+   * dựng lại, focus rơi về `body` — nghe ở vỏ thì "gõ một mạch" đứt ngay ở người thứ hai.
+   *
+   * Phép quyết định nằm trọn ở `phim-canvas.ts` (module thuần, có test). Ở đây chỉ đọc DOM rồi
+   * thi hành, và KHÔNG `preventDefault` khi phím không phải việc của mình.
+   */
+  useEffect(() => {
+    function nghe(e: KeyboardEvent) {
+      const dich = e.target as HTMLElement | null;
+
+      /**
+       * `Escape` xử TRƯỚC, và KHÔNG đi qua `dangGoTrongO`: trong một ô nhập, `Enter` là *gửi*
+       * còn `Esc` là *thôi* — đó là luật chung của mọi app canvas.
+       *
+       * Bộ chọn người tự nuốt `Esc` của nó (`chon-nguoi.tsx`) và chặn nổi bọt, nên danh sách gợi
+       * ý đang mở thì `Esc` đóng danh sách trước, biểu mẫu sau. Đóng từ TRONG ra NGOÀI.
+       */
+      const raEsc = hanhDongEsc({
+        phim: e.key,
+        dangMo: them !== null,
+        // Do CHÍNH biểu mẫu báo ra (`onDoiBan`), nên nó phủ mọi ô — kể cả xuất xứ, thứ không
+        // chảy ngược lên đây. Bản trước chỉ suy từ họ tên, và gõ mỗi xuất xứ rồi Esc là mất trắng.
+        daGo: banThem,
+        dangHoi: hoiBo,
+      });
+      if (raEsc.loai !== 'bo-qua') {
+        e.preventDefault();
+        if (raEsc.loai === 'hoi') {
+          setHoiBo(true);
+          setLoiPhim('Bỏ những gì vừa gõ? Ấn Esc lần nữa để bỏ.');
+          return;
+        }
+        setHoiBo(false);
+        setLoiPhim(null);
+        dongThem();
+        return;
+      }
+
+      const ra = hanhDongPhim({
+        phim: e.key,
+        shift: e.shiftKey,
+        o: dich ? { the: dich.tagName, contentEditable: dich.isContentEditable } : null,
+        chonId,
+        chaCuaChon: nut.find((n) => n.id === chonId)?.chaId ?? null,
+      });
+      if (ra.loai === 'bo-qua') return;
+      e.preventDefault();
+      // Mở một biểu mẫu mới thì câu hỏi cũ hết nghĩa.
+      setHoiBo(false);
+      if (ra.loai === 'thieu-cha') {
+        setLoiPhim('Chưa biết cha của người này, nên chưa thêm anh em được.');
+        return;
+      }
+      setLoiPhim(null);
+      setThem({ mocId: ra.mocId, huong: 'con', hoTen: '' });
+    }
+    window.addEventListener('keydown', nghe);
+    return () => window.removeEventListener('keydown', nghe);
+  }, [chonId, nut, them, hoiBo, banThem, dongThem]);
 
   // Cùng phép cắm node mờ mà canvas dùng — gọi lại ở đây CHỈ để biết có phải nói câu cảnh báo
   // "mốc đã có cha" hay không. Một nguồn sự thật, hai chỗ đọc.
@@ -343,7 +416,17 @@ export function CayClient({
      * `app/admin/layout.tsx` nay dựng khối nội dung thành một cột co giãn, nên chiều cao có thật
      * và đo được — không còn gì để trừ.
      */
-    <div className="flex h-full min-h-[420px] gap-4">
+    <div className="relative flex h-full min-h-[420px] gap-4">
+      {/* Câu trả lời cho một phím tắt không dùng được. Đứng NGAY TRÊN canvas, không phải một
+          băng-rôn ở đầu trang: người vận hành vừa gõ phím ở đây thì câu trả lời phải ở đây. */}
+      {loiPhim ? (
+        <p
+          role="status"
+          className="absolute inset-x-0 top-0 z-20 mx-auto w-fit rounded-md border-l-4 border-destructive bg-canh-bao-nen px-3 py-1.5 text-[17px]"
+        >
+          {loiPhim}
+        </p>
+      ) : null}
       <KhungCayAdmin
         neoId={neoId}
         banKinh={banKinh}
@@ -367,6 +450,7 @@ export function CayClient({
             huong={them.huong}
             onDoiHuong={(h) => setThem((cu) => (cu ? { ...cu, huong: h } : cu))}
             onDoiTen={(t) => setThem((cu) => (cu ? { ...cu, hoTen: t } : cu))}
+            onDoiBan={setBanThem}
             daThayCanhCu={daThayCanhCu}
             onDong={dongThem}
             onGui={async (d) => {

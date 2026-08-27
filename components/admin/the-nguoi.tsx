@@ -102,12 +102,36 @@ export function TheNguoi({ data, selected }: NodeProps) {
    *   NỀN          — chất liệu: vân giấy nháp cho tồn nghi (`DESIGN.md`: khác CHẤT LIỆU, không
    *                  khác độ đậm — làm mờ người vừa khai là giết đúng cảm xúc sản phẩm này có)
    */
+  /**
+   * ── Trạng thái bằng ĐỘ DÀY viền và quầng, không bằng nhãn chữ (26/08) ──────────────────
+   *
+   * Chủ dự án: *"Tâm đang chọn chỉ cần một glow highlight border là được, không cần hiện chữ
+   * tâm."* Hàng nhãn nổi trên đỉnh thẻ vì thế bỏ đi — cùng với cả lớp bug mà nó từng gây ra
+   * (nhãn sơn đè lên họ tên, lượt review Epic 5 đo được).
+   *
+   * Nhưng `EXPERIENCE.md § Accessibility Floor` cấm mã hoá trạng thái **chỉ bằng màu**, nên chỗ
+   * nhãn chữ để lại phải có thứ khác gánh — và nó là **hình**, không phải sắc độ:
+   *
+   *   thường     viền 1px
+   *   tâm        viền 2px, KHÔNG quầng  ⇒ một dấu lặng: đây là chỗ vùng lân cận tính từ
+   *   đang chọn  viền 2px + quầng 4px   ⇒ ồn nhất, vì đây là thứ mọi thao tác đang trỏ vào
+   *
+   * ── Thứ tự này từng ngược, và nó làm người dùng tưởng phím tắt chạy nhầm node (sửa 26/08) ──
+   * Bản trước cho TÂM quầng dày hơn ĐANG CHỌN, và kiểm `laNeo` trước `selected`. Nên bấm vào một
+   * node ở xa thì node ấy nhạt hơn cái tâm đứng chỗ khác: mắt bảo cái kia đang hoạt động, tay gõ
+   * `Enter`, và kết quả trông như phím nhảy lung tung — dù nó vẫn dùng đúng node vừa bấm.
+   *
+   * Luật: **thứ đang được thao tác thì ồn nhất.** Tâm chỉ là chỗ đứng của khung nhìn.
+   *
+   * Và tên trạng thái vẫn còn nguyên cho trình đọc màn hình ở `sr-only` bên dưới — bỏ chữ khỏi
+   * MẮT không phải là bỏ nó khỏi máy đọc.
+   */
   const vien = d.sapThem
     ? 'border-2 border-muted-foreground'
-    : d.coNguoiXin
-      ? 'border-2 border-destructive'
-      : selected
-        ? 'border-2 border-foreground'
+    : selected
+      ? 'border-2 border-foreground ring-4 ring-foreground/25'
+      : d.coNguoiXin
+        ? 'border-2 border-destructive ring-2 ring-destructive/40'
         : d.laNeo
           ? 'border-2 border-primary'
           : 'border border-ban-vien';
@@ -182,53 +206,28 @@ export function TheNguoi({ data, selected }: NodeProps) {
         </div>
       </div>
 
-      {/* Nhãn CHỮ, không chỉ màu viền. `laNeo` và `selected` đều là viền 2px, nên nếu chỉ có
-          viền thì hai trạng thái ấy phân biệt bằng đúng một sắc độ — `EXPERIENCE.md §
-          Accessibility Floor` cấm mã hoá chỉ bằng màu. Nhiều nhãn cùng đúng thì hiện cùng nhau
-          và xuống dòng nếu chật; vỏ đã thôi cắt nên chúng không mất đi đâu. */}
-      {/*
-        `bottom-full`, KHÔNG phải `-top-2.5`. Đo bằng trình duyệt thật (25/08, lượt review hai):
-        với `-top-2.5`, ba nhãn không lọt một dòng 190.75px — "có người xin nhận" (152.4px) cộng
-        "tâm" (46.2px) đã tràn — nên `flex-wrap` đẩy xuống dòng hai, và dòng hai nằm ở
-        y = 14.4 → 35.1 trong khi tên nằm ở y = 11.7 → 32.9. Nhãn có nền đục, nên nó SƠN ĐÈ lên
-        họ tên — thứ quan trọng nhất trên thẻ.
-
-        Đó là ca thường, không phải ca hiếm: người có yêu cầu vào phả mà đang được chọn thì mang
-        đúng hai nhãn ấy, và đó là lối đi chính của story 5-5.
-
-        Neo đáy hàng nhãn vào đỉnh thẻ thì dòng thêm mọc NGƯỢC LÊN, vào khoảng trống giữa hai
-        hàng thẻ (`hoDoc: 56` ở `khung-cay-admin.tsx`). `-mb-2.5` kéo nó xuống ngồi trên viền
-        đúng như cũ. Trước lượt vá này vỏ thẻ cắt mất dòng hai nên không ai thấy; nay vỏ thôi cắt
-        (để nhãn hiện được) nên hướng mọc thành chuyện phải quyết.
-      */}
-      <div className="pointer-events-none absolute bottom-full left-2.5 -mb-2.5 flex max-w-[calc(100%-1.25rem)] flex-wrap gap-1">
-        {d.sapThem ? (
-          <Nhan lop="border border-ban-vien bg-ban-o text-muted-foreground">sắp thêm</Nhan>
-        ) : (
-          <>
-            {/* Viền LIỀN, không nét đứt: nét đứt trên bàn này đã mang nghĩa "tồn nghi", và một
-                yêu cầu vào phả thì không tồn nghi chút nào — nó là việc đang đợi người quyết. */}
-            {d.coNguoiXin ? (
-              <Nhan lop="bg-destructive text-ban-o">có người xin nhận</Nhan>
-            ) : null}
-            {d.laNeo ? <Nhan lop="bg-primary text-primary-foreground">tâm</Nhan> : null}
-            {selected ? (
-              <Nhan lop="border border-foreground bg-ban-o text-foreground">đang chọn</Nhan>
-            ) : null}
-          </>
-        )}
-      </div>
+      {/**
+        * Hàng nhãn nổi ("tâm" · "đang chọn" · "có người xin nhận" · "sắp thêm") đã BỎ 26/08 theo
+        * yêu cầu giữ view gọn — cùng với cả lớp bug nó từng gây ra (nhãn sơn đè lên họ tên, lượt
+        * review Epic 5 đo được).
+        *
+        * Chữ vẫn còn, chỉ là còn cho MÁY ĐỌC: người dùng trình đọc màn hình không "thấy" quầng
+        * dày mấy pixel, nên nếu chỗ này im thì họ mất trạng thái hoàn toàn.
+        */}
+      <span className="sr-only">
+        {d.sapThem
+          ? 'sắp thêm'
+          : [
+              d.coNguoiXin ? 'có người xin nhận' : null,
+              d.laNeo ? 'tâm' : null,
+              selected ? 'đang chọn' : null,
+            ]
+              .filter(Boolean)
+              .join(', ')}
+      </span>
 
       <Handle type="source" position={Position.Bottom} className="!opacity-0" />
     </div>
-  );
-}
-
-function Nhan({ lop, children }: { lop: string; children: React.ReactNode }) {
-  return (
-    <span className={`rounded-4xl px-2 text-[15px] leading-tight whitespace-nowrap ${lop}`}>
-      {children}
-    </span>
   );
 }
 

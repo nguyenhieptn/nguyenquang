@@ -98,6 +98,9 @@ development_status:
   # được ca thật để nhìn (dựng ca ấy đòi ghi vào phả).
   6-7-ho-so-day-du-o-cot-phai: in-progress
   6-8-duyet-theo-nguoi: backlog
+  # Thêm 26/08 từ phản hồi dùng thật: chép một trang phả mười người tốn bốn chặng mỗi người.
+  # Enter = con, Shift+Enter = anh em. KHÔNG dùng Tab — nó là phím của trình duyệt.
+  6-9-nhap-nhanh-tren-canvas: review
   epic-6-retrospective: optional
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──

@@ -70,6 +70,13 @@ type Props = {
    * và mỗi phím gõ vào ô năm mất mà cũng dựng lại bố cục thì phí.
    */
   onDoiTen: (ten: string) => void;
+  /**
+   * Biểu mẫu đã BẨN chưa — nơi gọi dùng nó để `Esc` hỏi trước khi bỏ.
+   *
+   * BẮT BUỘC, không `?:`. Quên truyền thì `Esc` lại lặng lẽ nuốt chữ đã gõ, và `tsc` là chỗ duy
+   * nhất bắt được — không cổng nào khác thấy một callback không ai gọi.
+   */
+  onDoiBan: (daBan: boolean) => void;
   daThayCanhCu: boolean;
   onGui: (d: DuLieuThemNguoi) => Promise<string | null>;
   onDong: () => void;
@@ -84,6 +91,7 @@ function Than({
   huong,
   onDoiHuong,
   onDoiTen,
+  onDoiBan,
   daThayCanhCu,
   onGui,
   onDong,
@@ -93,8 +101,22 @@ function Than({
   const [dangGui, setDangGui] = useState(false);
   const id = useId();
 
+  /**
+   * Mọi lượt gõ đều báo ra ngoài rằng biểu mẫu đã BẨN.
+   *
+   * Nơi gọi cần biết điều này để `Esc` hỏi trước khi bỏ. Bản trước nó chỉ suy được từ HỌ TÊN —
+   * trường duy nhất chảy ngược lên — nên gõ mỗi xuất xứ rồi `Esc` là mất trắng, không một câu
+   * hỏi. Đúng tội mà lượt code review 6-7 bắt ở chỗ `<details>` nuốt biểu mẫu.
+   *
+   * So với `RONG` chứ không đặt cờ một chiều: xoá hết chữ vừa gõ thì biểu mẫu sạch trở lại, và
+   * `Esc` khi ấy nên đóng ngay như lúc chưa ai đụng vào.
+   */
   const dat = <K extends keyof DuLieuThemNguoi>(k: K, v: DuLieuThemNguoi[K]) =>
-    setD((cu) => ({ ...cu, [k]: v }));
+    setD((cu) => {
+      const moi = { ...cu, [k]: v };
+      onDoiBan(Object.keys(RONG).some((khoa) => moi[khoa as keyof DuLieuThemNguoi] !== RONG[khoa as keyof typeof RONG]));
+      return moi;
+    });
 
   const namHong = (v: string) => v !== '' && !/^\d{4}$/.test(v);
   const thuTuHong =

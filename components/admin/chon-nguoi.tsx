@@ -123,6 +123,9 @@ export function ChonNguoi({
        * khoá đổi và bộ chọn mở lại.
        */
       setKetQua((cu) => ({ ...cu, khoa: tuKhoa.trim(), dong: true }));
+      // Đóng từ TRONG ra NGOÀI: danh sách gợi ý là lớp trong cùng, nên nó nuốt `Esc` này và
+      // KHÔNG để biểu mẫu đóng theo. `Esc` lần nữa mới tới lượt biểu mẫu.
+      e.stopPropagation();
       return;
     }
     if (!moDanhSach) return;

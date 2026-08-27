@@ -82,6 +82,12 @@ export function KhungCayAdmin({
   /** Story 5-4 — đang mở biểu mẫu thêm người: bày một node MỜ ở chỗ người ấy sẽ rơi vào. */
   themVao?: { mocId: string | null; huong: HuongThem; hoTen: string } | null;
   onMoThem?: () => void;
+  /**
+   * Story 6-9 — phím tắt nhập nhanh. `Enter` thêm con, `Shift+Enter` thêm anh em.
+   *
+   * Canvas KHÔNG tự quyết mốc: nó chỉ báo ra hành động và để nơi gọi tra bố cục. Cha của node
+   * đang chọn nằm trong `nut` (`chaId`), thứ nơi gọi đang giữ.
+   */
 }) {
   const { xinThu } = useThanhViec();
 
@@ -224,6 +230,16 @@ export function KhungCayAdmin({
           type="button"
           onClick={() => onDoiBanKinh(banKinh + 1)}
           disabled={canKiet || banKinh >= 6}
+          /**
+           * Lý do bị vô hiệu nằm TRÊN CHÍNH NÚT, không phải một băng-rôn cạnh nó (bỏ 26/08 để
+           * giữ view gọn). Một nút xám không nói gì là một câu đố; `title` cho chuột, `aria-label`
+           * cho máy đọc.
+           */
+          {...(canKiet
+            ? { title: 'Đã hết người để mở thêm', 'aria-label': 'Mở thêm một đời — đã hết người để mở thêm' }
+            : banKinh >= 6
+              ? { title: 'Đã tới bán kính xa nhất', 'aria-label': 'Mở thêm một đời — đã tới bán kính xa nhất' }
+              : {})}
           className="flex min-h-11 items-center gap-2 rounded-md border border-ban-vien bg-ban-o px-3 text-[17px] disabled:text-muted-foreground"
         >
           <ChevronsUpDown className="size-4" aria-hidden />
@@ -238,11 +254,6 @@ export function KhungCayAdmin({
             <UserRoundPlus className="size-4" aria-hidden />
             Thêm người quanh đây
           </button>
-        ) : null}
-        {canKiet ? (
-          <span className="rounded-md border border-ban-vien bg-ban-o px-3 py-1.5 text-[15px] text-muted-foreground">
-            đã hết người để mở thêm
-          </span>
         ) : null}
       </div>
 
