@@ -272,7 +272,7 @@ export function ThanhDieuHuong({
                     href="/admin"
                     className="ml-1 inline-flex min-h-11 items-center border-b-2 border-transparent px-3 text-[17px] text-muted-foreground transition-colors duration-150 ease-out hover:border-border hover:text-foreground active:translate-y-px"
                   >
-                    Bàn làm việc
+                    Admin
                   </Link>
                 </li>
               ) : null}

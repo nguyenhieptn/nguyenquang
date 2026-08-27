@@ -146,7 +146,7 @@ export default async function Page() {
     // forbidden (và các mã còn lại): vắng lặng lẽ, không băng-rôn lỗi.
     return (
       <p className="max-w-[70ch] text-[17px] text-muted-foreground">
-        Bàn làm việc chỉ mở cho quản trị và đầu mối chi.
+        Admin chỉ mở cho quản trị và đầu mối chi.
       </p>
     );
   }

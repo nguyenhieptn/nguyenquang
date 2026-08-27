@@ -53,7 +53,7 @@ const DI_TIEP: Duong[] = [
 const DI_TIEP_QUAN_TRI: Duong[] = [
   // "Mảnh chưa nối" (FR-48) sống trên màn hợp nhất của ban duyệt — đó là chỗ duy nhất nối được.
   { nhan: 'Mảnh chưa nối', href: '/admin/hop-nhat' },
-  { nhan: 'Bàn làm việc', href: '/admin' },
+  { nhan: 'Admin', href: '/admin' },
 ];
 
 /**

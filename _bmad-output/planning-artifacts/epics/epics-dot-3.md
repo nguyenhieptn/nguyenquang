@@ -79,6 +79,39 @@ song song từ đầu — không cái nào phụ thuộc cái nào. 6-5 sau 6-1.
 
 ---
 
+## Lằn ranh bảng tính ⇄ phả — CHỐT 26/08/2026
+
+Câu hỏi treo từ lượt dựng lại database: bảng tính Google là chủ tới đâu? Nó không phải chuyện
+vận hành — nó quyết định **Epic 6 có đáng làm hay không**, vì cả Epic 5 lẫn 6-1 lẫn 6-7 đều dựng
+đường GHI vào phả, mà lượt gieo là một lần **nhập**, không phải một lần **đồng bộ**.
+
+**Chốt (Hiệp, 26/08):**
+
+> *"Sheet chỉ để seed. Sau khi seed xong, toàn bộ quy trình sẽ làm trên `/admin`."*
+
+Nghĩa là hai giai đoạn, và lằn ranh nằm ở lượt gieo cuối cùng:
+
+| | Nguồn sự thật | Xoá-gieo-lại |
+|---|---|---|
+| **Trước lằn ranh** | bảng tính | được — phả dựng lại từ sheet, không mất gì |
+| **Sau lằn ranh** | **phả** | **KHÔNG** — mọi thứ ghi qua `/admin` chỉ sống trong database |
+
+**Ba hệ quả phải nhớ:**
+
+1. **Lượt gieo cuối cùng là một cột mốc, không phải một lệnh.** Qua nó rồi thì `seed-from-sheet.ts`
+   thành một công cụ nguy hiểm: chạy lại trên phả đã có người ghi tay là trộn hai nguồn sự thật.
+   Đáng một hàng rào — hỏi lại, hoặc từ chối khi phả đã có khẳng định không mang nguồn `seed-import`.
+2. **Sao lưu đổi vai.** Trước lằn ranh, bản sao lưu chỉ là tiện nghi — sheet dựng lại được tất.
+   Sau lằn ranh, nó là **thứ duy nhất** đứng giữa dòng họ và một lần mất phả. `docs/van-hanh.md`
+   đã ghi nợ: sao lưu và media vẫn nằm CÙNG MÁY với production, vi phạm AD-25. Nợ ấy đến hạn ở
+   đúng lằn ranh này.
+3. **Epic 6 đáng làm, và đáng làm trước khi vượt lằn ranh.** Đường SỬA là thứ giữ cho phả không
+   cần xoá đi làm lại — mà xoá đi làm lại chính là thứ sắp không còn dùng được nữa.
+
+**Đổi tên 26/08:** *"Bàn làm việc"* trên giao diện đổi thành **"Admin"**. Chữ cũ mô tả một cái bàn;
+tên mới nói đúng thứ nó là — nơi quản trị phả. (Đợt 2 từng đổi *"Bàn duyệt"* → *"Bàn làm việc"*
+vì bàn ấy thôi chỉ để duyệt; nay nó thôi chỉ là một cái bàn.)
+
 ## Ràng buộc mang theo từ spine (mọi story phải giữ)
 
 - `app/` không import db client/ORM/storage SDK — chỉ `core/` (AD-1).

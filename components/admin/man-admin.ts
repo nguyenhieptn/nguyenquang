@@ -41,7 +41,7 @@ export type KhoaMan =
 
 /** Ba nhóm của thanh việc, theo thứ tự bày. Nhãn nhóm là NHÃN, không phải đường. */
 export const NHOM = [
-  { khoa: 'ban', ten: 'Bàn làm việc' },
+  { khoa: 'ban', ten: 'Admin' },
   { khoa: 'doi-chieu', ten: 'Đối chiếu' },
   { khoa: 'so-ho', ten: 'Sổ dòng họ' },
 ] as const;
@@ -69,12 +69,17 @@ export type ManAdmin = {
  * về `title` của root layout nên cả ba thẻ đều đọc "Tộc phả" — trên một bàn làm việc để mở ba
  * thẻ cùng lúc thì không phân biệt được thẻ nào là thẻ nào.
  *
- * Hậu tố "Bàn làm việc" chứ không phải tên dòng họ: tên họ là DỮ LIỆU (AD-14), khung chỉ nói
- * vai trò sản phẩm — cùng lý do root layout đặt "Tộc phả".
+ * Hậu tố "Admin" chứ không phải tên dòng họ: tên họ là DỮ LIỆU (AD-14), khung chỉ nói vai trò
+ * sản phẩm — cùng lý do root layout đặt "Tộc phả".
+ *
+ * Trang nhà mang đúng tiêu đề "Admin", nên ghép máy móc ra **"Admin — Admin"**. Trùng thì nói
+ * một lần: hậu tố tồn tại để phân biệt các thẻ với nhau, và nó không phân biệt được gì với
+ * chính nó. (Bắt được bằng cách mở trình duyệt đọc `document.title`, không bằng cổng nào.)
  */
 export function tieuDeThe(khoa: KhoaMan): string {
   const m = MAN.find((x) => x.khoa === khoa);
-  return m ? `${m.tieuDe} — Bàn làm việc` : 'Bàn làm việc';
+  if (!m) return 'Admin';
+  return m.tieuDe === 'Admin' ? 'Admin' : `${m.tieuDe} — Admin`;
 }
 
 export const MAN: ManAdmin[] = [
@@ -82,7 +87,7 @@ export const MAN: ManAdmin[] = [
     khoa: 'nha',
     duong: '/admin',
     nhan: 'Trang nhà',
-    tieuDe: 'Bàn làm việc',
+    tieuDe: 'Admin',
     nhom: 'ban',
     coSo: false,
   },

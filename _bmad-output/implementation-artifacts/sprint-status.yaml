@@ -93,7 +93,10 @@ development_status:
   6-6-do-that-tren-trinh-duyet: backlog
   # Thêm 26/08 từ lượt bấm thật đầu tiên trên phả sạch. Cả hai rẻ hơn vẻ ngoài: `xemHoSo` đang
   # vứt `card` + `relations` mà `getPerson` đã tính, và `duyetHangLoat` thì đã chạy được từ 3-3.
-  6-7-ho-so-day-du-o-cot-phai: review
+  # Code review 26/08 — ba tầng, CẢ BA có trình duyệt. 15 patch đã vá, 4 mục vào deferred-work.
+  # KHÔNG chốt done: § CHƯA kiểm được còn bốn mục cần mắt người, và chồng mâu thuẫn chưa dựng
+  # được ca thật để nhìn (dựng ca ấy đòi ghi vào phả).
+  6-7-ho-so-day-du-o-cot-phai: in-progress
   6-8-duyet-theo-nguoi: backlog
   epic-6-retrospective: optional
 

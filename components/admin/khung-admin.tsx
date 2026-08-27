@@ -515,7 +515,7 @@ export function KhungAdmin({
       <div className="flex h-dvh flex-col bg-ban-nen">
         <header className="flex shrink-0 items-center gap-5 border-b border-ban-vien bg-ban-o px-5 py-2.5">
           <Link href="/admin" className="text-[17px] font-semibold whitespace-nowrap">
-            Bàn làm việc
+            Admin
           </Link>
           <OTim tim={tim} />
           {nguoiVanHanh ? (
@@ -546,7 +546,7 @@ export function KhungAdmin({
           */}
           <main className="flex min-w-0 flex-1 flex-col overflow-y-auto">
             <div className="flex min-h-full shrink-0 flex-col px-6 py-8">
-              <h1 className="shrink-0 text-[23px] font-semibold">{man?.tieuDe ?? 'Bàn làm việc'}</h1>
+              <h1 className="shrink-0 text-[23px] font-semibold">{man?.tieuDe ?? 'Admin'}</h1>
               <div className="mt-4 flex min-h-0 flex-1 flex-col">{children}</div>
             </div>
           </main>

@@ -35,7 +35,7 @@ export const dynamic = 'force-dynamic';
  * và không có nó thì thẻ đội tiêu đề của bề mặt A công khai ("Tộc phả") trong khi màn đang bày
  * 404 của bàn làm việc. Cùng lớp lỗi `<h1>` sai, chỉ khác chỗ hiện.
  */
-export const metadata: Metadata = { title: 'Bàn làm việc' };
+export const metadata: Metadata = { title: 'Admin' };
 
 export default async function AdminLayout({ children }: { children: ReactNode }) {
   const phien = await resolveSession();
