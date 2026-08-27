@@ -4,6 +4,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   chenHangCon,
+  gonGiaTri,
   hangNguon,
   hienGiaTriTrongChiTiet,
   KHOA_CON,
@@ -50,6 +51,31 @@ describe('chèn hàng Con', () => {
   /** Không có neo nào thì XUỐNG CUỐI — lên đầu là Con đứng trên cả Tên. */
   it('không có cha mẹ lẫn vợ chồng ⇒ Con xuống cuối, không lên đầu', () => {
     expect(chenHangCon(['name', 'birth'], true)).toEqual(['name', 'birth', KHOA_CON]);
+  });
+
+  /**
+   * Ca của THUỶ TỔ: không cha mẹ được chép (khẳng định ấy thuộc hồ sơ đứa con, AD-18), vợ chưa
+   * chép tên — mà lại có ghi chú dài. Bản trước thả Con xuống sau cả `place` và `note`, tức hàng
+   * quan trọng thứ hai của phiếu rơi khỏi tầm nhìn ở đúng người mà danh sách con gần như là toàn
+   * bộ hồ sơ.
+   */
+  it('không có neo nào nhưng có `place`/`note` ⇒ Con chèn TRƯỚC hai loại đuôi ấy', () => {
+    expect(chenHangCon(['name', 'birth', 'place', 'note'], true)).toEqual([
+      'name',
+      'birth',
+      KHOA_CON,
+      'place',
+      'note',
+    ]);
+  });
+
+  it('neo vẫn thắng khi có cả neo lẫn đuôi', () => {
+    expect(chenHangCon(['name', 'union-partner', 'note'], true)).toEqual([
+      'name',
+      'union-partner',
+      KHOA_CON,
+      'note',
+    ]);
   });
 
   it('người mới toanh chưa có chồng nào ⇒ phiếu chỉ có hàng Con', () => {
@@ -181,5 +207,36 @@ describe('có in lại giá trị trong khối chi tiết không', () => {
   /** Người kia ngoài bán kính riêng tư ⇒ hàng rơi về chuỗi chữ, `chuTrenHang` rỗng. */
   it('vắng chip ⇒ IM, vì hàng đang bày chính chuỗi ấy', () => {
     expect(hoi({ giaTriGon: 'là con ruột của một người' })).toBe(false);
+  });
+});
+
+describe('bỏ tiền tố nói lại nhãn', () => {
+  it('cắt đúng tiền tố của từng loại', () => {
+    expect(gonGiaTri('name', 'tên Nguyễn Quang Hải')).toBe('Nguyễn Quang Hải');
+    expect(gonGiaTri('gender', 'giới tính nam')).toBe('nam');
+    expect(gonGiaTri('birth', 'năm sinh 1989')).toBe('1989');
+    expect(gonGiaTri('death', 'năm mất 2019')).toBe('2019');
+    expect(gonGiaTri('union-partner', 'vợ/chồng với Quản Thị Huyền')).toBe('Quản Thị Huyền');
+    expect(gonGiaTri('note', 'ghi chú: cụ có công với làng')).toBe('cụ có công với làng');
+  });
+
+  it('giữ nguyên phần đuôi mang nghĩa', () => {
+    expect(gonGiaTri('birth', 'năm sinh 1989 (ước chừng)')).toBe('1989 (ước chừng)');
+    expect(gonGiaTri('birth', 'năm sinh chưa rõ')).toBe('chưa rõ');
+  });
+
+  /** `parent-child` KHÔNG có tiền tố thừa: "con ruột của X" là cả câu, và `rel` mới là thông tin. */
+  it('cha mẹ và nơi chốn giữ nguyên — chúng không nói lại nhãn', () => {
+    expect(gonGiaTri('parent-child', 'là con ruột của Nguyễn Quang Vinh')).toBe(
+      'là con ruột của Nguyễn Quang Vinh',
+    );
+    expect(gonGiaTri('place', 'quê quán: Quang Trung, Định Hoá')).toBe(
+      'quê quán: Quang Trung, Định Hoá',
+    );
+  });
+
+  it('không khớp tiền tố nào ⇒ trả nguyên chuỗi, thà thừa còn hơn cắt cụt', () => {
+    expect(gonGiaTri('birth', 'sinh ngày 12/03/1989')).toBe('sinh ngày 12/03/1989');
+    expect(gonGiaTri('khong-co-loai-nay', 'gì đó')).toBe('gì đó');
   });
 });

@@ -52,13 +52,19 @@ const NHAN_LOAI_CHONG = (khoa: string): string =>
 import { BieuMauGhiThem, type VaiNoi } from './bieu-mau-ghi-them';
 import type { UngVienNoi } from './chon-noi';
 import { ghiThemDuoc, NHAN_LOAI, type LoaiGhiThem } from './loai-ghi-them';
-import { chenHangCon, hangNguon, hienGiaTriTrongChiTiet, KHOA_CON } from './phieu-ly-lich';
-import { dongTieuSu, gonGiaTri, type TheTieuSu } from './tieu-su';
+import { chenHangCon, gonGiaTri, hangNguon, hienGiaTriTrongChiTiet, KHOA_CON } from './phieu-ly-lich';
+import { dongTieuSu, type TheTieuSu } from './tieu-su';
 
 export type KieuChong = 'mau-thuan' | 'noi-tiep' | 'don';
 
 export type DongKhangDinh = {
   id: string;
+  /**
+   * Người ở đầu kia, với hai loại quan hệ. Đây là thứ cho phép CHIP mang theo tầng và nguồn của
+   * chính khẳng định sinh ra nó — bản trước dựng chip từ `relations` nên chip không biết mình
+   * thuộc dòng nào, và tầng biến mất khỏi mặt phiếu.
+   */
+  doiTuongId?: string;
   giaTri: string;
   chinhThuc: boolean;
   tinCay: MucTinCay;
@@ -124,6 +130,15 @@ const HANG = 'flex flex-wrap items-start gap-x-2 border-b border-ban-vien py-1';
  * nhãn ấy gãy làm hai dòng trên mọi người có vợ chồng; không có gì tràn, không có gì đè, nên bốn
  * cổng im. Mỗi pixel thêm ở đây là một pixel bớt của chip tên người bên phải, nên không nới rộng
  * hơn mức đủ.
+ *
+ * ── Nhánh MÂU THUẪN cần thêm chỗ, và bản trước quên (sửa 26/08 sau code review) ──────────
+ * Nhánh ấy nhét thêm một `<TriangleAlert className="size-4">` cùng `gap-1` vào CHÍNH hộp 72px
+ * này, nên chữ chỉ còn `72 − 17 − 4.25 = 50.75px` (gốc `html` là 17px, xem `globals.css:187`).
+ * *"Giới tính"* ở 15px semibold rộng 63px ⇒ gãy làm hai dòng ngay cạnh dấu ⚠, và `gender` là
+ * `DON_TRI: true` nên ca ấy tới được bằng đúng một lượt ghi lại giới tính.
+ *
+ * `soi-man.mjs` cũng mù với nó: cổng chỉ báo khi cao hơn 50px, mà `min-h-11` là 46.75px — hai
+ * dòng chữ 15px vẫn lọt dưới sàn ấy. Đã nới cả hai: hộp cảnh báo rộng hơn, và cổng hạ ngưỡng.
  */
 const NHAN = 'flex min-h-11 w-[72px] shrink-0 items-center gap-1 text-[15px]';
 const LE_PHAI = 'pr-11';
@@ -211,6 +226,15 @@ function Than({
    */
   const theoKhoa = new Map((chong ?? []).map((c) => [c.khoa, c] as const));
   /**
+   * Tên theo id, gom từ cả ba nhóm quan hệ. Dòng khẳng định mang `doiTuongId`; TÊN thì nằm ở
+   * `relations`, đã lọc theo bán kính. Ghép hai thứ ấy ở đây, một lần.
+   */
+  const tenTheoId = new Map(
+    [...chipQuanHe['parent-child']!, ...chipQuanHe['union-partner']!, ...con].map(
+      (p) => [p.personId, p.hoTen] as const,
+    ),
+  );
+  /**
    * ── Quan hệ xem được mà KHÔNG có chồng nào vẫn phải bày ──────────────────────────────────
    * `actions.ts § xemHoSo`: *"`relations` lọc TỪNG thẻ riêng theo bán kính và KHÔNG đi cùng
    * `stacks`: một người ngoài tầm nhìn đầy đủ vẫn có thể có quan hệ xem được. Buộc hai thứ vào
@@ -283,11 +307,30 @@ function Than({
                 <div className="mt-3 border-t border-ban-vien">
                   {thuTu.map((khoa) =>
                     khoa === KHOA_CON ? (
-                      <HangChip key={khoa} nhan="Con" chip={con} onMoNguoi={onMoNguoi} />
+                      <HangChip
+                        key={khoa}
+                        nhan="Con"
+                        chip={con}
+                        onMoNguoi={onMoNguoi}
+                        /**
+                         * Hàng Con KHÔNG mang tầng và KHÔNG có "chi tiết" — và nói ra vì sao.
+                         *
+                         * Khẳng định cha-con mang `subject = CON` (AD-18), nên nó nằm trong hồ sơ
+                         * của đứa con, không ở đây. Bản trước để chip trần y hệt chip Cha mẹ vốn
+                         * CÓ tầng: một hình cho hai trạng thái nhận thức khác nhau, và không lối
+                         * nào xem được ai khai. Nay chip vẫn bấm được — và bấm là mở đúng hồ sơ
+                         * giữ lời khai ấy.
+                         */
+                        chuThich="khai trên hồ sơ của từng người con — bấm một tên để mở"
+                      />
                     ) : !theoKhoa.has(khoa) ? (
                       <HangChip
                         key={khoa}
-                        nhan={khoa === 'parent-child' ? 'Cha mẹ' : 'Vợ chồng'}
+                        /* Nhãn lấy từ `NHAN_LOAI`, KHÔNG chép tay lần thứ ba. Hai chữ ấy đã có
+                           ở `core/person/chong.ts § NHAN` và `loai-ghi-them.ts § NHAN_LOAI`, mà
+                           chính `loai-ghi-them.ts:32` cảnh báo: "đặt nhãn thứ hai cho cùng một
+                           thứ là dạy người vận hành rằng đây là hai thứ khác nhau." */
+                        nhan={NHAN_LOAI[khoa as 'parent-child' | 'union-partner']}
                         chip={chipQuanHe[khoa] ?? []}
                         onMoNguoi={onMoNguoi}
                       />
@@ -300,6 +343,7 @@ function Than({
                         moGhi={moGhi === khoa ? (khoa as LoaiGhiThem) : undefined}
                         onMoGhi={() => setMoGhi(khoa as LoaiGhiThem)}
                         onDongGhi={() => setMoGhi(undefined)}
+                        tenTheoId={tenTheoId}
                         onGhiThem={onGhiThem}
                         onGhiNoi={onGhiNoi}
                         onTimNoi={onTimNoi}
@@ -307,11 +351,11 @@ function Than({
                         onTimNguoi={onTimNguoi}
                         nguoiNayId={hoSo.personId}
                         tenNguoiNay={hoSo.hoTen}
-                        {...(khoa === 'parent-child'
-                          ? { chip: hoSo.quanHe?.chaMe, onMoNguoi }
-                          : khoa === 'union-partner'
-                            ? { chip: hoSo.quanHe?.banDoi, onMoNguoi }
-                            : {})}
+                        {...(khoa === 'parent-child' || khoa === 'union-partner'
+                          ? // Chỉ hai loại QUAN HỆ mới bày thành chip; danh sách dựng từ chính
+                            // `chong.dong`, không từ `relations` — xem `MotChong § tenTheoId`.
+                            { onMoNguoi }
+                          : {})}
                         onTaoNoi={onTaoNoi}
                       />
                     ),
@@ -367,11 +411,9 @@ function Than({
  */
 function DongDanXuat({ hoSo }: { hoSo: HoSoPanel }) {
   if (!hoSo.tieuSu) return null;
-  const muc = dongTieuSu({ card: { ...hoSo.tieuSu, lifespan: '' } });
+  const muc = dongTieuSu({ card: hoSo.tieuSu });
   if (muc.length === 0) return null;
-  return (
-    <p className="mt-0.5 text-[15px] text-muted-foreground">{muc.map((m) => m.chu).join(' · ')}</p>
-  );
+  return <p className="mt-0.5 text-[15px] text-muted-foreground">{muc.join(' · ')}</p>;
 }
 
 /**
@@ -388,20 +430,31 @@ function HangChip({
   nhan,
   chip,
   onMoNguoi,
+  chuThich,
 }: {
   nhan: string;
   chip: ChipQuanHe[];
   onMoNguoi: (personId: string) => void;
+  /** Một câu nói vì sao hàng này không có tầng và không có "chi tiết". */
+  chuThich?: string;
 }) {
   return (
     <section className={HANG}>
       <h3 className={`${NHAN} text-muted-foreground`}>{nhan}</h3>
-      <div className="flex min-h-11 min-w-0 flex-1 flex-wrap items-center gap-1.5">
-        {chip.map((p) => (
-          <button key={p.personId} type="button" onClick={() => onMoNguoi(p.personId)} className={CHIP}>
-            {p.hoTen}
-          </button>
-        ))}
+      <div className="flex min-w-0 flex-1 flex-col justify-center gap-1">
+        <div className="flex min-h-11 flex-wrap items-center gap-1.5">
+          {chip.map((p) => (
+            <button
+              key={p.personId}
+              type="button"
+              onClick={() => onMoNguoi(p.personId)}
+              className={CHIP}
+            >
+              {p.hoTen}
+            </button>
+          ))}
+        </div>
+        {chuThich ? <p className="text-[15px] text-muted-foreground">{chuThich}</p> : null}
       </div>
     </section>
   );
@@ -419,19 +472,35 @@ function HangChip({
  * thẻ chồng thẻ và không còn phân biệt được hai tầng bằng mắt. Nay chính thức nằm trần trên
  * giấy (nó LÀ bản ghi), tồn nghi nằm trên vân giấy nháp, bó sát chữ chứ không chiếm cả hàng.
  */
+/**
+ * Vỏ theo MỨC TIN CẬY — sửa 26/08/2026 sau code review.
+ *
+ * `DESIGN.md § Confidence` là một bảng ba hàng, và cột đầu tên là **Mức**: `chắc chắn` ·
+ * `theo lời kể` · `tồn nghi` — đúng ba giá trị của `Confidence`, KHÔNG phải hai giá trị của
+ * `Tier`. Bản trước nhánh theo `dong.chinhThuc` (tầng), nên hai trục bị hoán:
+ *
+ *   - `Tầng chính thức` + mức `tồn nghi` ⇒ vẽ nét liền, dù spec đòi nét đứt
+ *   - `Tầng tồn nghi` + mức `chắc chắn` (giấy khai sinh vừa nhập) ⇒ vẽ nét đứt, dù spec đòi liền
+ *   - `chắc chắn` và `theo lời kể` — hai hàng trên của bảng, hai màu viền khác nhau — không
+ *     phân biệt được ở BẤT KỲ ĐÂU trên mặt phiếu
+ *
+ * Mà `EXPERIENCE.md § Accessibility Floor` nói thẳng sàn ấy tồn tại để phủ FR-2: *"ba mức tin cậy
+ * phân biệt được khi in đen trắng và với người mù màu"*. Sau lượt thu gọn thì không.
+ *
+ * Tầng vẫn nói được — nó nằm ở hàng đầu của khối "chi tiết" (`hangNguon`), và ở nút
+ * `Nâng lên chính thức` chỉ mọc trên dòng chưa chính thức.
+ */
+const VO_TIN_CAY: Record<MucTinCay, string> = {
+  'chac-chan': 'rounded-sm border border-tin-chac-chan px-1.5',
+  'theo-loi-ke': 'rounded-sm border border-tin-loi-ke px-1.5',
+  'ton-nghi': 'van-ton-nghi rounded-sm border border-dashed border-tin-ton-nghi px-1.5',
+};
+
 function GiaTri({ khoa, dong }: { khoa: string; dong: DongKhangDinh }) {
   const chu = gonGiaTri(khoa, dong.giaTri);
   // Tên người là dữ liệu phả, không phải vỏ giao diện ⇒ chữ có chân, kể cả trên bề mặt B.
   const kieuChu = khoa === 'name' ? 'font-pha' : '';
-  return dong.chinhThuc ? (
-    <span className={kieuChu}>{chu}</span>
-  ) : (
-    <span
-      className={`van-ton-nghi rounded-sm border border-dashed border-tin-ton-nghi px-1.5 ${kieuChu}`}
-    >
-      {chu}
-    </span>
-  );
+  return <span className={`${VO_TIN_CAY[dong.tinCay]} ${kieuChu}`}>{chu}</span>;
 }
 
 function MotChong({
@@ -448,7 +517,7 @@ function MotChong({
   onTimNguoi,
   nguoiNayId,
   tenNguoiNay,
-  chip,
+  tenTheoId,
   onMoNguoi,
   onTaoNoi,
 }: {
@@ -481,7 +550,15 @@ function MotChong({
    * Rỗng (người kia ngoài bán kính riêng tư) ⇒ rơi về chuỗi chữ — vắng chip không được biến
    * thành vắng thông tin.
    */
-  chip?: ChipQuanHe[];
+  /**
+   * Tra TÊN theo id, để dòng quan hệ bày được thành chip bấm được.
+   *
+   * Chip dựng từ CHÍNH `chong.dong` chứ không từ `relations` (sửa 26/08 sau code review). Bản
+   * trước lấy danh sách từ `relations`, nên chip không biết mình thuộc dòng nào — mất tầng, mất
+   * nguồn, và hai lời khai về cùng một cặp (`con ruột` + `con nuôi`) thu lại thành MỘT chip vì
+   * `bestEdge` dedupe theo `childId|parentId`.
+   */
+  tenTheoId?: ReadonlyMap<string, string>;
   onMoNguoi?: (personId: string) => void;
   onTaoNoi: (ten: string, donViCha: string) => Promise<{ placeId: string; nhan: string } | string>;
 }) {
@@ -492,10 +569,19 @@ function MotChong({
    * cùng chính thức về cùng một chuyện, không gì gỡ được. Nút ấy phải biến mất, không phải báo lỗi.
    */
   const coChinhThuc = chong.dong.some((d) => d.chinhThuc);
-  const coChip = chip !== undefined && chip.length > 0 && onMoNguoi !== undefined;
+  /**
+   * Chip chỉ thay chữ khi MỌI dòng đều giải được tên người ở đầu kia. Thiếu một dòng thì rơi về
+   * chữ cho CẢ hàng — chú thích cũ hứa điều này nhưng chỉ thực hiện khi danh sách rỗng hoàn
+   * toàn, nên một người có cha và mẹ mà mẹ ngoài bán kính thì hàng bày đúng một cha mẹ, im lặng.
+   */
+  const chipTuDong =
+    tenTheoId && onMoNguoi
+      ? chong.dong.map((d) => ({ dong: d, hoTen: d.doiTuongId ? tenTheoId.get(d.doiTuongId) : undefined }))
+      : [];
+  const coChip = chipTuDong.length > 0 && chipTuDong.every((c) => c.hoTen !== undefined);
 
   /** Chữ hàng phiếu ĐÃ bày — xem `phieu-ly-lich.ts § hienGiaTriTrongChiTiet`. */
-  const chuTrenHang = coChip ? chip.map((p) => p.hoTen) : [];
+  const chuTrenHang = coChip ? chipTuDong.map((c) => c.hoTen!) : [];
 
   const danhSachDong = chong.dong.map((d) => (
     <MotDong
@@ -546,7 +632,14 @@ function MotChong({
         onTaoNoi={onTaoNoi}
         onDong={onDongGhi}
       />
-    ) : (
+    ) : /**
+       * KHÔNG còn nút "Ghi thêm <loại>" riêng: chính GIÁ TRỊ đã là nút (xem trên). Một hàng có
+       * hai lối vào cùng một biểu mẫu là một hàng dạy hai luật.
+       *
+       * Hàng quan hệ là ngoại lệ — ở đó giá trị là CHIP, và bấm chip nghĩa là *mở hồ sơ người
+       * ấy*, không phải *sửa quan hệ*. Nên lối ghi thêm của hai loại ấy nằm trong "chi tiết".
+       */
+    coChip ? (
       <button
         type="button"
         onClick={onMoGhi}
@@ -554,7 +647,7 @@ function MotChong({
       >
         Ghi thêm {NHAN_LOAI[loaiGhi].toLowerCase()}
       </button>
-    )
+    ) : null
   ) : null;
 
   /**
@@ -607,21 +700,45 @@ function MotChong({
       >
         {coChip ? (
           <div className="flex flex-wrap gap-1.5">
-            {chip.map((p) => (
+            {chipTuDong.map((c) => (
               <button
-                key={p.personId}
+                key={c.dong.id}
                 type="button"
-                onClick={() => onMoNguoi(p.personId)}
-                className={CHIP}
+                onClick={() => onMoNguoi!(c.dong.doiTuongId!)}
+                /* Vỏ theo MỨC TIN CẬY như mọi giá trị khác — chip không được là lối vòng quanh
+                   `GiaTri`, chỗ DUY NHẤT biết vẽ nét đứt + vân chéo. */
+                className={`${CHIP} ${VO_TIN_CAY[c.dong.tinCay]}`}
               >
-                {p.hoTen}
+                {c.hoTen}
               </button>
             ))}
           </div>
         ) : (
           chong.dong.map((d) => (
             <p key={d.id} className="leading-snug">
-              <GiaTri khoa={chong.khoa} dong={d} />
+              {/**
+               * ── Bấm THẲNG vào giá trị để sửa (26/08, phản hồi từ lượt dùng thật) ─────────
+               * *"Việc ghi thêm thông tin ở sidebar không cần thêm hẳn một nút. Chỉ cần click
+               * vào giá trị của profile luôn và edit tại đó sẽ hợp lý và tiện hơn."*
+               *
+               * Giá trị LÀ chỗ người vận hành đang nhìn khi họ nhận ra nó sai; bắt họ đi tìm một
+               * nút khác là thêm một chặng cho một việc hằng ngày. Sửa ở đây vẫn là GHI THÊM
+               * (AD-9) — biểu mẫu nói rõ điều đó, không có nút nào đè lên giá trị cũ.
+               *
+               * Loại không ghi thêm được thì giá trị vẫn là chữ trơ, không giả vờ bấm được.
+               */}
+              {loaiGhi ? (
+                <button
+                  type="button"
+                  onClick={onMoGhi}
+                  aria-label={`Ghi thêm ${NHAN_LOAI[loaiGhi].toLowerCase()}`}
+                  className="inline-flex min-h-11 items-center text-left"
+                >
+                  <GiaTri khoa={chong.khoa} dong={d} />
+                </button>
+              ) : (
+                <GiaTri khoa={chong.khoa} dong={d} />
+              )}
             </p>
           ))
         )}
@@ -641,7 +758,24 @@ function MotChong({
        * phần thân ra ngay cả khi đóng. Bố cục hàng nằm ở `<section>` bên ngoài, `<summary>` chỉ
        * được kéo về lề phải bằng `absolute`.
        */}
-      <details className="group w-full">
+      {/**
+        * `open` bám theo `moGhi` — sửa 26/08 sau code review.
+        *
+        * `moGhi` là state React; đóng/mở `<details>` là state của TRÌNH DUYỆT. Hai thứ không biết
+        * nhau, nên bản trước: mở tam giác → *Ghi thêm năm sinh* → gõ dở → gập tam giác lại ⇒
+        * biểu mẫu biến khỏi màn nhưng `moGhi` vẫn là `'birth'` ⇒ cuối phiếu vẫn là nút, bấm vào
+        * là unmount và mất sạch chữ đã gõ, không một câu hỏi.
+        *
+        * Nay biểu mẫu đang mở thì tam giác không gập được; và nếu có gập bằng đường nào khác thì
+        * `onToggle` đóng luôn biểu mẫu, để hai state không lệch nhau lần nữa.
+        */}
+      <details
+        className="group w-full"
+        {...(moGhi !== undefined ? { open: true } : {})}
+        onToggle={(e) => {
+          if (!e.currentTarget.open && moGhi !== undefined) onDongGhi();
+        }}
+      >
         <summary className="absolute right-0 top-1 flex size-11 cursor-pointer items-center justify-center rounded-md text-muted-foreground hover:bg-ban-nen marker:content-['']">
           <span aria-hidden className="inline-block transition-transform group-open:rotate-90">
             ▸
@@ -676,7 +810,7 @@ function MotDong({
   onLoaiDong,
 }: {
   dong: DongKhangDinh;
-  /** Để bỏ phần đầu chuỗi khi nó nói lại đúng cái nhãn bên trái — xem `tieu-su.ts § gonGiaTri`. */
+  /** Để bỏ phần đầu chuỗi khi nó nói lại đúng cái nhãn bên trái — xem `phieu-ly-lich.ts § gonGiaTri`. */
   khoaChong: string;
   mauThuan: boolean;
   /** Xem `MotChong` — hàng thường đã in giá trị ngay trên, in lại là in hai lần. */
@@ -731,7 +865,7 @@ function MotDong({
         </p>
       ) : null}
 
-      {/* MỘT dòng nguồn, không ba — luật ở `phieu-ly-lich.ts § dongNguon`, có test. */}
+      {/* HAI hàng nguồn, không ba dòng chữ — luật ở `phieu-ly-lich.ts § hangNguon`, có test. */}
       {hangNguon(dong).map((h) => (
         <p key={h} className="text-[15px] leading-snug text-muted-foreground">
           {h}

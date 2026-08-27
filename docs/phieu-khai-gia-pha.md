@@ -140,7 +140,7 @@ Ba điều rút ra cho người điền phiếu:
 
 ## 4. Ghi công sẽ mất, và đây là chỗ vá tạm
 
-Mọi dòng nạp vào phả đều mang đúng một nguồn: `Nạp khung từ tệp CSV (N dòng)`. FR-39 ghi công
+Mọi dòng nạp vào phả đều mang đúng một nguồn: `Nạp khung từ tệp CSV`. FR-39 ghi công
 theo **người**, nhưng một tệp điền chung xoá sạch ai kể điều gì.
 
 Chưa có đường nào giữ lại việc ấy ngoài `ghi_chu`. Nên dặn người điền:

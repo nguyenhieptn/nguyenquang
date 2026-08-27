@@ -39,7 +39,23 @@ export function chenHangCon(khoaChong: readonly string[], coCon: boolean): strin
   if (!coCon) return ra;
   const neo = ra.lastIndexOf('union-partner');
   const neoPhu = neo === -1 ? ra.lastIndexOf('parent-child') : neo;
-  ra.splice(neoPhu === -1 ? ra.length : neoPhu + 1, 0, KHOA_CON);
+  if (neoPhu !== -1) {
+    ra.splice(neoPhu + 1, 0, KHOA_CON);
+    return ra;
+  }
+  /**
+   * ── Không có neo nào: đừng thả xuống đáy (sửa 26/08 sau code review) ────────────────────
+   *
+   * Một người KHÔNG có cha mẹ được chép thì `chong` không hề có `parent-child` — khẳng định ấy
+   * mang `subject = CON` nên nó nằm ở hồ sơ đứa con (AD-18). Vợ chưa được chép tên thì cũng
+   * không có `union-partner`. Cả hai điều ấy đúng với **thuỷ tổ**, người mà danh sách con gần
+   * như là toàn bộ hồ sơ.
+   *
+   * Bản trước rơi về `ra.length` ⇒ Con xuống sau cả `place` và `note`, đúng cái hỏng module này
+   * tự khai là sinh ra để sửa. Nay chèn TRƯỚC hai loại đuôi ấy.
+   */
+  const duoi = ra.findIndex((k) => k === 'place' || k === 'note');
+  ra.splice(duoi === -1 ? ra.length : duoi, 0, KHOA_CON);
   return ra;
 }
 
@@ -47,7 +63,7 @@ export function chenHangCon(khoaChong: readonly string[], coCon: boolean): strin
  * Nhãn tiếng Việt của ba mức tin cậy (FR-2). Giữ nguyên từ phả học —
  * `EXPERIENCE.md § Voice and Tone`.
  */
-const NHAN_TIN_CAY: Record<MucTinCay, string> = {
+export const NHAN_TIN_CAY: Record<MucTinCay, string> = {
   'chac-chan': 'chắc chắn',
   'theo-loi-ke': 'theo lời kể',
   'ton-nghi': 'tồn nghi',
@@ -63,25 +79,27 @@ export type NguonDong = {
 };
 
 /**
- * MỘT dòng nguồn cho một khẳng định: `tầng · tin cậy · xuất xứ · ai ghi lúc nào`.
+ * NGUỒN của một khẳng định, tách làm HAI hàng: *cái này chắc tới đâu* và *nghe từ đâu, ai ghi*.
  *
- * ── Vì sao gộp hai dòng thành một ────────────────────────────────────────────────────────
- * Chủ dự án nói thẳng: *"không cần quá nhiều thông tin nguồn gốc từ đâu, chỉ cần hiện nó là
- * được"*. FR-1/FR-2 buộc nguồn phải CÓ MẶT, không buộc nó chiếm ba dòng trên mỗi giá trị.
+ * ── Vì sao nguồn lùi vào "chi tiết" ─────────────────────────────────────────────────────
+ * FR-1/FR-2 buộc mọi khẳng định MANG nguồn; chúng không buộc màn phải BÀY nguồn mọi lúc. Bản
+ * trước in thẳng ba dòng chữ dưới mỗi giá trị — sáu chồng một người thành hai mươi dòng để nói
+ * năm điều, và người vận hành phải lội qua xuất xứ mới đọc được thứ mình cần.
  *
- * ── Và vì sao "tồn nghi · tồn nghi" là một lỗi thật ──────────────────────────────────────
- * Tầng và mức tin cậy là hai trục khác nhau nhưng dùng chung một từ ở một ô: một khẳng định chưa
- * nâng tầng, khai với mức `ton-nghi`, in ra nguyên văn *"tồn nghi · tồn nghi"*. Đọc như máy hỏng.
- * Trùng thì nói một lần — không phải bỏ trục nào, chỉ là hai trục đang nói đúng cùng một chữ.
+ * ── Vì sao HAI hàng, không một ──────────────────────────────────────────────────────────
+ * Nối làm một thì trong cột 360px nó quấn ba dòng, và người đọc phải tự tách hai ý bằng mắt.
+ * Hai hàng ngắn đọc nhanh hơn ba hàng quấn — cùng số chữ, khác cách xếp.
+ *
+ * ── "Tầng …" chứ không "…" trần ─────────────────────────────────────────────────────────
+ * Bỏ chữ "Tầng" thì một khẳng định ở Tầng chính thức khai với mức tin cậy `ton-nghi` in ra
+ * *"chính thức · tồn nghi"* — đọc lên là tự mâu thuẫn, dù cả hai đều đúng và nói về hai TRỤC
+ * khác nhau. `DESIGN.md § Vocabulary` vốn dùng "Tầng chính thức" làm tên gọi chuẩn.
+ *
+ * Phép bỏ trùng bên dưới VẪN cần: nó so với từ TRẦN của tầng, nên `Tầng tồn nghi · tồn nghi`
+ * cũng không lọt. (Bản trước chú thích bảo phép ấy "thôi cần tới" — sai, và test vẫn chốt nó.)
  *
  * Mục rỗng thì BỎ HẲN (cùng luật với `tieu-su.ts`): một câu nguồn kết thúc bằng " · · " nói rằng
  * hệ này biết một thứ mà không chịu in ra.
- */
-/**
- * Nguồn tách làm HAI hàng: *cái này chắc tới đâu* và *nghe được từ đâu, ai ghi*.
- *
- * Một câu nối bằng dấu chấm giữa quấn ba dòng trong cột 360px, và người đọc phải tự tách hai ý
- * ấy ra bằng mắt. Hai hàng ngắn đọc nhanh hơn ba hàng quấn — cùng số chữ, khác cách xếp.
  */
 export function hangNguon(d: NguonDong): string[] {
   /**
@@ -90,7 +108,7 @@ export function hangNguon(d: NguonDong): string[] {
    * Bỏ chữ "Tầng" đi thì một khẳng định ở Tầng chính thức khai với mức tin cậy `ton-nghi` in ra
    * *"chính thức · tồn nghi"* — đọc lên là tự mâu thuẫn, dù cả hai đều đúng và nói về hai trục
    * khác nhau. `DESIGN.md § Vocabulary` vốn dùng **"Tầng chính thức"** làm tên gọi chuẩn; đây chỉ
-   * là trả nó về đúng tên. Phép bỏ trùng bên dưới vì thế cũng thôi cần tới.
+   * là trả nó về đúng tên.
    */
   const tang = d.chinhThuc ? 'Tầng chính thức' : 'Tầng tồn nghi';
   const tinCay = NHAN_TIN_CAY[d.tinCay];
@@ -139,4 +157,31 @@ export function hienGiaTriTrongChiTiet(a: {
   if (a.mauThuan || a.soDong > 1) return true;
   if (a.chuTrenHang.length === 0) return false;
   return !a.chuTrenHang.includes(a.giaTriGon.trim());
+}
+
+/**
+ * Bỏ phần ĐẦU của chuỗi giá trị khi nó nói lại đúng cái nhãn đứng bên trái.
+ *
+ * `core/person/read-ops.ts` dựng chuỗi cho một màn KHÔNG có cột nhãn — *"tên Nguyễn Quang Hải"*,
+ * *"giới tính nam"*, *"năm sinh 1989"* đọc trọn nghĩa khi đứng một mình. Cột phải nay xếp thành
+ * hai cột (nhãn · giá trị), nên phần đầu ấy thành ra đọc hai lần.
+ *
+ * Cắt ở TẦNG BÀY, không sửa core: chuỗi của core vẫn phải đọc trọn nghĩa cho trang người của bề
+ * mặt A (2-7) và cho nhật ký. Không khớp tiền tố nào thì trả nguyên chuỗi — thà thừa một chữ còn
+ * hơn cắt cụt một câu mình không hiểu.
+ */
+const TIEN_TO: Record<string, string[]> = {
+  name: ['tên '],
+  gender: ['giới tính '],
+  birth: ['năm sinh '],
+  death: ['năm mất '],
+  'union-partner': ['vợ/chồng với '],
+  note: ['ghi chú: '],
+};
+
+export function gonGiaTri(khoaChong: string, chu: string): string {
+  for (const t of TIEN_TO[khoaChong] ?? []) {
+    if (chu.startsWith(t)) return chu.slice(t.length);
+  }
+  return chu;
 }

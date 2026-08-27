@@ -43,8 +43,6 @@ export type HoSoNguoi = {
    * Đây không phải một lượt đọc thêm, chỉ là thôi vứt.
    */
   tieuSu: {
-    /** NGUYÊN chuỗi của core — mang luật FR-37 (người sống chỉ hiện NĂM). Đừng ghép lại. */
-    lifespan: string;
     doi: number | null;
     chi: string | null;
   };
@@ -65,7 +63,6 @@ export async function xemHoSo(personId: string): Promise<Result<HoSoNguoi>> {
       personId: v.card.personId,
       hoTen: v.card.fullName,
       tieuSu: {
-        lifespan: v.card.lifespan,
         doi: v.card.generation,
         chi: v.card.branchCode,
       },

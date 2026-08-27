@@ -341,6 +341,18 @@ export async function getPersonOps(
       sourceKind: r.sourceKind as SourceKind,
       sourceDescription: r.sourceDescription,
       ...(r.toldByPersonId ? { toldByName: displayName(r.toldByPersonId) } : {}),
+      /**
+       * `parent-child` trỏ thẳng bằng `objectPersonId`. `union-partner` thì không — thành viên
+       * của một union nối nhau qua `unionId`, nên người ở đầu kia là thành viên CÒN LẠI.
+       */
+      ...(r.kind === 'parent-child' && r.objectPersonId
+        ? { doiTuongId: r.objectPersonId }
+        : r.kind === 'union-partner' && r.unionId
+          ? (() => {
+              const kia = (unionMembers.get(r.unionId) ?? []).find((id) => id !== pid);
+              return kia ? { doiTuongId: kia } : {};
+            })()
+          : {}),
       createdByAccountId: r.createdByAccountId,
       createdAt: r.createdAt.toISOString(),
     }));

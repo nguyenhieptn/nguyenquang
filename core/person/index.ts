@@ -35,6 +35,16 @@ export type PersonAssertion = {
   sourceDescription: string;
   /** kind 'told-by' sources: who told it (radius-filtered name). */
   toldByName?: string;
+  /**
+   * Người ở ĐẦU KIA của một khẳng định quan hệ — cha/mẹ với `parent-child`, bạn đời với
+   * `union-partner`. Vắng với mọi loại khác.
+   *
+   * Có mặt từ 26/08/2026 sau code review story 6-7: cột phải bày quan hệ thành chip bấm được,
+   * mà chip dựng từ `relations` thì KHÔNG biết mình thuộc khẳng định nào — nên nó không mang
+   * được tầng, không mang được nguồn, và hai lời khai về cùng một cặp thu lại thành một chip.
+   * Dòng phải tự nói ra nó nói về ai.
+   */
+  doiTuongId?: string;
   createdByName: string;
   createdAt: string; // ISO
 };

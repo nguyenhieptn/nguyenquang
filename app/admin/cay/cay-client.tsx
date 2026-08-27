@@ -15,7 +15,7 @@
  * trong khi luật của 5-2 là *chọn người thì canvas đứng yên*. Một lượt gọi server action giữ
  * canvas nguyên vẹn và chỉ cột phải đổi.
  */
-import { useCallback, useRef, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { KhungCayAdmin, type NutCanvas } from '@/components/admin/khung-cay-admin';
 import { CotKhangDinh, type HoSoPanel } from '@/components/admin/cot-khang-dinh';
@@ -61,7 +61,17 @@ export function CayClient({
   xinVaoPha: Record<string, { attachmentId: string; luc: string }>;
 }) {
   const router = useRouter();
-  const [chonId, setChonId] = useState<string | null>(null);
+  /**
+   * ── Mở màn là mở HỒ SƠ CỦA NEO (sửa 26/08 sau code review) ────────────────────────────────
+   *
+   * Bản trước khởi tạo `null`, nên vào màn cây là cột phải trắng — và tệ hơn: bấm một chip quan
+   * hệ dời tâm sang người ấy thì trang gắn `key={anchorPersonId}` ⇒ khối này dựng lại ⇒ `chonId`
+   * lại về `null`. Đường điều hướng mà story gọi là "nhanh nhất trong cả bàn làm việc" bỏ người
+   * vận hành vào một cột trống, phải bấm lại lên chính người vừa chọn.
+   *
+   * Neo là chỗ đứng; hồ sơ của chỗ đứng là thứ đáng bày trước tiên.
+   */
+  const [chonId, setChonId] = useState<string | null>(neoId);
   const [hoSo, setHoSo] = useState<HoSoPanel | null>(null);
   const [dangTai, batDauTai] = useTransition();
 
@@ -129,10 +139,17 @@ export function CayClient({
       try {
         res = await xemHoSo(personId);
       } catch {
-        // Reject trong transition đi thẳng ra `reportGlobalError`, không tới `error.tsx`. Không
-        // bắt thì cột phải đứng im ở "Đang mở hồ sơ…" và không ai biết vì sao.
+        /**
+         * Reject trong transition đi thẳng ra `reportGlobalError`, không tới `error.tsx`. Không
+         * bắt thì cột phải đứng im ở "Đang mở hồ sơ…" và không ai biết vì sao.
+         *
+         * `loiDoc: true` — sửa 26/08 sau code review. Bản trước đặt `chong: []` không kèm cờ, nên
+         * mạng đứt giữa chừng in ra *"Chưa có khẳng định nào sống về người này"* kèm nút Ghi thêm,
+         * cho một hồ sơ CHƯA đọc được: đường thẳng tới một khẳng định trùng, thứ chỉ loại được
+         * chứ không xoá được (AD-4). Nhánh `!res.ok` ngay dưới đã đặt đúng từ đầu.
+         */
         if (dangMuon.current === personId) {
-          setHoSo({ personId, hoTen: 'Không mở được hồ sơ', chong: [] });
+          setHoSo({ personId, hoTen: 'Không mở được hồ sơ', chong: null, loiDoc: true });
         }
         return;
       }
@@ -166,6 +183,7 @@ export function CayClient({
                 kieu: c.stackKind,
                 dong: c.rows.map((r) => ({
                   id: r.assertionId,
+                  ...(r.doiTuongId ? { doiTuongId: r.doiTuongId } : {}),
                   giaTri: r.valueText,
                   chinhThuc: r.tier === 'official',
                   tinCay: r.confidence,
@@ -190,6 +208,17 @@ export function CayClient({
    * Dời tâm KHÔNG cần dọn dẹp ở đây: trang gắn `key={neo}` nên cả component dựng lại, người đang
    * chọn tự về `null`. Rẻ hơn một effect canh `neoId`, và không quên được.
    */
+  /**
+   * Nạp hồ sơ của NEO một lượt khi vào màn. Không phải đồng bộ hai state — là một lượt ĐỌC, và
+   * `napHoSo` chạy trong `startTransition` chứ không `setState` thẳng trong thân effect.
+   *
+   * Trang gắn `key={anchorPersonId}` nên khối này dựng lại mỗi lần đổi neo ⇒ effect chạy đúng
+   * một lần cho mỗi chỗ đứng.
+   */
+  useEffect(() => {
+    napHoSo(neoId);
+  }, [neoId, napHoSo]);
+
   const chon = useCallback(
     (id: string) => {
       setChonId(id);
@@ -197,7 +226,16 @@ export function CayClient({
       // người A trong khi mọi nút trên đó — Nhận vào phả, Nâng tầng, Loại — đang trỏ vào B.
       // "Nhận vào phả" trao quyền ghi và mở bán kính riêng tư: hiện sai tên ở đó là hỏng nặng.
       setHoSo(null);
-      napHoSo(id);
+      /**
+       * `batBuoc` — sửa 26/08. `chon()` vừa xoá `hoSo`, nên nó LUÔN cần một lượt nạp; hàng rào
+       * chống-đua của `napHoSo` (bỏ qua khi `dangMuon.current` đã là người này) đúng cho lượt
+       * gọi tự động, sai cho một cú bấm có chủ ý.
+       *
+       * Ca hỏng: mở màn nạp sẵn hồ sơ của NEO ⇒ `dangMuon.current = neoId`. Bấm lên chính người
+       * ấy trên cây ⇒ `hoSo` bị xoá, lượt nạp bị bỏ, cột phải trắng vĩnh viễn cho tới khi chọn
+       * người khác.
+       */
+      napHoSo(id, true);
     },
     [napHoSo],
   );
@@ -449,7 +487,15 @@ export function CayClient({
             }}
             onTimNguoi={timNguoiOnDinh}
             /* Chip quan hệ dời tâm canvas — cùng lối "Đặt làm tâm" đã có, không dựng đường thứ hai. */
-            onMoNguoi={doiNeo}
+            /**
+             * `chon`, KHÔNG `doiNeo` — sửa 26/08 sau lượt dùng thật.
+             *
+             * Bấm một chip quan hệ là muốn XEM người ấy, không phải muốn đổi chỗ đứng. Nối vào
+             * `doiNeo` thì cả canvas nhảy đi và người vận hành mất phương hướng — đúng luật story
+             * 5-2 đã chốt: *chọn một người thì canvas ĐỨNG YÊN*. Dời tâm vẫn có đường riêng, là
+             * nút "Đặt làm tâm" trên thanh công cụ, và nó phải là một hành động có chủ ý.
+             */
+            onMoNguoi={chon}
             onTimNoi={async (ten, donViCha) => {
               const res = await timNoi(ten, donViCha);
               /**

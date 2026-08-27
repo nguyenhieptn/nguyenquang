@@ -21,6 +21,7 @@
  * hình dạng dưới đây, do trang dịch từ `NeighborhoodNode` sang — cùng nếp `KetQuaTim` của ô tìm.
  */
 import { Crown, Users } from 'lucide-react';
+import { NHAN_TIN_CAY } from './phieu-ly-lich';
 import { Handle, Position, type NodeProps, type NodeTypes } from '@xyflow/react';
 import { dongBanDoi, type BanDoiThe } from './ban-doi-the';
 
@@ -65,11 +66,6 @@ const HINH_TIN_CAY: Record<MucTinCay, string> = {
   'chac-chan': '●',
   'theo-loi-ke': '◐',
   'ton-nghi': '○',
-};
-const NHAN_TIN_CAY: Record<MucTinCay, string> = {
-  'chac-chan': 'chắc chắn',
-  'theo-loi-ke': 'theo lời kể',
-  'ton-nghi': 'tồn nghi',
 };
 const MAU_TIN_CAY: Record<MucTinCay, string> = {
   'chac-chan': 'var(--color-tin-chac-chan)',

@@ -3,7 +3,7 @@ baseline_commit: ff8ea7e
 ---
 # Story 6.7: Hồ sơ đầy đủ ở cột phải
 
-Status: review
+Status: in-progress
 
 ## Story
 
@@ -48,7 +48,11 @@ bắt người vận hành nhớ mình đang ở đâu) và **gộp hẳn** (m�
 
 ### Khối tóm tắt
 
-4. Ngay dưới `<h2>` tên: một dòng gồm **năm sinh–năm mất · đời · chi**, ngăn bằng `·`. Thiếu phần
+4. ~~Ngay dưới `<h2>` tên: một dòng gồm **năm sinh–năm mất · đời · chi**~~ — **ĐẢO 26/08 sau
+   code review.** Dòng dẫn xuất chỉ còn **đời · chi**: chồng *Sinh* ngay dưới nói đúng chuyện
+   năm sinh, nên bày cả hai là in một thứ hai lần. Lượt sửa đầu ghi đè `lifespan: ''` tại nơi
+   gọi mà KHÔNG gỡ đường ống — cả chuỗi sáu tầng vẫn còn và bốn bài test chỉ soi mã chết. Nay gỡ
+   hẳn. Còn nguyên văn AC cũ:, ngăn bằng `·`. Thiếu phần
    nào thì **bỏ hẳn phần ấy**, không in "chưa rõ" cho mỗi ô trống — một dòng toàn "chưa rõ" là một
    dòng không ai đọc.
 5. Người **còn sống** không bày năm mất, và `lifespan` của core đã lo đúng chuyện ấy (FR-37: người
@@ -69,8 +73,10 @@ bắt người vận hành nhớ mình đang ở đâu) và **gộp hẳn** (m�
 
 ### Sửa tại chỗ
 
-13. Mỗi mục tóm tắt có khẳng định tương ứng (`name` · `birth` · `death`) thì **bấm được để mở
-    thẳng biểu mẫu ghi thêm của đúng chồng ấy** — không bắt người vận hành tự tìm chồng dưới.
+13. ~~Mỗi mục tóm tắt có khẳng định tương ứng thì bấm được để mở biểu mẫu của chồng ấy~~ —
+    **ĐẢO 26/08 cùng lý do với AC 4.** Sau khi `lifespan` rời dòng dẫn xuất, dòng ấy chỉ còn đời
+    và chi — hai thứ **không có chồng nào** (AD-5), nên không còn gì để bấm. Trường `khoaChong`
+    (được tính, có test riêng, không nơi nào đọc) đã gỡ cùng lượt. Nguyên văn AC cũ: — không bắt người vận hành tự tìm chồng dưới.
 14. Mục không có chồng tương ứng (đời, chi — chúng là **dẫn xuất**, AD-5) thì **không bấm được**,
     và không giả vờ bấm được. Đời và chi tính lúc đọc; không có gì để sửa.
 
@@ -101,6 +107,36 @@ bắt người vận hành nhớ mình đang ở đâu) và **gộp hẳn** (m�
 - [x] **T6** Test thuần cho `tieu-su.ts` (xem § Testing)
 - [x] **T7** `npm run lint` (lệnh ĐẦY ĐỦ) · `npx tsc --noEmit` · `npx vitest run` · `npm run build`
 - [ ] **T8** Mở màn thật và nhìn — cột 382.5px, và ghi kết quả vào § Completion Notes
+
+### Review Findings
+
+Code review 26/08/2026 — ba tầng đối kháng độc lập, **cả ba đều có trình duyệt** (`scripts/soi-man.mjs`),
+lượt review đầu tiên của dự án làm được điều đó. Mức nghiêm trọng do người điều phối tự chấm sau
+khi mở mã và tự đo lại.
+
+**Bốn cổng xanh với TOÀN BỘ danh sách dưới đây.**
+
+- [x] [Review][Patch] **Chip quan hệ xoá sạch dấu TỒN NGHI — cùng một khẳng định vẽ hai kiểu trong cùng một cột** — `CHIP` là `border` nét liền; chỗ DUY NHẤT vẽ `border-dashed van-ton-nghi` là `GiaTri`, mà hàng có chip thì không đi qua đó. Đo được: chip `Nguyễn Quang Vinh` → `solid`/`none`; cùng khẳng định ấy trong `<details>` → `dashed`/`repeating-linear-gradient(135deg)`. Phả hiện có 40/40 khẳng định tồn nghi: `Tên` và `Sinh` mang đúng dấu, ba hàng quan hệ thì không. Một lời khai chưa ai đối chiếu nói bằng giọng của sự thật đã chốt. [components/admin/cot-khang-dinh.tsx:138,400,608]
+- [x] [Review][Patch] **Hàng Con: không tầng, không nguồn, và không có lối nào tới nguồn** — `HangChip` cố ý không có `<details>`, nên từ phiếu người cha không có bất kỳ đường nào xem ai khai, khai từ đâu, tầng nào. Muốn kiểm phải dời tâm sang đứa con và mất chỗ đang đứng. [components/admin/cot-khang-dinh.tsx:387-415]
+- [x] [Review][Patch] **Bấm chip dời tâm rồi bỏ người vận hành vào cột TRỐNG** — đo trên trình duyệt: URL đổi sang `?neo=…`, cột phải hiện *"Chọn một người trên cây…"*. `page.tsx` gắn `key={anchorPersonId}` ⇒ `chonId` về `null`. AC 10 gọi đây là "đường điều hướng nhanh nhất trong cả bàn làm việc". [app/admin/cay/cay-client.tsx:190-191,261]
+- [x] [Review][Patch] **AC 13 KHÔNG đạt, T5 tích khống, `khoaChong` là mã chết CÓ TEST** — `DongDanXuat` là một `<p>` chữ chết: không `<button>`, không `onClick`, không đọc `m.khoaChong`. Trường ấy được tính và có bài test riêng chốt `['birth', null, null]`, không nơi nào trong sản phẩm gọi. Đúng lớp lỗi `laLoaiChon` mà chính § Completion Notes của story này viện dẫn làm bài học đã học. [components/admin/cot-khang-dinh.tsx:368-375; components/admin/tieu-su.ts:32]
+- [x] [Review][Patch] **Đường ống `lifespan` chết trọn vẹn, và AC 4 bị đảo trong IM LẶNG** — `cot-khang-dinh.tsx:370` ghi `{...hoSo.tieuSu, lifespan: ''}` ngay tại nơi gọi DUY NHẤT, xoá trắng đúng trường mà sáu tầng plumbing được dựng để mang. Kéo theo: nhánh `lifespan` của `dongTieuSu` không bao giờ chạy, và **bốn trên sáu bài test của nó chỉ soi mã chết** — kể cả bài mang tên *"người còn sống: lấy NGUYÊN chuỗi của core"* (FR-37). AC 6 và AC 7 được đảo đúng cách (gạch + ghi ngày); AC 4 thì không. [components/admin/cot-khang-dinh.tsx:370]
+- [x] [Review][Patch] **Chip là TẤT-CẢ-HOẶC-KHÔNG ⇒ hàng bày THIẾU người** — chú thích hứa *"vắng chip không được biến thành vắng thông tin"*, nhưng lối thoát chỉ mở khi `chip.length === 0`. Có MỘT phần thì `coChip` bật và cả `chong.dong` bị vứt khỏi hàng. Hai ca thật: `relations` và `stacks` lọc theo hai luật khác nhau (mẹ ngoài bán kính ⇒ hàng bày một cha mẹ, im lặng); và `bestEdge` dedupe theo `childId|parentId` nên *"con ruột"* + *"con nuôi"* cùng một cặp gộp thành MỘT chip trong khi `xepChong` giữ cả hai. [components/admin/cot-khang-dinh.tsx:495]
+- [x] [Review][Patch] **Nét đứt gán NHẦM TRỤC** — `DESIGN.md:171-174` gán nét đứt + vân chéo cho **MỨC TIN CẬY** (bảng ba hàng `chắc chắn` · `theo lời kể` · `tồn nghi`); mã nhánh theo `dong.chinhThuc`, tức **TẦNG**. Hệ quả: `Tầng chính thức` + `tinCay: 'ton-nghi'` vẽ nét liền dù spec đòi nét đứt, và hai mức `chắc chắn` / `theo lời kể` không phân biệt được ở bất kỳ đâu trên mặt phiếu — trong khi `EXPERIENCE.md:397` nói sàn ấy tồn tại để phủ FR-2. *Có từ story 5-3, nhưng 6-7 viết lại đúng đoạn này.* [components/admin/cot-khang-dinh.tsx:426]
+- [x] [Review][Patch] **Nhãn hàng MÂU THUẪN gãy làm hai dòng, và cổng tự dựng mù với nó** — nhánh mâu thuẫn nhét `<TriangleAlert>` + `gap-1` vào CHÍNH hộp `w-[72px]` đã đo cho nhãn dài nhất: còn `72 − 17 − 4.25 = 50.75px`, mà *"Giới tính"* @15px semibold = 63px. `gender` là `DON_TRI: true` nên ca này tới được bằng đúng một lượt ghi lại giới tính. `soi-man.mjs:144` chỉ báo khi cao > 50px, mà `min-h-11` = 46.75px ⇒ cổng in `gãy dòng: không có ✓` trong khi nhãn đã gãy. [components/admin/cot-khang-dinh.tsx:128,571]
+- [x] [Review][Patch] **`<details>` gập lại nuốt biểu mẫu đang gõ dở, rồi nút cuối phiếu xoá không hỏi** — `moGhi` là state React, đóng/mở `<details>` là state của trình duyệt; hai thứ không biết nhau. Mở tam giác → *Ghi thêm năm sinh* → gõ dở → gập tam giác → biểu mẫu biến khỏi màn nhưng `moGhi` vẫn `'birth'` → cuối phiếu vẫn là nút, bấm vào ⇒ unmount, mất sạch chữ đã gõ. [components/admin/cot-khang-dinh.tsx:198,346,644]
+- [x] [Review][Patch] **Neo hàng Con trượt xuống đáy đúng ở THUỶ TỔ** — người không có cha mẹ được chép thì `chong` không có `parent-child` (AD-18: khẳng định thuộc về NGƯỜI CON); vợ chưa được chép tên thì cũng không có `union-partner`. Khi ấy `neo === -1` và `neoPhu === -1` ⇒ Con xuống sau cả `place` và `note` — đúng cái hỏng module tự khai là sinh ra để sửa, và nó rơi vào người mà danh sách con gần như là toàn bộ hồ sơ. Test đang chốt hành vi này như thể đúng. [components/admin/phieu-ly-lich.ts:40-42]
+- [x] [Review][Patch] **`cay-client.tsx:135` nhánh `catch` thiếu `loiDoc: true`** — mạng đứt ⇒ cột in *"Chưa có khẳng định nào sống về người này"* kèm nút Ghi thêm, cho một hồ sơ CHƯA đọc được: đường thẳng tới một khẳng định trùng. Nhánh `!res.ok` ngay dưới đặt đúng, kèm 8 dòng chú thích giải thích vì sao. Có từ `607f9a2`, nhưng story này là story dựng lại ba trạng thái ấy. [app/admin/cay/cay-client.tsx:135]
+- [x] [Review][Patch] **`core/seed/ops.ts` lấn phạm vi, làm lệch một tài liệu, và xoá mất phép phân biệt hai lượt nạp** — hunk sửa xuất xứ lượt nạp CSV không có trong § Phạm vi, § Tasks, § Dev Notes, § File List hay § Completion Notes (chỉ commit message khai). `docs/phieu-khai-gia-pha.md:143` nay nói sai. Và `luc` chỉ có NGÀY, nên hai lượt nạp cùng ngày cho ra câu nguồn giống hệt nhau từng chữ — số dòng từng là mục duy nhất tách được hai lượt, mà gỡ một lượt nạp sai là đi loại từng khẳng định ở đúng cột này. [core/seed/ops.ts:261]
+- [x] [Review][Patch] **Hồ sơ story khai sai LẦN THỨ HAI, cùng lớp lỗi lượt 6-1 vừa bắt** — § Debug Log ghi *"260/260, +6 THUẦN"*, chạy thật **285/285, +31** (commit message ghi đúng, story thì không). § File List thiếu **ba** file: `phieu-ly-lich.ts` · `phieu-ly-lich.test.ts` · `core/seed/ops.ts`. *"`tieu-su.test.ts` — 8 bài"* thật ra **10**. § Testing không có một dòng nào cho 21 bài của `phieu-ly-lich`. § Quyết định hình thức chốt *"chồng khẳng định nằm dưới KHÔNG ĐỔI GÌ"* trong khi file ấy đổi 594 dòng.
+- [x] [Review][Patch] **Bốn chỗ chú thích và số đo nói về một bản đã bị thay** — khối chú thích mồ côi ở `phieu-ly-lich.ts:65-79` mở bằng *"MỘT dòng nguồn"* và có mục *"vì sao gộp hai dòng thành một"*, ngay trên khối thật nói *"tách làm HAI hàng"* · `:93` bảo *"phép bỏ trùng thôi cần tới"* trong khi `:100` vẫn chạy và test vẫn chốt nó · `cot-khang-dinh.tsx:734` trỏ `§ dongNguon` (hàm tên `hangNguon`) và nói *"MỘT dòng nguồn, không ba"* khi nó trả hai · `tieu-su.ts:11` ghi cột **382.5px**, đo thật **360px**, và AC 18 cũng ghi 382.5px.
+- [x] [Review][Patch] **Ba chỗ nhân bản mà chính repo có chú thích cấm** — `NHAN_TIN_CAY` chép lần thứ hai trong cùng thư mục (`phieu-ly-lich.ts:50` vs `the-nguoi.tsx:69`) · nhãn `'Cha mẹ'`/`'Vợ chồng'` viết cứng lần thứ **ba** (`cot-khang-dinh.tsx:290`, sau `core/person/chong.ts:64` và `loai-ghi-them.ts:34`) — mà `loai-ghi-them.ts:32` cảnh báo đúng chuyện này · `gonGiaTri` sống trong `tieu-su.ts` dù không dính gì tới tiểu sử, buộc `cot-khang-dinh.tsx:679` phải chỉ đường sang một module chẳng liên quan.
+
+- [x] [Review][Defer] Chip cho người ẩn danh: N nút giống hệt nhau + UUID thật vào URL [components/admin/cot-khang-dinh.tsx:400] — deferred, KHÔNG tới được trên bề mặt B (`visibilityFor:75` trả `'full'` cho admin/branch-head với mọi người); sẽ cắn nếu phiếu được tái dùng ở bề mặt A
+- [x] [Review][Defer] `đời 0` / `đời -1` in thẳng dưới tên khi có người kết hôn vào họ mà cha được chép [components/admin/tieu-su.ts:45] — deferred, theo nếp cả repo (`app/(pha)/nguoi/[id]/page.tsx:61` cùng phép), không phải lỗi story này sinh ra
+- [x] [Review][Defer] `chipKhongChong` là nhánh gần như chết, và nếu sống thì `chenHangCon` đẩy Cha mẹ/Vợ chồng xuống sau Ghi chú [components/admin/cot-khang-dinh.tsx:227] — deferred, chỉ tới được khi hai luật lọc tách nhau
+- [x] [Review][Defer] Hàng Con phình theo số con (109px với hai đứa, ~250px với năm) [components/admin/cot-khang-dinh.tsx:387] — deferred, cần một quyết định hình (cuộn ngang? gập sau N?) chứ không phải một lượt vá
+
 
 ## Dev Notes
 
@@ -158,9 +194,14 @@ Claude Opus 5 · 26/08/2026.
 
 ### Debug Log References
 
-`npm run lint` sạch · `npx tsc --noEmit` sạch · `npx vitest run` **260/260** (254 trước story ⇒
-+6 THUẦN; 8 bài lượt đầu, trừ 2 bài của `dongXuatXu` đã gỡ cùng hàm) · `npm run build` xanh,
-36 route.
+**Sau lượt vá code review 26/08:**
+
+`npm run lint` sạch · `npx tsc --noEmit` sạch · `npx vitest run` **286/286** · `npm run build`
+xanh, 36 route.
+
+Bài test thuần của story: `tieu-su.test.ts` **5** · `phieu-ly-lich.test.ts` **27** — cộng các
+bài sẵn có của `loai-ghi-them`/`quan-he-ghi-them`. (§ Debug Log bản trước ghi *"260/260, +6
+THUẦN"*; con số ấy sai ngay lúc viết — chạy thật khi ấy là 285. Lượt review bắt được.)
 
 ### Completion Notes List
 
@@ -172,10 +213,17 @@ Xem § Completion Notes.
 - `components/admin/tieu-su.ts` — module thuần: dựng mục tóm tắt, quyết mục nào bấm được
 - `components/admin/tieu-su.test.ts` — 8 bài
 
+**Mới (bổ sung sau review — bản trước thiếu ba file)**
+- `components/admin/phieu-ly-lich.ts` + `.test.ts` — phần thuần của phiếu: `chenHangCon` ·
+  `hangNguon` · `hienGiaTriTrongChiTiet` · `gonGiaTri` · `NHAN_TIN_CAY`
+
 **Sửa**
-- `app/admin/cay/actions.ts` — `xemHoSo` thôi vứt `card` và `relations`; `HoSoNguoi` mang `tieuSu` + `quanHe`
-- `components/admin/cot-khang-dinh.tsx` — `TomTat` + `ChipQuanHeNhom`, prop `onMoNguoi` bắt buộc
-- `app/admin/cay/cay-client.tsx` — truyền hai trường mới, nối chip vào `doiNeo`
+- `app/admin/cay/actions.ts` — `xemHoSo` thôi vứt `card` và `relations`
+- `components/admin/cot-khang-dinh.tsx` — dựng lại phần vẽ thành phiếu hai cột
+- `app/admin/cay/cay-client.tsx` — truyền `doiTuongId`, mở hồ sơ của neo khi vào màn
+- `components/admin/the-nguoi.tsx` — thôi giữ bản `NHAN_TIN_CAY` thứ hai
+- `core/person/index.ts` + `read-ops.ts` — `PersonAssertion.doiTuongId` (vá review)
+- `core/seed/ops.ts` + `docs/phieu-khai-gia-pha.md` — xuất xứ CSV thôi mang số dòng
 
 ## Completion Notes
 

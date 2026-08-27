@@ -148,7 +148,9 @@ const gay = await p.evaluate(() => {
   const ra = [];
   for (const e of document.querySelectorAll('aside h3, aside section button')) {
     const r = e.getBoundingClientRect();
-    if (r.height > 50) ra.push({ chu: (e.textContent ?? '').trim().slice(0, 24), cao: Math.round(r.height) });
+    // 46.75px = `min-h-11` ở gốc 17px. Ngưỡng cũ là 50px, nên HAI dòng chữ 15px (~40px) vẫn lọt
+    // qua và cổng in "không có ✓" trong khi nhãn đã gãy — chính ca `Giới tính` cạnh dấu ⚠.
+    if (r.height > 46.75) ra.push({ chu: (e.textContent ?? '').trim().slice(0, 24), cao: Math.round(r.height) });
   }
   return ra;
 });

@@ -154,3 +154,26 @@ gốc để lần sau không phải điều tra lại.
   gọi `timNguoi`, mỗi cái một bộ trạng thái và một mức ngữ nghĩa a11y khác nhau. *Lý do hoãn:
   gộp chúng cần chốt bề mặt A và bề mặt B dùng chung được tới đâu — bề mặt A có NFR-5 bó vào một
   câu hỏi một màn.*
+
+## Deferred from: code review of story 6-7-ho-so-day-du-o-cot-phai (2026-08-26)
+
+- **Chip người ẩn danh: N nút giống hệt nhau, mỗi nút mang UUID thật vào URL.**
+  `read-ops.ts:106` trả `fullName: ANONYMOUS_LABEL` nhưng GIỮ NGUYÊN `personId`, và `xemHoSo` bê
+  thẳng cả cặp sang `ChipQuanHe`. Ba con vị thành niên ⇒ ba nút `Một người trong họ` không phân
+  biệt được, bấm cái nào cũng đẩy định danh của một đứa trẻ vào thanh địa chỉ và log máy chủ.
+  *Lý do hoãn: KHÔNG tới được trên bề mặt B — `visibilityFor:75` trả `'full'` cho admin và
+  branch-head với mọi người. Nhưng phiếu này là thứ đáng tái dùng ở bề mặt A, và ngày ấy nó cắn.*
+
+- **`đời 0` / `đời -1` in thẳng ra dưới tên.** `computeStructure` đặt gốc `generation = 1` rồi BFS
+  đi lên trừ 1, nên một người kết hôn vào họ ở đời 1 mà CÓ cha được chép thì người cha nhận
+  `generation = 0`. *Lý do hoãn: theo nếp cả repo (`app/(pha)/nguoi/[id]/page.tsx:61` cùng phép);
+  sửa đúng là sửa `computeStructure`, không phải sửa chỗ bày.*
+
+- **Hàng Con phình theo số con.** Đo được 109px với hai đứa; cột giá trị còn ~202px nên chip xếp
+  dọc. Năm con ⇒ ~250px cho một hàng. *Lý do hoãn: cần một quyết định về hình (cuộn ngang? gập
+  sau N? đổi sang danh sách chữ?) chứ không phải một lượt vá.*
+
+- **`chipKhongChong` gần như là nhánh chết.** Khi `chong !== null` nó không bao giờ khác rỗng —
+  cạnh và chồng lọc chung `status = 'live'`. Chỉ sống ở ca `chong === null`, mà ở đó mảng chồng
+  rỗng nên chỗ nối không quan trọng. *Lý do hoãn: nếu một ngày hai luật lọc tách nhau,
+  `chenHangCon` sẽ đẩy Cha mẹ/Vợ chồng xuống sau Ghi chú — ghi ra để lần ấy không phải điều tra lại.*
