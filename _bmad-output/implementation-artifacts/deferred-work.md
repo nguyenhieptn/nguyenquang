@@ -177,3 +177,22 @@ gốc để lần sau không phải điều tra lại.
   cạnh và chồng lọc chung `status = 'live'`. Chỉ sống ở ca `chong === null`, mà ở đó mảng chồng
   rỗng nên chỗ nối không quan trọng. *Lý do hoãn: nếu một ngày hai luật lọc tách nhau,
   `chenHangCon` sẽ đẩy Cha mẹ/Vợ chồng xuống sau Ghi chú — ghi ra để lần ấy không phải điều tra lại.*
+
+## Deferred from: nghiệm thu AC 28 story 6-1 (2026-08-26)
+
+- **Ô tìm người khớp gấp dấu, nên "Quản" lôi ra cả họ Nguyễn Quang.**
+  `chuanHoa` gấp dấu theo AD-16: `Quản → quan`, mà `Quang → quang` **chứa** `quan`. Gõ "Quản"
+  trong phả hiện tại trả về SÁU người — `Nguyễn Quang Anh · Hải · Hiệp · Trung · Vinh` rồi mới
+  tới `Quản Thị Huyền`, đứng **cuối**.
+
+  Trong một dòng họ mà chữ đệm là **Quang**, mọi từ khoá bắt đầu bằng "Qu" đều lôi ra gần như cả
+  họ, và người cần tìm bị đẩy xuống đáy. Đây là bề mặt mà một cú bấm nhầm ghi một lời khai sai
+  vào một cuốn sổ không có nút xoá — và nó đã xảy ra thật trong lượt nghiệm thu AC 28 ngày
+  26/08: kịch bản bấm ứng viên đầu tiên và ghi *"Nguyễn Gia Linh là con ruột của Nguyễn Quang
+  Anh"*, một lời khai sai. Đã gỡ bằng `Loại quan hệ này`; `create` + `remove` nằm trong nhật ký.
+
+  Ba tầng code review đọc mã không thấy. `soi-man.mjs` không thấy. Chỉ bấm thật mới thấy.
+
+  *Lối chữa:* khớp ĐÚNG DẤU xếp trên khớp gấp dấu — "Quản Thị Huyền" đứng đầu khi gõ "Quản".
+  `core/so-khop` đã có bộ chấm điểm cho NƠI (`chamDiemNoi`); người thì đang dùng khớp chuỗi con
+  trần. *Lý do hoãn: chủ dự án chốt chưa cần (26/08).*

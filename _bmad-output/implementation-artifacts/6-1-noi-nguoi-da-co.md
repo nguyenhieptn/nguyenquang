@@ -140,8 +140,9 @@ Story này nhận.
 24. Bộ chọn KHÔNG được bày người ngoài bán kính riêng tư — `searchPersons` đã lọc, **đừng thêm một
     đường đọc thứ hai** đi vòng qua nó (AD-13, AD-21).
 25. Sàn chạm **44px**, sàn chữ **17px** trên mọi thành phần mới. Chật thì bớt mục, **không thu
-    chữ**. Nhớ gốc `html { font-size: 17px }` (`globals.css:187`): `w-90` là **382.5px** chứ không
-    phải 360px — Tailwind tính theo `rem`.
+    chữ**. Cột phải khai `w-[360px]` tường minh nên nó đúng 360px; lưu ý chung vẫn đúng cho mọi
+    lớp Tailwind theo `rem` — gốc `html { font-size: 17px }` (`globals.css:187`) nên `w-90` là
+    **382.5px**, không phải 360px.
 26. Không phân biệt chỉ bằng màu. Không đổ bóng (`DESIGN.md § Elevation & Depth`).
 27. Không xưng hô ngôi hai, kể cả chữ *"bạn"* (`EXPERIENCE.md § Voice and Tone`).
 
@@ -183,7 +184,7 @@ Story này nhận.
       changes so với thói quen cũ (`docs/next16-delta.md`).
 - [x] **T8** Chạy `npm run lint` (KHÔNG phải `npx eslint app components`) · `npx tsc --noEmit` ·
       `npx vitest run` · `npm run build`
-- [ ] **T9** Nghiệm thu trên phả thật (AC 28), rồi ghi kết quả vào § Completion Notes
+- [x] **T9** Nghiệm thu trên phả thật (AC 28) — xong 26/08, xem § Nghiệm thu AC 28
 
 ### Review Findings
 
@@ -251,7 +252,7 @@ Nên bài test đầu tiên phải khẳng định **chiều**, không chỉ kh�
 ### Học từ Epic 5 mang sang
 
 1. **Bốn cổng xanh không phải xanh với người.** 88 phát hiện của hai lượt review đều đi qua
-   `tsc`/`eslint`/`vitest`/`build`. Story này có phần hình ảnh (bộ chọn trong cột 382.5px) —
+   `tsc`/`eslint`/`vitest`/`build`. Story này có phần hình ảnh (bộ chọn trong cột 360px) —
    ghi thẳng vào § CHƯA kiểm được thứ mình không nhìn được, đừng tích ô.
 2. **`npm run lint`, không phải lệnh hẹp.** `npx eslint app components` từng xanh trong khi lệnh
    đầy đủ đỏ 13 lỗi.
@@ -473,16 +474,63 @@ trúc, và nó không tốn một lượt gọi máy chủ nào.
 
 ### CHƯA kiểm được — cần mắt người
 
-Máy không có trình duyệt headless; repo chưa có e2e (story 6-6 lo).
+~~Máy không có trình duyệt headless~~ — câu ấy hết đúng từ 26/08 (`scripts/soi-man.mjs`,
+Playwright). Ba mục dưới đây đã đo được và gạch; phần còn lại là thứ đo không trả lời hộ được.
 
-1. **AC 28 — nghiệm thu trên phả thật.** Tôi KHÔNG tự nối Hiệp → Vinh: nó ghi vào phả thật, và
-   cùng lý do đã ghi ở 5-4/5-5/5-6/5-7 — chưa được cho phép. Đường đã dựng, chưa ai bấm.
-2. Bộ chọn trong cột **382.5px** (không phải 360 — gốc `17px`): hai fieldset radio (hướng, quan
-   hệ) cộng danh sách ứng viên có tràn không.
-3. Câu xem trước có đọc ra nghĩa **trước khi** bấm không, hay người ta bấm xong mới đọc.
-4. Đường bàn phím qua combobox: mũi tên, Enter, Escape — viết đủ ngữ nghĩa nhưng chưa ai đi thử.
+1. ~~AC 28 — nghiệm thu trên phả thật~~ — **ĐẠT 26/08.** Xem § Nghiệm thu AC 28 bên dưới.
+2. ~~Bộ chọn trong cột 382.5px~~ — **ĐO ĐƯỢC 26/08**: cột là **360px**, và bộ chọn cộng hai
+   fieldset radio không tràn ngang (`soi-man.mjs`: `tràn ngang: không có ✓`). Con số 382.5px
+   trong bản đầu là suy từ `w-90`, mà cột khai `w-[360px]` tường minh — sai từ lúc viết.
+3. ~~Câu xem trước có đọc ra nghĩa không~~ — **ĐO ĐƯỢC 26/08**, và nó đảo đúng theo hướng:
+   `là cha/mẹ của người này` ⇒ *"Nguyễn Quang Hiệp là con ruột của Nguyễn Quang Hải."*;
+   đổi sang `là con của người này` ⇒ *"Nguyễn Quang Hải là con ruột của Nguyễn Quang Hiệp."*
+   Ứng viên bày kèm **đời · chi · năm sinh** (AC 3). Còn lại chỉ là câu hỏi *người dùng có ĐỌC nó
+   trước khi bấm không* — thứ chỉ người dùng thật trả lời được.
+4. ~~Đường bàn phím qua combobox~~ — **ĐO ĐƯỢC 26/08**, chạy đủ:
+   ```
+   gõ "Nguyễn"      aria-expanded=true · 6 ứng viên (7 người Nguyễn trừ chính mình ✓)
+   ArrowDown        aria-activedescendant → o-0 ; lần 2 → o-1 ; ArrowUp → o-0
+   Enter            chọn được
+   Escape           aria-expanded=false · chữ CÒN NGUYÊN · biểu mẫu vẫn mở
+   ```
+   Escape đóng danh sách mà không đóng luôn biểu mẫu — đúng luật đóng-từ-trong-ra-ngoài
+   (`chon-nguoi.tsx` chặn nổi bọt, thêm ở story 6-9).
 5. Nút **"Loại quan hệ này"** có làm người vận hành tưởng là xoá không (AD-4 nói nó ở lại nhật ký).
 6. Biểu mẫu quan hệ mở trong cột nay có thể chứa: panel duyệt + nhiều chồng + biểu mẫu này.
+
+### Nghiệm thu AC 28 — 26/08/2026, và một lời khai sai tôi tự gây ra
+
+Ca gốc (*"nối Hiệp → Vinh"*) đã mất: cạnh ấy do bộ nạp khung ghi sau lượt xoá-gieo-lại. Ca thay
+thế do chủ dự án xác nhận: **bảng tính chỉ có cột `ten_cha`, nên không đứa con nào trong phả có
+mẹ.** Cạnh `Nguyễn Gia Linh → Quản Thị Huyền` là một sự thật đang thiếu, đúng loại việc tính
+năng này sinh ra để làm.
+
+**Lượt đầu ghi SAI, và phải chép lại ở đây vì nhật ký giữ nó vĩnh viễn (AD-4).** Kịch bản đo bấm
+ứng viên ĐẦU TIÊN mà không kiểm tên, và ghi *"Nguyễn Gia Linh là con ruột của Nguyễn Quang Anh"*
+lúc 20:37:48. Gỡ lúc 20:38:42 bằng chính `Loại quan hệ này`, ghi chú *"Gỡ quan hệ cha con ghi
+nhầm ở bàn làm việc"*.
+
+Lỗi của kịch bản, nhưng nó phơi ra một lỗi thật của tính năng: **ô tìm khớp gấp dấu**, nên `Quản`
+→ `quan` khớp cả `Quang` → sáu ứng viên cho một từ khoá bốn chữ, và người cần tìm đứng **cuối**.
+Trong một dòng họ mà chữ đệm là *Quang*, đó là một cái bẫy có thật. Ba tầng code review đọc mã
+không thấy; `soi-man.mjs` không thấy; chỉ bấm thật mới thấy. Vào `deferred-work.md`; chủ dự án
+chốt chưa cần sửa.
+
+**Lượt hai đạt**, sau khi đổi cách chọn: lọc theo ĐÚNG TÊN thay vì bấm ứng viên đầu, và dừng lại
+kiểm câu xem trước phải khớp nguyên văn trước khi cho phép bấm ghi.
+
+```
+hồ sơ            Nguyễn Gia Linh
+câu xem trước    "Nguyễn Gia Linh là con ruột của Quản Thị Huyền."
+ghi vào phả      tier=tentative (AD-9)
+xuất xứ          "Hiệp xác nhận 26/08/2026 — vợ của cha; bảng tính chỉ chép cột cha"
+kết quả          7 cạnh cha-con · Gia Linh là người ĐẦU TIÊN có cả cha lẫn mẹ
+chồng "Cha mẹ"   hai dòng, kiểu NỐI TIẾP — cha và mẹ cùng đúng, không phải mâu thuẫn
+```
+
+Tiện thể chứng minh luôn **AC 22** (`Loại quan hệ này` gỡ đúng dòng được trỏ tới, không gỡ nhầm
+dòng bên cạnh) và **AC 23** (canvas vẽ lại, người bị tách **không** biến mất khỏi danh sách node)
+— cả hai bằng dữ liệu thật, không phải bằng lập luận.
 
 ### Nợ để lại
 
