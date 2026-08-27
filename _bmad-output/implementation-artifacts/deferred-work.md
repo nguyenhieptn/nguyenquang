@@ -196,3 +196,18 @@ gốc để lần sau không phải điều tra lại.
   *Lối chữa:* khớp ĐÚNG DẤU xếp trên khớp gấp dấu — "Quản Thị Huyền" đứng đầu khi gõ "Quản".
   `core/so-khop` đã có bộ chấm điểm cho NƠI (`chamDiemNoi`); người thì đang dùng khớp chuỗi con
   trần. *Lý do hoãn: chủ dự án chốt chưa cần (26/08).*
+
+## Chốt BỎ — 26/08/2026
+
+Ba việc được nêu và chủ dự án chốt **không làm**. Ghi ra để lần sau không ai đề xuất lại như thể
+chưa ai nghĩ tới.
+
+- **Hàng rào cho `seed-from-sheet.ts`.** Sau lằn ranh (xem `epics-dot-3.md § Lằn ranh bảng tính ⇄
+  phả`), `/admin` là nguồn sự thật, nên chạy lại script là trộn hai nguồn. Đề xuất: hỏi lại, hoặc
+  từ chối khi phả đã có khẳng định không mang nguồn `seed-import`. **Chốt bỏ.** Rủi ro còn nguyên
+  và nó đã có thật: cạnh `Gia Linh → Quản Thị Huyền` ghi 26/08 qua `/admin` **không có trong bảng
+  tính**, nên một lượt xoá-gieo-lại sẽ mất nó.
+
+- **Off-host cho sao lưu (AD-25).** Chốt bỏ — miễn trừ đã ghi vào chính AD-25 và `docs/van-hanh.md`.
+
+- **Đổi mật khẩu quản trị tạm.** Chốt không đổi.

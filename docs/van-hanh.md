@@ -43,8 +43,8 @@ Log web: `var/log/giapha.log`. PID: `var/run/giapha.pid`.
 
 | Nợ | Hệ quả | Lối ra |
 |---|---|---|
-| Bản sao lưu nằm **cùng máy** với production | Cháy máy = mất cả hai (vi phạm AD-25) | Mở bucket R2/B2 bằng quỹ họ, thêm `rclone copy` vào cuối `backup.sh` |
-| Media trên đĩa local, chưa off-host | Như trên, với dữ liệu KHÔNG tái tạo được | Cùng bucket trên; `core/media/storage.ts` đã chừa sẵn cổng S3 |
+| ~~Bản sao lưu nằm cùng máy với production~~ | **CHỐT BỎ 26/08/2026** — miễn trừ phần off-host của AD-25, xem ARCHITECTURE-SPINE § AD-25. Sao lưu vẫn chạy hằng ngày, vẫn 90 ngày, `--restore` vẫn bắt buộc. Cái mất: không đỡ được **mất máy**, mà phả nay đã có dữ liệu chỉ tồn tại trong database | — |
+| ~~Media trên đĩa local, chưa off-host~~ | Cùng miễn trừ trên | — |
 | Google/Facebook login chưa bật | Chỉ đăng nhập bằng tài khoản riêng | Tạo OAuth app, điền `GOOGLE_CLIENT_ID/SECRET` vào `.env` — code đã sẵn |
 | Chưa có TLS / tên miền | Chỉ truy cập qua VPN Tailscale (mã hoá sẵn trong tailnet) | Khi chốt tên miền (PRD Q6): Caddy/Cloudflare Tunnel trước app |
 | Huy hiệu React Flow trên màn cây | Thẩm mỹ | Mua React Flow Pro nếu muốn gỡ |

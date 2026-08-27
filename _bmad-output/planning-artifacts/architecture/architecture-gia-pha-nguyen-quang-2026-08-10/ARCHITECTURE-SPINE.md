@@ -221,6 +221,16 @@ Two release gates, not optional checks: a test that seeds two clans and asserts 
 - **Binds:** FR-47, FR-49, NFR data durability
 - **Prevents:** the product's number-one stated risk — losing the one class of data that cannot be re-created — being managed by an arrangement nobody has ever tested
 - **Rule:** database and object storage are both backed up daily to a destination under separate credentials from production, with **90 days** of history retained. A provider's internal redundancy does not count as the second copy: it protects against their disk failing, not against our deletion, our corruption, or our lost key. A restore is performed and verified at least once a year; a backup that has never been restored is treated as absent.
+- **MIỄN TRỪ — chốt 26/08/2026 bởi chủ dự án.** Phần *off-host* của luật này được bỏ: sao lưu và
+  media ở lại **cùng máy** với production. Phần còn lại giữ nguyên — `backup.sh` vẫn chạy hằng
+  ngày, vẫn giữ 90 ngày, và `--restore` vẫn là phép kiểm bắt buộc.
+
+  **Cái mất, nói thẳng:** bản sao cùng máy chỉ đỡ được *xoá nhầm* và *hỏng dữ liệu*. Nó **không**
+  đỡ được mất máy — cháy, mất ổ, mất quyền truy cập VPS. Từ 26/08 phả đã có dữ liệu **chỉ tồn tại
+  trong database** (cạnh mẹ đầu tiên ghi qua `/admin`, không có trong bảng tính), nên từ đây mất
+  máy là mất một phần phả không dựng lại được từ sheet.
+
+  Ghi ra để lần sau không ai tưởng đây là chỗ quên.
 
 ## Consistency Conventions
 
