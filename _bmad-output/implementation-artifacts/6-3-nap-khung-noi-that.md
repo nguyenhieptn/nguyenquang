@@ -3,7 +3,7 @@ baseline_commit: 6fe5104
 ---
 # Story 6.3: Nội thất bộ nạp khung — ba lỗ im lặng
 
-Status: review
+Status: done
 
 ## Story
 
@@ -134,9 +134,12 @@ phải *"vứt các mối quan hệ dòng này khai"*. Đúng cái hiểu nhầm
     (`wireParentEdge` + vòng union đều chạy trên dòng `link`).
 21. Phân loại (`khop-nguoi-co-san` / `nguoi-moi` / `nghi-trung`) **không đổi** theo `decisions`,
     và `duplicate-in-file` vẫn tính trên mọi dòng — QĐ-2. Có test chốt bất biến này.
-22. `scripts/seed-from-sheet.ts` chạy **hai lượt xem trước**: lượt một (mù) để suy quyết định
-    theo đúng nếp `macDinhCua`, lượt hai (mang quyết định) để lấy cảnh báo trung thực đem in.
-    Cả hai đều không ghi gì và nằm trong cùng một transaction.
+22. `scripts/seed-from-sheet.ts` chạy **hai lượt xem trước**: lượt một (mù) để suy quyết định,
+    lượt hai (mang quyết định) để lấy cảnh báo trung thực đem in. Cả hai đều không ghi gì và nằm
+    trong cùng một transaction.
+    **Sửa 27/08:** AC này từng viết *"theo đúng nếp `macDinhCua`"* — sai, và chú thích trong
+    script cũng khai như vậy. Script cố ý dùng luật KHÁC màn: ở đây không có ai để tích ô, nên
+    *"để lại mọi dòng có cảnh báo"* sẽ lặng lẽ bỏ rơi người. Lý lẽ ghi ở `canh-bao-nap-khung.ts`.
 23. Màn `/admin/nap-khung` cập nhật cảnh báo khi người vận hành đổi quyết định — một server
     action mới nhận `(vanBan, quyetDinh)` và trả cảnh báo theo dòng.
 24. Lượt cập nhật ấy gọi từ **event handler** của nút radio, **KHÔNG** từ `useEffect`. Repo này
@@ -160,8 +163,9 @@ phải *"vứt các mối quan hệ dòng này khai"*. Đúng cái hiểu nhầm
     bỏ · dòng skip có khai quan hệ), nạp qua `/admin/nap-khung`, **xem** bảng — và **không bấm
     Ghi**. Xem trước không ghi gì (`previewSeedOp` NEVER writes), nên ca này an toàn tuyệt đối
     trên phả thật.
-30. Chụp lại màn bằng `scripts/soi-man.mjs` và đo: không chữ nào < 15px, không đích chạm nào
-    < 44px, không tràn ngang.
+30. Chụp lại màn và đo: không chữ nào < 15px, không đích chạm nào < 44px, không tràn ngang.
+    (AC viết `scripts/soi-man.mjs`; thứ thật sự dùng là `scripts/soi-nap-khung.mjs` — script ấy
+    đo `aside` của màn Cây, màn này không có `aside`.)
 
 ## Tasks / Subtasks
 
@@ -192,7 +196,154 @@ phải *"vứt các mối quan hệ dòng này khai"*. Đúng cái hiểu nhầm
 - [x] **T6 — Bốn cổng + một lượt soi** (AC 29–30)
   - [x] `npm run lint` · `npx tsc --noEmit` · `npm test` · `npm run build` (lệnh ĐẦY ĐỦ, không
         lệnh hẹp)
-  - [x] `SOI_MK=… node scripts/soi-man.mjs` trên màn nạp khung với tệp năm ca
+  - [x] `SOI_MK=… node scripts/soi-nap-khung.mjs` trên màn nạp khung với tệp năm ca —
+        **không phải `soi-man.mjs`** như AC 30 ghi: script ấy đo cột phải (`aside`) của màn Cây,
+        mà màn Nạp khung không có `aside`. Dựng script riêng, cùng luật đo, khác chỗ đo.
+
+
+### Review Findings
+
+Code review 27/08/2026 — ba tầng đối kháng chạy song song (Blind Hunter · Edge Case Hunter ·
+Acceptance Auditor), mỗi tầng một phiên riêng. Bốn cổng xanh với **toàn bộ** danh sách dưới đây.
+
+**Quyết định cần người (1)**
+
+- [x] [Review][Decision] **[CHỐT (b): chỉ `spouse-*` thôi bỏ tích]** Loại cảnh báo MỚI bắt tay với luật cũ "có cảnh báo thì bỏ tích", và
+      mặc định nuốt mất một nửa tệp** [`components/admin/canh-bao-nap-khung.ts:122`] — HỒI QUY do
+      chính story này gây ra, hai tầng độc lập cùng chỉ vào. Đo lại trên **tệp mẫu mà chính sản
+      phẩm phát ra** (`getTemplate()`):
+
+      cảnh báo MÙ            : [["spouse-not-found"], []]
+      hướng mặc định         : ["de-lai", "tao-moi"]        ← dòng cụ An bị bỏ tích
+      cảnh báo THEO MẶC ĐỊNH : [["skip-drops-edges","spouse-not-found"], ["father-not-found"]]
+      → số dòng SẼ GHI       : 1 / 2
+
+      Trước story, dòng cụ An **không có cảnh báo nào** ⇒ mặc định `tao-moi` ⇒ cả hai người vào
+      phả và cạnh cha–con được nối. Nay `ten_vo_chong` trỏ tới người **không có dòng riêng** —
+      hình dạng thường gặp nhất của bảng tính chép tay, và là hình dạng chính tệp mẫu dạy — sinh
+      `spouse-not-found`, và luật `de-lai` bỏ tích dòng ấy. Trên tệp 200 dòng, gần như mọi dòng
+      đàn ông sẽ về `skip`. Nút vẫn đọc *"Ghi 1 dòng vào phả"*, bật sẵn, không gì chặn.
+
+      Ba lối, cần chủ dự án chọn:
+      **(a)** cảnh báo về MỐI NỐI thôi bỏ tích — chỉ `nghi-trung` mới để trống quyết định. Khớp
+      với đúng lời sản phẩm đang nói ở khối cảnh báo (*"Ghi vẫn được… Tích chọn ở đầu dòng để vẫn
+      ghi"*), và bịt hồi quy trọn vẹn.
+      **(b)** chỉ `spouse-*` thôi bỏ tích, giữ `father-*` như cũ.
+      **(c)** giữ luật, chỉ sửa câu chữ cho trung thực và bày rõ cái mất.
+
+**Đã vá (19/19) — 27/08/2026**
+
+- [x] [Review][Patch] **Câu *"không có ai tên ấy — cả trong tệp lẫn trong phả"* nay SAI**
+      [`app/admin/nap-khung/nap-khung-client.tsx:614`, và bản sinh đôi cho vợ chồng `:570`] — sau
+      story 6-3, *"trong tệp"* không còn nghĩa là trong tệp; nó nghĩa là *trong những dòng đang
+      được tích*. Cha nằm đúng một dòng bên trên, chỉ là đang bị bỏ tích, mà màn khẳng định không
+      có ai tên ấy — trên chính màn ghi hàng loạt vào kho không có phép xoá. Nặng hơn: câu khuyên
+      bên dưới lái người vận hành sang màn *Mảnh chưa nối* để nối tay, tức **ra khỏi** cách sửa
+      một cú bấm (tích lại dòng cha). Cần một loại thứ ba (`father-skipped` / `spouse-skipped`)
+      hoặc câu chữ phân biệt được hai ca — `previewSeedOp` đã có `rows` đầy đủ trong tay.
+- [x] [Review][Patch] **`skip-drops-edges` chỉ đếm cạnh dòng ấy KHAI, không đếm cạnh khai VỀ nó**
+      [`core/seed/ops.ts:215`] — bỏ tích cụ tổ chi Ba (không có `ten_cha`) thì dòng ấy `warnings`
+      **rỗng** ⇒ `canXemLai` false ⇒ không khối cảnh báo, và **rơi khỏi bộ lọc Cần xem lại**. 34
+      dòng con cháu lặng lẽ nhận `father-not-found`, chip nhảy từ 7 lên 41, mà dòng người ta vừa
+      bấm và đang nhìn thì trắng trơn.
+- [x] [Review][Patch] **Script CLI in cảnh báo rồi ghi ngay nhịp sau** [`scripts/seed-from-sheet.ts:206-208`]
+      — AC 13 đạt theo chữ, hỏng theo việc: giữa lượt in và lượt ghi vĩnh viễn có vài mili-giây,
+      không prompt, không `--xem-truoc`, không ngưỡng dừng. Người vận hành đọc cảnh báo **sau
+      khi** transaction đã commit. Cần một lối chạy khô, hoặc dừng khi có cảnh báo trừ khi được
+      bảo tiếp tục.
+- [x] [Review][Patch] Lượt xem trước THỨ HAI hỏng thì lỗi bị nuốt im lặng
+      [`app/admin/nap-khung/actions.ts:153-157`] — `if (theoMacDinh.ok)` không có nhánh `else`;
+      `canhBaoBanDau` về `{}` ⇒ màn bày cảnh báo MÙ mà `soiHong` vẫn `false`. Đối xứng vỡ: lượt
+      soi lại hỏng thì có hẳn khối chữ nói ra, lượt soi ĐẦU hỏng thì im.
+- [x] [Review][Patch] Nút **Ghi** không khoá khi lượt soi đang bay, cũng không khi nó vừa hỏng
+      [`nap-khung-client.tsx:895-901`] — bấm radio rồi bấm Ghi trong 400ms thì lượt ghi chạy
+      trong khi bảng cảnh báo còn là của bộ quyết định trước. `soiHong` bật rồi thì đứng vĩnh
+      viễn, không nút thử lại nào.
+- [x] [Review][Patch] Câu báo `soiHong` mô tả sai thứ đang bày [`nap-khung-client.tsx:957-960`] —
+      *"đang tính như thể mọi dòng đều được ghi"* là mô tả bản MÙ, thứ đang **không** được bày:
+      khi soi lại hỏng, `canhBaoMoi` giữ nguyên ảnh chụp của bộ quyết định trước.
+- [x] [Review][Patch] `xemLaiCanhBao` vứt mã lỗi [`nap-khung-client.tsx:826`] — phiên hết hạn ra
+      cùng một câu *"Đổi một lựa chọn nữa để thử lại"*, lời khuyên sai: đổi bao nhiêu lần cũng
+      hỏng. `unauthenticated` / `forbidden` phải nói khác trục trặc mạng.
+- [x] [Review][Patch] **Hồ sơ khai sai số test nền**: *"trước story: 325/325"* — thực tế **312**.
+      325 là con số đo được GIỮA story (sau khi đã thêm 13 bài), bị chép nhầm thành mốc nền. Con
+      số nền sai làm hỏng đúng phép trừ mà lượt review sau phải làm — và nó **đã** làm hỏng một
+      lần, ở lượt review 6-9.
+- [x] [Review][Patch] **Bản kê đo trình duyệt gọi nhầm tên lượt đo** — mục *"lượt xem trước MÙ
+      (chưa quyết gì)"* có `skip-drops-edges` ×3, mà loại ấy **không thể** tồn tại trong một lượt
+      mù (`ops.ts:215` đòi `action === 'skip'`). Số đo là thật; nhãn thì sai — nó là lượt THỨ HAI,
+      theo bộ mặc định. Sai ở cả hồ sơ lẫn `scripts/soi-nap-khung.mjs:101`.
+- [x] [Review][Patch] **AC 4 chỉ chốt được một nửa** — bài *"xem trước và lượt ghi không lệch
+      nhau"* chỉ dựng ca `khong-thay`; **không bài nào** đối chiếu `father-ambiguous` /
+      `spouse-ambiguous` với một lượt `commitSeedOp` thật. Nửa `mo-ho` của bất biến bỏ trống.
+- [x] [Review][Patch] **AC 22 và chú thích CLI nói ngược nhau** — AC 22 và
+      `scripts/seed-from-sheet.ts:160` khai script suy quyết định *"theo ĐÚNG nếp `macDinhCua`"*;
+      `components/admin/canh-bao-nap-khung.ts:109` (mới viết) khai nó **cố ý không** dùng luật ấy.
+      Lý lẽ ở module mới đúng — CLI không có ai tích ô — nên sửa lời AC và chú thích cũ, giữ mã.
+- [x] [Review][Patch] **Lời viện dẫn `build-contract` bị nói quá** [`canh-bao-nap-khung.ts:17`] —
+      luật thật (`docs/build-contract.md:25-26`) cấm `@/db`, `drizzle-orm`, `pg`, `@/core/*/ops`;
+      `@/core/<module>` thì **được phép**, và `nap-khung-client.tsx` đang `import type` từ
+      `@/core/seed` ngay trong file ấy. Nên `LoaiCanhBao` chép tay không cần thiết: `import type
+      { SeedRowWarning }` bị xoá lúc biên dịch, không kéo `pg` vào bó nào, và chặn trôi cả HAI
+      chiều (bản chép tay chỉ chặn chiều thêm loại).
+- [x] [Review][Patch] `ghi_chu` và `chi` vẫn nằm trong `TableCell` `whitespace-nowrap`
+      [`nap-khung-client.tsx:1016-1022`] — story bắt đúng bệnh và vá **một** chỗ (khối cảnh báo);
+      ô bên cạnh thì không. `ghi_chu` là văn xuôi tự do và chính `getTemplate()` dạy điền cả câu.
+- [x] [Review][Patch] **Cổng thứ năm được viết sao cho không bao giờ thấy lỗi ấy**
+      [`scripts/soi-nap-khung.mjs:42-51,147-151`] — tệp năm ca để trống `ghi_chu`/`chi` trên cả
+      chín dòng, và phép đo tràn đọc `documentElement.scrollWidth` trong khi `Table` bọc bảng
+      trong `overflow-x-auto` riêng, nên tràn nội bộ **không bao giờ** chạm tới. Chính phép đo đã
+      tìm ra lỗi (`<table>.scrollWidth` 1886 trong hộp 972) không có mặt trong script được chốt.
+- [x] [Review][Patch] `soi-nap-khung.mjs` luôn thoát 0 — nó là bản báo cáo, không phải cổng. Gọi
+      nó là *"cổng thứ năm"* là một lời khai quá tay.
+- [x] [Review][Patch] **Luật mặc định có BA bản dịch, không phải hai** [`nap-khung-client.tsx:993-1001`]
+      — handler ô tích chép tay lại `huongMacDinh` bỏ hai dòng đầu, trong khi module mới tự khai
+      *"một bản, hai nơi dịch"*. Luật đổi thì hai nơi theo, nơi thứ ba không, và tsc im.
+- [x] [Review][Patch] `datQuyetDinh` bỏ updater hàm [`nap-khung-client.tsx:806-810`] — đúng cái
+      updater mà lượt review 6-9 vừa chốt *"giữ vì nó ĐÚNG"* ở chỗ khác.
+- [x] [Review][Patch] `previewSeedOp` không kiểm khoá `decisions` trong khi `commitSeedOp` có
+      [`ops.ts:144` vs `:277-281`] — hai cổng nói khác nhau. Và khoá `" 1"` qua được vòng kiểm
+      của commit (`Number(" 1") === 1`) rồi bị `decisions[1]` đọc hụt ⇒ dòng người gọi đánh dấu
+      **bỏ** lại được **tạo**. Cùng lớp: `""`, `"1e0"`, `"1.0"`.
+- [x] [Review][Patch] Số dòng CLI in ra có thể lệch số hàng bảng tính
+      [`seed-from-sheet.ts:120-129` + `:81-105`] — `r.line` tính trên chuỗi CSV **dựng lại**, mà
+      lượt parse đầu bật `skip_empty_lines`. Một hàng trống giữa bảng làm mọi dòng sau lệch một;
+      người vận hành mở Sheets tới hàng 87 và sửa nhầm người.
+- [x] [Review][Patch] `KhoiCanhBao` vẫn chép tay danh sách sáu loại ở early-return
+      [`nap-khung-client.tsx:410-416`] — loại thứ bảy sẽ dựng một hàng viền trái **rỗng**. Chú
+      thích ở `:1040` khai đã bỏ "danh sách chép tay ở hai chỗ"; nó chỉ chuyển vào trong.
+- [x] [Review][Patch] Câu *"Tích chọn ở đầu dòng để vẫn ghi"* vẫn hiện khi dòng ĐÃ được tích
+      [`:554`, `:576`, `:603`, `:620`] — điều kiện chỉ đọc `!nghiTrung`, không đọc `quyetDinh`,
+      dù `KhoiCanhBao` đã có sẵn prop ấy.
+- [x] [Review][Patch] Hai món hồ sơ nhỏ — T6 tích `[x]` cho `soi-man.mjs` (thứ đã chạy là
+      `soi-nap-khung.mjs`, và AC 30 cũng gọi nhầm tên); § *Không thuộc phạm vi* hứa ghi mục "cạnh
+      tự trỏ" vào `deferred-work.md` mà không ghi.
+
+**Hoãn (9) — có sẵn trước story này, không do lượt thay đổi này sinh ra**
+
+- [x] [Review][Defer] Gieo lại **dựng lại chính những cạnh Ban tu phả vừa loại bỏ** —
+      `wireParentEdge` và `alreadyJoined` lọc `status='live'`, mà `reject`/`hide` đặt `'hidden'`
+      [`ops.ts:371`, `:449`] — deferred, pre-existing. **Nặng nhất trong nhóm hoãn.**
+- [x] [Review][Defer] Hai dòng cùng `link` vào MỘT người ⇒ người ấy có hai cha, không cổng nào
+      chặn [`ops.ts:284-290`] — deferred, pre-existing
+- [x] [Review][Defer] Dòng `link` vào người ĐÃ có cha trong phả được gắn thêm cha thứ hai
+      [`ops.ts:361-375`] — deferred, pre-existing
+- [x] [Review][Defer] Vòng `ten_cha` trong tệp: xem trước im, commit đổ cả đợt [`ops.ts:334`] —
+      deferred, pre-existing
+- [x] [Review][Defer] A khai B là cha, B khai A là vợ/chồng ⇒ ghi cả hai cạnh, không cảnh báo —
+      deferred, pre-existing
+- [x] [Review][Defer] `spouseId === selfId` bỏ union không một tiếng [`ops.ts:437`] — deferred,
+      cùng họ với "cạnh tự trỏ" mà story đã khai ngoài phạm vi
+- [x] [Review][Defer] `nam_sinh = 0000` ném SAU khi lượt ghi đã bắt đầu [`csv.ts:132`] —
+      deferred, pre-existing
+- [x] [Review][Defer] `locCotDaBiet` im lặng nuốt cột trùng tên và cột không tên
+      [`seed-from-sheet.ts:90-96`] — deferred, pre-existing
+- [x] [Review][Defer] `nonce: Date.now()` làm khoá remount; hai lượt nạp trùng mili-giây thì
+      state của tệp trước bám sang tệp sau — deferred, pre-existing
+
+**Bỏ (3)** — `whitespace-nowrap` bị tố ở dòng 85 (kiểm ra đúng là **86**, hồ sơ ghi đúng) ·
+`xemTruoc` ba lượt parse hai transaction (thật, nhưng là giá đã biết của đường đọc, không phải
+lỗi) · một mục trùng lặp giữa hai tầng.
 
 ## Dev Notes
 
@@ -284,9 +435,14 @@ Bốn cổng, chạy bằng lệnh ĐẦY ĐỦ:
 ```
 npm run lint      sạch
 npx tsc --noEmit  sạch
-npm test          329/329 (26 file) — trước story: 325/325
+npm test          329/329 (26 file) — trước story: 312/312
 npm run build     23 trang tĩnh, biên dịch sạch
 ```
+
+> **Sửa 27/08 sau code review:** con số nền từng ghi `325/325`. Sai — 325 là số đo GIỮA story
+> (sau khi đã thêm 13 bài), bị chép nhầm thành mốc nền. Mốc thật là **312**: 329 trừ 17 bài
+> story này thêm (10 `canh-bao-nap-khung` + 7 `seed`). Một con số nền sai làm hỏng đúng phép trừ
+> mà lượt review sau phải làm, và nó **đã** làm hỏng một lần — ở lượt review 6-9.
 
 Cổng thứ năm — trình duyệt thật, `next start` trên `127.0.0.1:3100` (KHÔNG đụng bản đang chạy
 trên VPN), tệp năm ca, dừng ở bước xem trước, không bấm Ghi:
@@ -294,7 +450,7 @@ trên VPN), tệp năm ca, dừng ở bước xem trước, không bấm Ghi:
 ```
 SOI_GOC=http://127.0.0.1:3100 SOI_MK=… node scripts/soi-nap-khung.mjs
 
-── lượt xem trước MÙ (chưa quyết gì) ─────────────────────────────
+── lượt đầu, theo bộ MẶC ĐỊNH của màn ────────────────────────────
 cảnh báo  : … "Có hai người cùng tên cha" … "Có hơn một người cùng tên vợ/chồng" …
             "Không tìm thấy người vợ/chồng" … "Để lại dòng này là bỏ luôn quan hệ nó khai" ×3
 chip      : Cần xem lại (7)
@@ -359,6 +515,23 @@ trôi khỏi nhau.
 - `scripts/soi-nap-khung.mjs` — cổng thứ năm cho màn Nạp khung
 - `_bmad-output/implementation-artifacts/6-3-nap-khung-noi-that.md` — chính story này
 
+**Sửa thêm ở lượt vá code review 27/08** (19 patch + 1 quyết định — xem § Review Findings)
+- `core/seed/index.ts` — thêm `father-skipped` · `spouse-skipped`; `skip-drops-edges` hai chiều
+- `core/seed/ops.ts` — `kiemKhoaQuyetDinh` dùng chung cho cả hai cổng (chặn cả khoá `' 1'`);
+  `tenBiBo` + `duocKhaiToi`; hai loại cảnh báo mới
+- `core/seed/seed.test.ts` — thêm 4 bài (kể cả nửa `mo-ho` mà AC 4 bỏ trống)
+- `components/admin/canh-bao-nap-khung.ts` — `import type` thay bản chép tay; `BO_TICH` (chốt
+  của chủ dự án: chỉ `father-*` mới bỏ tích); nhãn cho hai loại mới
+- `components/admin/canh-bao-nap-khung.test.ts` — viết lại bài từng GHIM CHẶT hồi quy
+- `app/admin/nap-khung/actions.ts` — `soiDuoc` báo lượt xem trước thứ hai có chạy được không
+- `app/admin/nap-khung/nap-khung-client.tsx` — hai khối cảnh báo mới; nút Ghi đợi lượt soi và
+  khoá khi soi hỏng; `soiHong` mang mã lỗi; `quyetDinhGhi` gỡ bản dịch luật thứ ba; ô dữ liệu
+  `whitespace-normal`; câu khuyên "tích chọn" thôi hiện khi đã tích
+- `scripts/seed-from-sheet.ts` — `--xem-truoc`, DỪNG khi có cảnh báo trừ khi `--du-biet-canh-bao`;
+  in số HÀNG thật của bảng tính; bỏ chú thích nói dối về `macDinhCua`
+- `scripts/soi-nap-khung.mjs` — thoát khác 0 khi sàn bị hạ (đã thử: tiêm chữ 12px ⇒ mã 1); đo
+  tràn trên bộ cuộn của chính bảng; tệp mẫu có `ghi_chu` dài và `chi`
+
 **Sửa**
 - `core/seed/ops.ts` — `dungPhepGiaiTen` dùng chung; `previewSeedOp` nhận `decisions`, nạp tên vợ
   chồng, sinh bốn cảnh báo mối nối + `skip-drops-edges`; `commitSeedOp` bỏ `resolveByName` riêng
@@ -377,3 +550,4 @@ trôi khỏi nhau.
 |---|---|
 | 26/08/2026 | Rút phép giải tên ra dùng chung; thêm `spouse-not-found` · `spouse-ambiguous` · `skip-drops-edges`; `previewSeedOp` nhận `decisions`; CLI in cảnh báo; màn Nạp khung soi lại theo quyết định |
 | 26/08/2026 | Sau lượt soi bằng trình duyệt: giữ cảnh báo mối nối trên dòng bị bỏ (lý do phải còn trên màn); `xemTruoc` chạy lượt xem trước thứ hai; `whitespace-normal` cho khối cảnh báo |
+| 27/08/2026 | **Code review ba tầng đối kháng** — 19 patch + 1 quyết định, đã vá hết, 9 mục vào deferred-work. Nặng nhất là một HỒI QUY do chính story gây ra: loại cảnh báo mới bắt tay với luật cũ *"có cảnh báo thì bỏ tích"*, làm tệp mẫu của chính sản phẩm nạp lại chỉ ghi 1/2 dòng và không cạnh nào. Kèm hai loại cảnh báo mới (`father-skipped` · `spouse-skipped`) để màn thôi nói *"không có ai tên ấy"* ngay dưới một dòng mang đúng tên ấy |

@@ -61,6 +61,12 @@ export type KetQuaXemTruoc = {
    * báo, cảnh báo sinh ra mặc định.
    */
   canhBaoBanDau: Record<number, SeedRowWarning[]>;
+  /**
+   * Lượt xem trước thứ hai có chạy được không. `false` ⇒ `canhBaoBanDau` rỗng và màn đang bày
+   * cảnh báo MÙ — màn phải NÓI RA (sửa 27/08 sau code review; bản đầu nuốt lỗi im lặng, nên
+   * lượt soi lại hỏng thì có khối chữ báo, lượt soi ĐẦU hỏng thì không).
+   */
+  soiDuoc: boolean;
 };
 
 /**
@@ -156,7 +162,14 @@ export async function xemTruoc(
     for (const r of theoMacDinh.value.rows) canhBaoBanDau[r.index] = r.warnings;
   }
 
-  return ok({ tenTep: tep.name, vanBan, nonce: Date.now(), dong, canhBaoBanDau });
+  return ok({
+    tenTep: tep.name,
+    vanBan,
+    nonce: Date.now(),
+    dong,
+    canhBaoBanDau,
+    soiDuoc: theoMacDinh.ok,
+  });
 }
 
 /**
@@ -180,6 +193,8 @@ export async function xemLaiCanhBao(
   vanBan: string,
   quyetDinh: SeedDecisions,
 ): Promise<Result<Record<number, SeedRowWarning[]>>> {
+  // Result NGUYÊN VẸN từ core, kể cả mã lỗi — client cần phân biệt `unauthenticated` (phiên hết
+  // hạn, bấm lại bao nhiêu lần cũng hỏng) với một trục trặc mạng thoáng qua.
   const preview = await previewSeed(vanBan, quyetDinh);
   if (!preview.ok) return preview;
   const theoDong: Record<number, SeedRowWarning[]> = {};

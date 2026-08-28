@@ -13,8 +13,10 @@ import {
 const MOI_LOAI: LoaiCanhBao[] = [
   'father-not-found',
   'father-ambiguous',
+  'father-skipped',
   'spouse-not-found',
   'spouse-ambiguous',
+  'spouse-skipped',
   'skip-drops-edges',
   'duplicate-in-file',
 ];
@@ -69,9 +71,33 @@ describe('hướng mặc định của một dòng', () => {
     expect(hoi({ nghiTrung: true, canhBao: ['father-not-found'] })).toBe('chua-quyet');
   });
 
-  it('mang cảnh báo ⇒ để lại, kể cả khi khớp người có sẵn', () => {
-    expect(hoi({ canhBao: ['spouse-not-found'] })).toBe('de-lai');
+  /**
+   * HỒI QUY 27/08 — bài này TRƯỚC ĐÂY ghim chặt luật cũ *"mọi cảnh báo đều bỏ tích"*, và chính
+   * nó làm cho hồi quy nặng nhất của story 6-3 vẫn xanh qua mọi cổng: thêm `spouse-not-found`
+   * (hình dạng mà chính tệp mẫu dạy người ta viết) là bỏ tích gần như mọi dòng đàn ông của một
+   * bảng tính chép tay. Đo được trên `getTemplate()`: 1/2 dòng được ghi, không cạnh nào.
+   *
+   * Chốt của chủ dự án: thiếu CHA thì vẫn bỏ tích — nó đổi cấu trúc cây, người ấy thành gốc tạm
+   * của một mảnh mới, đáng bắt dừng lại nhìn. Thiếu VỢ/CHỒNG thì không — chỉ mất một union.
+   */
+  it('thiếu CHA ⇒ để lại, kể cả khi khớp người có sẵn', () => {
+    expect(hoi({ canhBao: ['father-not-found'] })).toBe('de-lai');
     expect(hoi({ khopNguoiCoSan: true, coUngVien: true, canhBao: ['father-ambiguous'] })).toBe('de-lai');
+  });
+
+  it('thiếu VỢ/CHỒNG ⇒ VẪN tích — chỉ mất một union, không đổi hình cây', () => {
+    expect(hoi({ canhBao: ['spouse-not-found'] })).toBe('tao-moi');
+    expect(hoi({ canhBao: ['spouse-ambiguous'] })).toBe('tao-moi');
+    expect(hoi({ khopNguoiCoSan: true, coUngVien: true, canhBao: ['spouse-not-found'] })).toBe(
+      'noi-vao-ung-vien',
+    );
+  });
+
+  /** Ba loại này đòi một dòng đang bị `skip`, nên chúng không thể có mặt ở lượt MÙ. */
+  it('loại chỉ sinh ra khi đã có quyết định ⇒ không lái mặc định', () => {
+    expect(hoi({ canhBao: ['skip-drops-edges'] })).toBe('tao-moi');
+    expect(hoi({ canhBao: ['father-skipped'] })).toBe('tao-moi');
+    expect(hoi({ canhBao: ['spouse-skipped'] })).toBe('tao-moi');
   });
 
   it('khớp người có sẵn ⇒ nối vào ứng viên; khớp mà VẮNG ứng viên thì tạo mới', () => {

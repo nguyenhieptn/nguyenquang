@@ -1,8 +1,9 @@
 /**
  * Gieo dữ liệu vào phả TỪ BẢNG TÍNH, qua đúng đường FR-51 (parse → preview → commit).
  *
- *   npx tsx scripts/seed-from-sheet.ts          # gieo (idempotent-ish: chạy lần 2 sẽ ra nghi trùng,
- *                                         #  script tự chuyển các dòng trùng thành 'skip')
+ *   npx tsx scripts/seed-from-sheet.ts --xem-truoc        # chạy KHÔ: chỉ in cảnh báo, không ghi
+ *   npx tsx scripts/seed-from-sheet.ts                   # gieo; DỪNG nếu có cảnh báo nào
+ *   npx tsx scripts/seed-from-sheet.ts --du-biet-canh-bao # gieo bất kể cảnh báo
  *
  * Đổi tên 25/08/2026 từ `demo-seed.ts`: tên cũ nói dối về việc nó làm. Nó không còn gieo dữ liệu
  * demo — nó gieo phả thật của dòng họ, từ bảng tính.
@@ -78,16 +79,17 @@ async function taiBangTinh(): Promise<string> {
  * tên mà lọt qua là dữ liệu vào nhầm chỗ. Nên chỗ nới là ở ĐÂY, trong script vận hành, chứ không
  * phải nới luật trong core.
  */
-function locCotDaBiet(text: string): { csv: string; boQua: string[] } {
+function locCotDaBiet(text: string): { csv: string; boQua: string[]; hangThat: number[] } {
   const banGhi = parse(text, {
     bom: true,
     trim: true,
     skip_empty_lines: true,
     relax_column_count: true,
-  }) as string[][];
+    info: true,
+  }) as unknown as { info: { lines: number }; record: string[] }[];
   if (banGhi.length === 0) throw new Error('Bảng tính rỗng — không có cả dòng tiêu đề.');
 
-  const tieuDe = (banGhi[0] ?? []).map((h) => h.trim().toLowerCase());
+  const tieuDe = (banGhi[0]?.record ?? []).map((h) => h.trim().toLowerCase());
   const viTri = SEED_COLUMNS.map((c) => tieuDe.indexOf(c));
   const thieu = SEED_COLUMNS.filter((_, i) => viTri[i] === -1);
   if (thieu.length > 0) {
@@ -98,10 +100,20 @@ function locCotDaBiet(text: string): { csv: string; boQua: string[] } {
   const o = (v: string) => (/[",\n\r]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v);
   const csv = [
     SEED_COLUMNS.join(','),
-    ...banGhi.slice(1).map((hang) => viTri.map((i) => o((hang[i] ?? '').trim())).join(',')),
+    ...banGhi.slice(1).map((h) => viTri.map((i) => o((h.record[i] ?? '').trim())).join(',')),
   ].join('\n');
 
-  return { csv, boQua };
+  /**
+   * Số hàng THẬT trong bảng tính, theo thứ tự dòng của CSV dựng lại (sửa 27/08 sau code review).
+   *
+   * `SeedRow.line` được `parseSeedCsv` tính trên chuỗi ĐÃ DỰNG LẠI ở đây, mà lượt parse trên
+   * bật `skip_empty_lines` — nên một hàng trống ngăn hai chi làm mọi dòng sau lệch một. Người
+   * vận hành đọc cảnh báo *"dòng 87"*, mở Google Sheets tới hàng 87, và sửa NHẦM NGƯỜI. Trên
+   * một kho không có phép xoá thì đó là một khẳng định sai nữa.
+   */
+  const hangThat = banGhi.slice(1).map((h) => h.info.lines);
+
+  return { csv, boQua, hangThat };
 }
 
 /**
@@ -117,20 +129,35 @@ function locCotDaBiet(text: string): { csv: string; boQua: string[] } {
  * Không có cảnh báo nào thì KHÔNG in gì. Một dòng "0 cảnh báo" mỗi lượt chạy là cách nhanh nhất
  * để người ta thôi đọc phần này.
  */
-function inCanhBao(rows: SeedPreviewRow[]): void {
+function inCanhBao(rows: SeedPreviewRow[], hangThat: number[]): number {
   const co = rows.filter((r) => r.warnings.length > 0);
-  if (co.length === 0) return;
-  console.log(`Cảnh báo trên ${co.length} dòng — đọc trước khi ghi, vì phả không có phép xoá:`);
+  if (co.length === 0) return 0;
+  console.log(`Cảnh báo trên ${co.length} dòng — đọc TRƯỚC khi ghi, vì phả không có phép xoá:`);
   for (const r of co) {
+    // Số HÀNG của bảng tính, không phải số dòng của chuỗi CSV dựng lại — xem `hangThat`.
+    const hang = hangThat[r.index] ?? r.line;
     for (const loai of r.warnings) {
-      console.log(`  dòng ${r.line} (${r.hoTen}): ${cauCanhBao(loai)}`);
+      console.log(`  hàng ${hang} (${r.hoTen}): ${cauCanhBao(loai)}`);
     }
   }
+  return co.length;
 }
 
 async function main() {
   // Kiểm đầu vào TRƯỚC khi chạm DB: bảng tính hỏng thì dừng ở đây, không mở giao dịch nào.
-  const { csv, boQua } = locCotDaBiet(await taiBangTinh());
+  const { csv, boQua, hangThat } = locCotDaBiet(await taiBangTinh());
+  /**
+   * `--xem-truoc` — chạy KHÔ: parse, xem trước, in cảnh báo, rồi dừng. Không ghi một dòng nào.
+   *
+   * Thêm 27/08 sau code review. Bản trước in cảnh báo rồi gọi `commitSeedOp` ở ngay nhịp sau:
+   * AC 13 đạt theo chữ (*"in trước lượt ghi"*) và hỏng theo việc — giữa hai việc ấy có vài
+   * mili-giây, không prompt, không ngưỡng dừng, nên người vận hành đọc cảnh báo SAU khi
+   * transaction đã commit vào một kho không có phép xoá (AD-4).
+   *
+   * `--du-biet-canh-bao` là lối đi tiếp khi đã đọc và vẫn muốn ghi.
+   */
+  const chiXemTruoc = process.argv.includes('--xem-truoc');
+  const duBiet = process.argv.includes('--du-biet-canh-bao');
   if (boQua.length > 0) {
     console.log(`Bỏ qua cột core/seed chưa biết: ${boQua.join(', ')}`);
   }
@@ -157,8 +184,13 @@ async function main() {
     const preview = await previewSeedOp(tx, ctx, rows.value);
     if (!preview.ok) throw new Error(preview.error.message);
     /**
-     * Quyết định mặc định — theo ĐÚNG nếp của màn Nạp khung (`macDinhCua` trong
-     * `nap-khung-client.tsx`), không tự nghĩ ra luật riêng.
+     * Quyết định mặc định của SCRIPT — cố ý KHÁC luật của màn Nạp khung.
+     *
+     * SỬA CHÚ THÍCH 27/08 sau code review: chỗ này từng khai *"theo ĐÚNG nếp của `macDinhCua`"*,
+     * và đó là nói dối — hai luật khác nhau ở cả hai dòng đầu. Màn để trống quyết định cho dòng
+     * nghi trùng (có người tích ô); script thì `skip` chúng. Màn bỏ tích dòng mang cảnh báo cha;
+     * script thì `create` chúng — vì ở đây KHÔNG có ai để tích ô, nên "để lại mọi dòng có cảnh
+     * báo" sẽ lặng lẽ bỏ rơi người. Lý lẽ ấy ghi ở `components/admin/canh-bao-nap-khung.ts`.
      *
      * SỬA 25/08/2026. Bản đầu bỏ qua MỌI dòng không phải `nguoi-moi`, với lý do "chạy lần hai
      * không tạo bản trùng". Nhưng nó bỏ qua luôn trường hợp thường gặp nhất ở lần chạy ĐẦU:
@@ -203,10 +235,23 @@ async function main() {
      */
     const soiLai = await previewSeedOp(tx, ctx, rows.value, decisions);
     if (!soiLai.ok) throw new Error(soiLai.error.message);
-    inCanhBao(soiLai.value.rows);
+    const soCanhBao = inCanhBao(soiLai.value.rows, hangThat);
+
+    if (chiXemTruoc) {
+      console.log('`--xem-truoc`: dừng ở đây, KHÔNG ghi gì.');
+      return null;
+    }
+    if (soCanhBao > 0 && !duBiet) {
+      console.log(
+        `\nDỪNG: ${soCanhBao} dòng mang cảnh báo, và lượt ghi này KHÔNG lùi lại được (AD-4).\n` +
+          'Sửa bảng tính rồi chạy lại, hoặc chạy lại với `--du-biet-canh-bao` để ghi bất kể.',
+      );
+      return null;
+    }
 
     return commitSeedOp(tx, ctx, { rows: rows.value, decisions });
   });
+  if (result === null) process.exit(1); // đã in lý do ở trên; không ghi gì
   if (!result.ok) throw new Error(result.error.message);
   console.log(
     `Đã gieo từ bảng tính: tạo ${result.value.created}, nối vào người có sẵn ` +

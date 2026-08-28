@@ -120,8 +120,19 @@ function macDinhCua(d: DongXemTruoc): SeedDecision | null {
   });
   if (huong === 'chua-quyet') return null;
   if (huong === 'de-lai') return { action: 'skip' };
-  if (huong === 'noi-vao-ung-vien') return { action: 'link', personId: d.ungVien[0]!.personId };
-  return { action: 'create' };
+  return quyetDinhGhi(d);
+}
+
+/**
+ * GHI dòng này thì ghi thế nào — nối vào ứng viên đã có, hay tạo người mới.
+ *
+ * Một phép, hai nơi gọi: `macDinhCua` và handler ô tích. Bản trước handler ô tích chép tay lại
+ * chính luật này, thành bản dịch thứ ba của một luật mà module chung khai là "một bản".
+ */
+function quyetDinhGhi(d: DongXemTruoc): SeedDecision {
+  return d.phanLoai === 'khop-nguoi-co-san' && d.ungVien[0]
+    ? { action: 'link', personId: d.ungVien[0].personId }
+    : { action: 'create' };
 }
 
 // ── Pha 1: nạp tệp (port từ uiworkshop/nap-khung) ────────────────────────────
@@ -410,10 +421,18 @@ function KhoiCanhBao({
   const nghiTrung = dong.phanLoai === 'nghi-trung';
   const chaKhongThay = canhBao.includes('father-not-found');
   const chaMoHo = canhBao.includes('father-ambiguous');
+  const chaBiBo = canhBao.includes('father-skipped');
   const voKhongThay = canhBao.includes('spouse-not-found');
   const voMoHo = canhBao.includes('spouse-ambiguous');
+  const voBiBo = canhBao.includes('spouse-skipped');
   const boMatNoi = canhBao.includes('skip-drops-edges');
-  if (!nghiTrung && !chaKhongThay && !chaMoHo && !voKhongThay && !voMoHo && !boMatNoi) return null;
+  /* Một điều kiện, KHÔNG một danh sách loại chép tay (sửa 27/08 sau code review). Bản trước
+     liệt kê sáu loại ở đây, nên loại thứ bảy sẽ dựng một hàng viền trái RỖNG. Chú thích ở nơi
+     gọi khai đã bỏ "danh sách chép tay ở hai chỗ" — nó chỉ chuyển vào trong. */
+  if (!nghiTrung && canhBao.length === 0) return null;
+  /** Dòng này có đang được ghi không — câu khuyên "tích chọn để vẫn ghi" chỉ đúng khi CHƯA tích. */
+  const seGhiDongNay = quyetDinh !== null && quyetDinh.action !== 'skip';
+  const baoTich = !nghiTrung && !seGhiDongNay ? ' Tích chọn ở đầu dòng để vẫn ghi.' : '';
 
   const tenNhom = `quyet-dinh-${dong.index}`;
 
@@ -551,7 +570,7 @@ function KhoiCanhBao({
             <span className="font-[family-name:var(--font-pha)]">{dong.hoTen}</span> vẫn ghi được,
             nhưng <strong>mối vợ chồng thì không</strong>. Nối lại ở cột phải của màn Cây gia phả,
             nơi nhìn được cả hai người cùng tên rồi mới chọn.
-            {!nghiTrung ? ' Tích chọn ở đầu dòng để vẫn ghi.' : ''}
+            {baoTich}
           </p>
         </div>
       ) : null}
@@ -573,7 +592,43 @@ function KhoiCanhBao({
             <span className="font-[family-name:var(--font-pha)]">{dong.hoTen}</span> vẫn ghi được,
             nhưng <strong>hai người sẽ không thành vợ chồng trong phả</strong>. Thêm người kia vào
             một dòng của chính tệp này là cách rẻ nhất để union được ghi ngay trong đợt nạp.
-            {!nghiTrung ? ' Tích chọn ở đầu dòng để vẫn ghi.' : ''}
+            {baoTich}
+          </p>
+        </div>
+      ) : null}
+
+      {/* CHA CÓ TRONG TỆP, chỉ là dòng ấy đang bị để lại. Tách hẳn khỏi "không tìm thấy" — câu
+          kia khẳng định không có ai tên ấy, và nó SAI ngay dưới một dòng mang đúng tên ấy. Câu
+          này thì kèm sẵn cách sửa rẻ nhất: tích lại một ô. */}
+      {chaBiBo ? (
+        <div>
+          <p className="text-[17px] font-semibold text-destructive">
+            Người cha có trong tệp, nhưng dòng ấy đang được để lại
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px]">
+            Dòng này khai cha là{' '}
+            <span className="font-[family-name:var(--font-pha)]">{dong.tenCha}</span> — tệp CÓ dòng
+            mang tên ấy, nhưng dòng ấy đang không được tích, nên cạnh cha–con sẽ không được ghi.
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px] text-muted-foreground">
+            <strong>Tích lại dòng của người cha</strong> là xong — không cần sang màn Mảnh chưa
+            nối, không cần sửa tệp.
+          </p>
+        </div>
+      ) : null}
+
+      {voBiBo ? (
+        <div>
+          <p className="text-[17px] font-semibold text-destructive">
+            Người vợ/chồng có trong tệp, nhưng dòng ấy đang được để lại
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px]">
+            Dòng này khai vợ/chồng là{' '}
+            <span className="font-[family-name:var(--font-pha)]">{dong.tenVoChong}</span> — tệp CÓ
+            dòng mang tên ấy, nhưng dòng ấy đang không được tích, nên union sẽ không được ghi.
+          </p>
+          <p className="mt-1 max-w-[70ch] text-[17px] text-muted-foreground">
+            <strong>Tích lại dòng của người ấy</strong> là xong.
           </p>
         </div>
       ) : null}
@@ -600,7 +655,7 @@ function KhoiCanhBao({
                 hành đọc, bấm ghi, đứa con không được tạo, commit vẫn báo thành công, rồi họ sang
                 màn "Mảnh chưa nối" tìm một mảnh chưa từng tồn tại. Khối `chaKhongThay` ngay dưới
                 đã có câu này từ đầu; khối này bị sót. */}
-            {!nghiTrung ? ' Tích chọn ở đầu dòng để vẫn ghi.' : ''}
+            {baoTich}
           </p>
         </div>
       ) : null}
@@ -617,7 +672,7 @@ function KhoiCanhBao({
             Ghi vẫn được: <span className="font-[family-name:var(--font-pha)]">{dong.hoTen}</span>{' '}
             sẽ thành gốc tạm của một mảnh mới, ghi rõ là <em>cụ xa nhất hiện biết</em> của mảnh
             ấy. Nối vào cây chung được, sau — khi có ai truy ra đời trên.
-            {!nghiTrung ? ' Tích chọn ở đầu dòng để vẫn ghi.' : ''}
+            {baoTich}
           </p>
         </div>
       ) : null}
@@ -786,7 +841,19 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
   );
   /** Số thứ tự lượt soi — đáp về muộn hơn lượt hiện hành thì bỏ, kẻo cảnh báo lùi về quá khứ. */
   const luotSoi = useRef(0);
-  const [soiHong, setSoiHong] = useState(false);
+  /**
+   * Lượt soi cảnh báo hỏng vì gì. `null` = không hỏng.
+   *
+   * Mang MÃ LỖI chứ không phải một `boolean` (sửa 27/08 sau code review): phiên hết hạn
+   * (`unauthenticated`) và một trục trặc mạng là hai chuyện khác hẳn, mà bản đầu bày chung một
+   * câu *"Đổi một lựa chọn nữa để thử lại"* — lời khuyên sai với ca thứ nhất, đổi bao nhiêu lần
+   * cũng hỏng.
+   */
+  const [soiHong, setSoiHong] = useState<'phien' | 'mang' | null>(
+    ketQua.soiDuoc ? null : 'mang',
+  );
+  /** Có lượt soi nào đang bay không — nút Ghi phải đợi nó, xem chú thích ở nút. */
+  const [dangSoi, setDangSoi] = useState(false);
   const [ketQuaGhi, setKetQuaGhi] = useState<Result<SeedCommitResult> | null>(null);
   /** Lượt ghi không tới nơi được — KHÁC một lượt ghi bị core từ chối. Xem chỗ `catch` dưới. */
   const [loiMang, setLoiMang] = useState(false);
@@ -820,22 +887,29 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
     }
     const luot = luotSoi.current + 1;
     luotSoi.current = luot;
+    setDangSoi(true);
     xemLaiCanhBao(vanBan, quyetDinh)
       .then((kq) => {
         if (luot !== luotSoi.current) return; // đã có lượt mới hơn — đáp này là quá khứ
-        setSoiHong(!kq.ok);
+        setDangSoi(false);
+        setSoiHong(kq.ok ? null : kq.error.code === 'unauthenticated' ? 'phien' : 'mang');
         if (kq.ok) setCanhBaoMoi(kq.value);
       })
       .catch(() => {
-        // Đứt mạng ⇒ giữ bản mù và NÓI RA. Cảnh báo tính lại là lớp bổ sung: mất nó thì màn lùi
-        // về đúng trạng thái trước 26/08 — không sai thêm, nhưng cũng không được im như thể đủ.
-        if (luot === luotSoi.current) setSoiHong(true);
+        // Đứt mạng ⇒ giữ bản của lượt thành công gần nhất và NÓI RA. Cảnh báo tính lại là lớp
+        // bổ sung: mất nó thì màn lùi về một trạng thái cũ — không sai thêm, nhưng cũng không
+        // được im như thể đủ.
+        if (luot !== luotSoi.current) return;
+        setDangSoi(false);
+        setSoiHong('mang');
       });
   };
 
   const datQuyetDinh = (index: number, qd: SeedDecision) => {
     const moi = { ...daChon, [index]: qd };
-    setDaChon(moi);
+    // Updater HÀM — hai cú bấm trong cùng một nhịp vẽ không được ghi đè nhau. `moi` tính riêng
+    // để gửi lên máy chủ; nó có thể cũ một nhịp, và nhịp sau bù ngay.
+    setDaChon((truoc) => ({ ...truoc, [index]: qd }));
     soiLaiCanhBao(moi);
   };
 
@@ -895,7 +969,15 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
           <Button
             type="button"
             onClick={ghi}
-            disabled={dangGhi || chuaQuyet.length > 0 || seGhi.length === 0}
+            /**
+             * Đợi lượt soi cảnh báo (sửa 27/08 sau code review). Bấm một nút radio rồi bấm Ghi
+             * trong vài trăm mili-giây thì lượt ghi — vào một kho KHÔNG có phép xoá — chạy trong
+             * khi bảng cảnh báo còn là của bộ quyết định trước. Soi hỏng thì cũng chặn: thứ duy
+             * nhất nói *cái gì sắp mất* đang không đáng tin.
+             */
+            disabled={
+              dangGhi || dangSoi || soiHong !== null || chuaQuyet.length > 0 || seGhi.length === 0
+            }
             className="h-11 text-[17px]"
           >
             {dangGhi ? 'Đang ghi…' : `Ghi ${seGhi.length} dòng vào phả`}
@@ -953,10 +1035,19 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
 
       {/* Soi lại hỏng thì NÓI RA. Im lặng ở đây là bày cảnh báo của một bộ quyết định đã cũ mà
           không ai biết là cũ — đúng lớp hỏng story này sinh ra để bịt. */}
+      {/*
+        Câu chữ phải nói ĐÚNG thứ đang bày (sửa 27/08 sau code review). Bản đầu nói *"đang tính
+        như thể mọi dòng đều được ghi"* — đó là mô tả bản MÙ, thứ đang KHÔNG được bày: khi một
+        lượt soi hỏng, `canhBaoMoi` giữ nguyên ảnh chụp của bộ quyết định TRƯỚC.
+        Và phiên hết hạn thì "đổi một lựa chọn nữa để thử lại" là lời khuyên sai — đổi bao nhiêu
+        lần cũng hỏng.
+      */}
       {soiHong ? (
-        <p className="mt-3 max-w-[70ch] text-[17px] text-muted-foreground">
-          Chưa soi lại được cảnh báo theo lựa chọn hiện tại — các cảnh báo dưới đây đang tính như
-          thể mọi dòng đều được ghi. Đổi một lựa chọn nữa để thử lại.
+        <p className="mt-3 max-w-[70ch] border-l-4 border-destructive bg-canh-bao-nen px-3 py-2 text-[17px]">
+          {soiHong === 'phien'
+            ? 'Phiên đăng nhập đã hết hạn, nên chưa soi lại được cảnh báo. Mở lại phả ở một thẻ khác để đăng nhập, rồi quay về đây — bảng này vẫn còn nguyên.'
+            : 'Chưa soi lại được cảnh báo theo lựa chọn hiện tại — bảng dưới đây đang bày cảnh báo của lần soi gần nhất chạy được, không phải của lựa chọn hiện tại. Đổi một lựa chọn nữa để thử lại.'}{' '}
+          Nút ghi tạm khoá cho tới khi soi lại được.
         </p>
       ) : null}
 
@@ -990,14 +1081,15 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
                       {!nghiTrung ? (
                         <Checkbox
                           checked={qd !== null && qd.action !== 'skip'}
+                          /* Bấm TÍCH = "ghi dòng này", và *ghi thế nào* thì hỏi đúng luật
+                             chung `huongMacDinh` (sửa 27/08 sau code review). Bản đầu chép tay
+                             lại luật ấy ở đây — bản dịch THỨ BA, trong khi module chung tự khai
+                             "một bản, hai nơi dịch". Luật đổi thì hai nơi theo, nơi này không,
+                             và tsc im vì kiểu vẫn khớp. */
                           onCheckedChange={(v) =>
                             datQuyetDinh(
                               d.index,
-                              v === true
-                                ? d.phanLoai === 'khop-nguoi-co-san' && d.ungVien[0]
-                                  ? { action: 'link', personId: d.ungVien[0].personId }
-                                  : { action: 'create' }
-                                : { action: 'skip' },
+                              v === true ? quyetDinhGhi(d) : { action: 'skip' },
                             )
                           }
                           aria-label={`Chọn dòng ${d.line}`}
@@ -1008,7 +1100,12 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
                     <TableCell className="py-3 text-[17px] text-muted-foreground">
                       {d.line}
                     </TableCell>
-                    <TableCell className="py-3">
+                    {/* `whitespace-normal` + `max-w` — cùng bệnh đã vá ở khối cảnh báo, ô bên
+                        cạnh thì sót (bắt 27/08 sau code review). `ghi_chu` là văn xuôi tự do,
+                        không giới hạn độ dài, và chính `getTemplate()` dạy điền cả câu vào đó;
+                        `TableCell` mang `whitespace-nowrap` nên một ghi chú 200 ký tự đẩy cả
+                        bảng ra ngoài hộp. */}
+                    <TableCell className="max-w-[36ch] py-3 whitespace-normal">
                       {/* Tên người = khẳng định về người thật ⇒ luật bề mặt A: serif-phả. */}
                       <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">
                         {d.hoTen}

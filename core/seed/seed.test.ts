@@ -479,7 +479,7 @@ describe('ba lỗ im lặng (story 6-3)', () => {
   /**
    * Vế (b): cảnh báo THIẾU — và đây là ca đã làm cây gia phả gãy làm hai mảnh trên phả thật.
    */
-  it('vế (b): bỏ dòng duy nhất mang tên cha ⇒ dòng con ĐƯỢC father-not-found', async () => {
+  it('vế (b): bỏ dòng duy nhất mang tên cha ⇒ dòng con ĐƯỢC cảnh báo mất cha', async () => {
     const parsed = parseSeedCsv(
       csvOf(
         'S18 Cha Duy Nhất Trong Tệp,nam,1900,,,,,',
@@ -495,7 +495,13 @@ describe('ba lỗ im lặng (story 6-3)', () => {
       previewSeedOp(tx, admin, parsed.value, { 0: { action: 'skip' } }),
     );
     if (!sang.ok) throw new Error(sang.error.message);
-    expect(sang.value.rows[1]!.warnings).toContain('father-not-found');
+    /**
+     * `father-skipped`, không phải `father-not-found` (sửa 27/08 sau code review): cha CÓ trong
+     * tệp, chỉ là dòng ấy đang bị bỏ. Câu *"không có ai tên ấy — cả trong tệp lẫn trong phả"* ở
+     * ca này là một khẳng định SAI, đặt ngay dưới một dòng mang đúng cái tên ấy.
+     */
+    expect(sang.value.rows[1]!.warnings).toContain('father-skipped');
+    expect(sang.value.rows[1]!.warnings).not.toContain('father-not-found');
   });
 
   it('dòng bị BỎ mà có khai quan hệ ⇒ skip-drops-edges; dòng LINK thì không', async () => {
@@ -557,6 +563,108 @@ describe('ba lỗ im lặng (story 6-3)', () => {
     );
   });
 
+
+  /**
+   * HỒI QUY 27/08 — bỏ tích một dòng mà DÒNG KHÁC khai nó làm cha thì chính dòng bị bỏ phải nói
+   * ra. Bản đầu chỉ đếm cạnh dòng ấy KHAI, nên bỏ một cụ tổ (không khai gì) cho `warnings` rỗng:
+   * dòng vừa bấm là dòng duy nhất im lặng, và nó rơi khỏi cả bộ lọc *Cần xem lại*.
+   */
+  it('bỏ một dòng mà dòng khác khai nó làm cha ⇒ CHÍNH dòng ấy mang skip-drops-edges', async () => {
+    const parsed = parseSeedCsv(
+      csvOf('S63 Cụ Tổ Không Khai Gì,nam,1890,,,,,', 'S63 Con Của Cụ Tổ,nam,1920,,S63 Cụ Tổ Không Khai Gì,,,'),
+    );
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    const p = await withClanContext(clanId, (tx) =>
+      previewSeedOp(tx, admin, parsed.value, { 0: { action: 'skip' } }),
+    );
+    if (!p.ok) throw new Error(p.error.message);
+    expect(p.value.rows[0]!.warnings).toContain('skip-drops-edges');
+    // Và dòng con nói ĐÚNG lý do: cha có trong tệp, chỉ là đang bị bỏ.
+    expect(p.value.rows[1]!.warnings).toContain('father-skipped');
+    expect(p.value.rows[1]!.warnings).not.toContain('father-not-found');
+  });
+
+  /**
+   * *"Không có ai tên ấy — cả trong tệp lẫn trong phả"* phải chỉ nói khi ĐÚNG là không có ai.
+   * Từ khi xem trước biết `decisions`, "trong tệp" hết nghĩa là trong tệp, nên hai ca phải tách.
+   */
+  it('cha/vợ chồng KHÔNG có ở đâu ⇒ *-not-found; CÓ trong tệp mà bị bỏ ⇒ *-skipped', async () => {
+    const parsed = parseSeedCsv(
+      csvOf(
+        'S63 Vợ Có Dòng,nu,1930,,,,,',
+        'S63 Chồng Của Vợ Có Dòng,nam,1928,,,S63 Vợ Có Dòng,,',
+        'S63 Chồng Vợ Không Ai Biết,nam,1930,,,S63 Chẳng Ai Tên Thế,,',
+      ),
+    );
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    const p = await withClanContext(clanId, (tx) =>
+      previewSeedOp(tx, admin, parsed.value, { 0: { action: 'skip' } }),
+    );
+    if (!p.ok) throw new Error(p.error.message);
+    expect(p.value.rows[1]!.warnings).toContain('spouse-skipped');
+    expect(p.value.rows[1]!.warnings).not.toContain('spouse-not-found');
+    expect(p.value.rows[2]!.warnings).toContain('spouse-not-found');
+    expect(p.value.rows[2]!.warnings).not.toContain('spouse-skipped');
+  });
+
+  /** Khoá `decisions` phải là chỉ số THẬT ở CẢ HAI cổng — hai cổng nói khác nhau là một lỗ. */
+  it('khoá decisions lạ ⇒ cả xem trước lẫn lượt ghi cùng từ chối', async () => {
+    const parsed = parseSeedCsv(csvOf('S63 Khoá Lạ,nam,1900,,,,,'));
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    for (const khoa of [' 0', '1.0', '-1', '9', 'x']) {
+      const d = { [khoa]: { action: 'skip' as const } } as unknown as Parameters<
+        typeof previewSeedOp
+      >[3];
+      const xem = await withClanContext(clanId, (tx) => previewSeedOp(tx, admin, parsed.value, d));
+      expect(xem.ok, `xem trước phải từ chối khoá '${khoa}'`).toBe(false);
+      const ghi = await withClanContext(clanId, (tx) =>
+        commitSeedOp(tx, admin, { rows: parsed.value, decisions: d! }),
+      );
+      expect(ghi.ok, `lượt ghi phải từ chối khoá '${khoa}'`).toBe(false);
+    }
+  });
+
+  /**
+   * AC 4, nửa `mo-ho` — nửa mà bài chốt đầu tiên bỏ trống (bắt 27/08 ở code review). Cảnh báo
+   * mơ hồ cũng phải tương ứng một cạnh KHÔNG được ghi, y như cảnh báo vắng.
+   */
+  it('nửa mơ hồ của AC 4: có *-ambiguous ⇔ không cạnh nào được ghi', async () => {
+    const parsed = parseSeedCsv(
+      csvOf(
+        'S63 Mơ Hồ Cha,nam,1900,,,,,',
+        'S63 Mơ Hồ Cha,nam,1915,,,,,',
+        'S63 Con Cha Mơ Hồ,nam,1940,,S63 Mơ Hồ Cha,,,',
+        'S63 Mơ Hồ Vợ,nu,1905,,,,,',
+        'S63 Mơ Hồ Vợ,nu,1918,,,,,',
+        'S63 Chồng Vợ Mơ Hồ,nam,1903,,,S63 Mơ Hồ Vợ,,',
+      ),
+    );
+    if (!parsed.ok) throw new Error(parsed.error.message);
+    const xem = await withClanContext(clanId, (tx) => previewSeedOp(tx, admin, parsed.value));
+    if (!xem.ok) throw new Error(xem.error.message);
+    const canhBao = (ten: string) => xem.value.rows.find((r) => r.hoTen === ten)!.warnings;
+    expect(canhBao('S63 Con Cha Mơ Hồ')).toContain('father-ambiguous');
+    expect(canhBao('S63 Chồng Vợ Mơ Hồ')).toContain('spouse-ambiguous');
+
+    const ghi = await withClanContext(clanId, (tx) =>
+      commitSeedOp(tx, admin, { rows: parsed.value, decisions: {} }),
+    );
+    if (!ghi.ok) throw new Error(ghi.error.message);
+    await withClanContext(clanId, async (tx) => {
+      const soCanh = async (folded: string, kind: 'parent-child' | 'union-partner') => {
+        const [n] = await tx.select().from(person).where(eq(person.nameFolded, folded));
+        expect(n, folded).toBeTruthy();
+        const r = await tx
+          .select()
+          .from(assertion)
+          .where(and(eq(assertion.subjectPersonId, n!.id), eq(assertion.kind, kind)));
+        return r.length;
+      };
+      expect(await soCanh('s63 con cha mo ho', 'parent-child')).toBe(0);
+      expect(await soCanh('s63 chong vo mo ho', 'union-partner')).toBe(0);
+    });
+  });
+
   /**
    * AC 4 — cảnh báo và lượt ghi phải nói CÙNG một điều. Sau khi hai bên dùng chung
    * `dungPhepGiaiTen` thì chúng không lệch được nữa; bài này là cái chốt giữ điều đó.
@@ -586,7 +694,7 @@ describe('ba lỗ im lặng (story 6-3)', () => {
     expect(canhBao('S18 K4 Con Mất Cha')).toEqual(['father-not-found']);
     expect(canhBao('S18 K4 Chồng Có Vợ')).toEqual([]);
     expect(canhBao('S18 K4 Chồng Mất Vợ')).toEqual(['spouse-not-found']);
-    expect(canhBao('S18 K4 Con Của Cha Bị Bỏ')).toEqual(['father-not-found']);
+    expect(canhBao('S18 K4 Con Của Cha Bị Bỏ')).toEqual(['father-skipped']);
 
     const committed = await withClanContext(clanId, (tx) =>
       commitSeedOp(tx, admin, { rows: parsed.value, decisions }),

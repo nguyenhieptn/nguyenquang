@@ -231,6 +231,58 @@ gốc để lần sau không phải điều tra lại.
   vẫn bị React Flow nuốt trên một bề mặt mà AD-4 nói *không có xoá*. *Lý do hoãn: có sẵn trước
   story 6-9; đúng chỗ chữa là một lượt rà cấu hình React Flow, không phải story phím tắt.*
 
+## Deferred from: code review of story 6-3 (2026-08-27)
+
+Chín mục, đều có sẵn trước story 6-3 — bộ nạp khung là đường ghi HÀNG LOẠT nên mỗi mục ở đây
+nhân lên theo số dòng của tệp.
+
+- **Gieo lại dựng lại chính những cạnh Ban tu phả vừa loại bỏ.** `wireParentEdge`
+  (`core/seed/ops.ts:371`) và phép `alreadyJoined` của vòng union (`:449`) đều lọc
+  `eq(assertion.status, 'live')`, trong khi `reject`/`hide` đặt `status: 'hidden'`
+  (`core/assertion/ops.ts`). Nếp vận hành đã ghi ở đầu `seed-from-sheet.ts` là *"sửa bảng tính
+  rồi chạy lại"* — nên lượt chạy lại lật ngược một phán quyết của con người, không cảnh báo,
+  không con số nào tố giác (`SeedCommitResult` không đếm cạnh). **Nặng nhất trong nhóm này.**
+  *Lý do hoãn: sửa đúng đòi quyết định về nghĩa của `hidden` với bộ nạp — một cuộc bàn, không
+  phải một vé.*
+
+- **Hai dòng cùng `link` vào MỘT người ⇒ người ấy có hai cha.** Vòng kiểm `link`
+  (`ops.ts:284-290`) soi từng dòng, không soi trùng đích. Ca tới được qua đúng màn: hai dòng
+  trùng tên bày cùng một nút *"Là cùng cụ này"*, người vận hành tích cả hai. `DON_TRI` cho
+  `parent-child` là `false` nên `addAssertionOp` cũng không chặn.
+
+- **Dòng `link` vào người đã có cha trong phả được gắn thêm cha thứ hai.** `wireParentEdge` chỉ
+  hỏi *"đã có cạnh (con, cha ẤY) chưa"*, không hỏi *"đứa con này đã có cha nào chưa"*.
+
+- **Vòng `ten_cha` trong tệp: xem trước im hoàn toàn, commit đổ cả đợt.** Phép bắt vòng nằm ở
+  `commitSeedOp` (`ops.ts:334`), không có loại cảnh báo nào cho nó, nên bảng xem trước xanh và
+  nút đọc *"Ghi 2 dòng vào phả"*. Trái với chính luật ở đầu `ops.ts:11-13`.
+
+- **A khai B là cha, B khai A là vợ/chồng ⇒ ghi cả hai cạnh, không cảnh báo.** Vòng topo không
+  thấy gì lạ (union không nằm trong đồ thị), `addAssertionOp` chỉ chặn `partnerId === personId`.
+  Cây bày một người vừa là con vừa là vợ/chồng của cùng một người.
+
+- **`spouseId === selfId` bỏ union không một tiếng** (`ops.ts:437`), và **dòng `link` mà
+  `ten_cha` giải ra chính người được link** bị `wireParentEdge` bỏ cạnh tự trỏ (`:362`). Cả hai
+  là chiều ngược của AC 4: không cảnh báo mà cũng không cạnh. Story 6-3 đã khai ca thứ hai là
+  ngoài phạm vi nhưng quên ghi vào sổ này.
+
+- **`nam_sinh = 0000` ném SAU khi lượt ghi đã bắt đầu.** `csv.ts:132` nhận mọi `\d{4}`;
+  `invalidGenealogicalDate` chỉ soi hình dạng `YYYY-MM-DD`; Postgres `date` không có năm 0. Kết
+  quả là 500 thay vì một `Result` err — đúng thứ chú thích đầu `ops.ts` gọi là *"a bug"*. Cùng
+  họ với lỗi `create-admin.ts` đã vá 26/08.
+
+- **`locCotDaBiet` im lặng nuốt cột trùng tên và cột không tên** (`seed-from-sheet.ts:90-96`).
+  `parseSeedCsv` vốn từ chối cột trùng, nhưng CSV đã được dựng lại nên không bao giờ tới nó.
+
+- **Dòng `link` mà `ten_cha` giải ra chính người được link** — `wireParentEdge` bỏ cạnh tự trỏ
+  (`core/seed/ops.ts:362`), im lặng. Nghĩa thật của ca này: người vận hành đã link NHẦM dòng.
+  Story 6-3 khai nó ngoài phạm vi và hứa ghi vào sổ này; nay ghi. *Lý do hoãn: hiếm, và chữa
+  đúng đòi một loại cảnh báo nữa cho một ca mà `SeedCommitResult` chưa đếm được.*
+
+- **`nonce: Date.now()` làm khoá remount** (`actions.ts:159` + client `:1081`). Hai lượt nạp
+  trùng mili-giây ⇒ `daChon`, `canhBaoMoi`, `luotSoi` của tệp trước sống tiếp sang tệp sau.
+  Story 6-3 vừa treo thêm ba mảnh state vào đúng chỗ ấy nên giá của nó vừa tăng.
+
 ## Chốt BỎ — 26/08/2026
 
 Ba việc được nêu và chủ dự án chốt **không làm**. Ghi ra để lần sau không ai đề xuất lại như thể

@@ -62,11 +62,29 @@ export type SeedRowWarning =
    */
   | 'spouse-ambiguous'
   /**
-   * Dòng này đang bị `skip` mà có khai `ten_cha` hoặc `ten_vo_chong`. MẤT: chính những mối nối
-   * ấy — bỏ một dòng là bỏ luôn các quan hệ nó khai, không chỉ bỏ một người. Đây là loại cảnh
-   * báo DUY NHẤT không tính được nếu không truyền `decisions` vào `previewSeed`.
+   * Dòng này đang bị `skip` mà có khai `ten_cha`/`ten_vo_chong`, **hoặc** có dòng khác khai nó
+   * làm cha/vợ chồng. MẤT: chính những mối nối ấy — bỏ một dòng là bỏ luôn các quan hệ nó khai
+   * VÀ các quan hệ khai về nó, không chỉ bỏ một người.
+   *
+   * Sửa 27/08 sau code review: bản đầu chỉ đếm chiều thứ nhất, nên bỏ tích một cụ tổ (dòng
+   * không khai gì) cho `warnings` RỖNG — dòng vừa bấm là dòng duy nhất im lặng, và nó rơi khỏi
+   * cả bộ lọc *Cần xem lại*, trong khi hàng chục dòng con cháu lặng lẽ mất cha.
+   *
+   * Đây là loại cảnh báo không tính được nếu không truyền `decisions` vào `previewSeed`.
    */
   | 'skip-drops-edges'
+  /**
+   * `ten_cha` giải được trong TỆP, nhưng dòng ấy đang bị bỏ. MẤT: cạnh cha–con.
+   *
+   * Tách khỏi `father-not-found` là bắt buộc (sửa 27/08 sau code review). Từ khi `previewSeedOp`
+   * nhận `decisions`, *"trong tệp"* không còn nghĩa là trong tệp — nó nghĩa là *trong những dòng
+   * đang được ghi*. Gộp hai ca lại thì màn khẳng định *"không có ai tên ấy — cả trong tệp lẫn
+   * trong phả"* ngay bên dưới một dòng mang đúng cái tên ấy, và lái người vận hành sang màn
+   * *Mảnh chưa nối* để nối tay thay vì chỉ cần tích lại một ô.
+   */
+  | 'father-skipped'
+  /** `ten_vo_chong` giải được trong TỆP, nhưng dòng ấy đang bị bỏ. MẤT: union. */
+  | 'spouse-skipped'
   /** another row in the same file carries this name — review before committing */
   | 'duplicate-in-file';
 

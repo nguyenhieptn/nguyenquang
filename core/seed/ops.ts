@@ -122,6 +122,22 @@ function quyetDinhCua(decisions: SeedDecisions, index: number): SeedDecision {
   return decisions[index] ?? { action: 'create' };
 }
 
+/**
+ * Khoá của `decisions` phải là chỉ số dòng THẬT — dùng chung cho cả xem trước lẫn lượt ghi.
+ *
+ * Kiểm bằng `String(index) === key` chứ không bằng `Number(key)` (sửa 27/08 sau code review):
+ * `Number(' 1')`, `Number('1.0')`, `Number('1e0')` đều ra `1` và lọt qua vòng kiểm cũ, rồi
+ * `decisions[1]` đọc hụt vì khoá thật là `' 1'` — dòng người gọi đánh dấu BỎ lại được TẠO.
+ */
+function kiemKhoaQuyetDinh(rows: SeedRow[], decisions: SeedDecisions): Result<never> | null {
+  for (const key of Object.keys(decisions)) {
+    const index = Number(key);
+    if (!Number.isInteger(index) || index < 0 || index >= rows.length || String(index) !== key)
+      return err('invalid', `decision for unknown row index '${key}'`);
+  }
+  return null;
+}
+
 /** Dòng nào THẬT SỰ được ghi trong lượt này. `skip` đứng ngoài mọi phép giải tên. */
 function dongConLai(rows: SeedRow[], decisions: SeedDecisions): SeedRow[] {
   return rows.filter((r) => quyetDinhCua(decisions, r.index).action !== 'skip');
@@ -149,6 +165,11 @@ export async function previewSeedOp(
 ): Promise<Result<SeedPreview>> {
   const gate = gateApprover(viewer);
   if (!gate.ok) return gate;
+  // CÙNG phép kiểm với `commitSeedOp` (sửa 27/08 sau code review). Hai cổng nói khác nhau thì
+  // xem trước nhận một bộ quyết định mà lượt ghi sẽ từ chối, và bảng bày cảnh báo "đúng" cho
+  // một tệp khác suốt cả phiên.
+  const khoaHong = kiemKhoaQuyetDinh(rows, decisions);
+  if (khoaHong) return khoaHong;
 
   const foldedOf = (row: SeedRow) => chuanHoa(row.hoTen);
   const nameCounts = new Map<string, number>();
@@ -163,7 +184,21 @@ export async function previewSeedOp(
     ...rows.filter((r) => r.tenVoChong).map((r) => chuanHoa(r.tenVoChong!)),
   ]);
 
-  const giaiTen = dungPhepGiaiTen(dongConLai(rows, decisions), clanMatches);
+  const conLai = dongConLai(rows, decisions);
+  const giaiTen = dungPhepGiaiTen(conLai, clanMatches);
+  /**
+   * Tên của những dòng ĐANG BỊ BỎ — để phân biệt *"không có ai tên ấy"* với *"có, nhưng dòng ấy
+   * đang bị bỏ"*. Hai câu khác hẳn nhau, và câu thứ hai kèm sẵn cách sửa: tích lại một ô.
+   */
+  const tenBiBo = new Set(
+    rows.filter((r) => !conLai.includes(r)).map((r) => foldedOf(r)),
+  );
+  /** Dòng nào đang được dòng KHÁC khai là cha hoặc vợ/chồng — cho `skip-drops-edges` hai chiều. */
+  const duocKhaiToi = new Set<string>();
+  for (const r of rows) {
+    if (r.tenCha) duocKhaiToi.add(chuanHoa(r.tenCha));
+    if (r.tenVoChong) duocKhaiToi.add(chuanHoa(r.tenVoChong));
+  }
 
   const previewRows: SeedPreviewRow[] = rows.map((row) => {
     const folded = foldedOf(row);
@@ -212,7 +247,12 @@ export async function previewSeedOp(
      * Chỉ bật cho `skip`. Dòng `link` vẫn được nối đủ cạnh — `wireParentEdge` và vòng union đều
      * chạy trên dòng `link`.
      */
-    if (quyetDinhCua(decisions, row.index).action === 'skip' && (row.tenCha || row.tenVoChong))
+    if (
+      quyetDinhCua(decisions, row.index).action === 'skip' &&
+      // HAI chiều: cạnh dòng này KHAI, và cạnh dòng khác khai VỀ nó. Bản đầu chỉ đếm chiều thứ
+      // nhất, nên bỏ tích một cụ tổ (không khai gì) là dòng duy nhất trên màn không nói gì.
+      (row.tenCha || row.tenVoChong || duocKhaiToi.has(folded))
+    )
       warnings.push('skip-drops-edges');
 
     /**
@@ -229,13 +269,30 @@ export async function previewSeedOp(
      * y hệt như khi nó còn nằm trong tập — không cần dựng thêm tập thứ hai.
      */
     if (row.tenCha) {
-      const cha = giaiTen(chuanHoa(row.tenCha), row.index);
-      if (!cha.ok) warnings.push(cha.ly === 'khong-thay' ? 'father-not-found' : 'father-ambiguous');
+      const chaFolded = chuanHoa(row.tenCha);
+      const cha = giaiTen(chaFolded, row.index);
+      if (!cha.ok)
+        warnings.push(
+          cha.ly === 'mo-ho'
+            ? 'father-ambiguous'
+            : // Có dòng mang đúng tên ấy, chỉ là đang bị bỏ ⇒ nói ra, kèm cách sửa. Gộp vào
+              // `father-not-found` là khẳng định "không có ai tên ấy" ngay dưới một dòng có.
+              tenBiBo.has(chaFolded)
+              ? 'father-skipped'
+              : 'father-not-found',
+        );
     }
     if (row.tenVoChong) {
-      const voChong = giaiTen(chuanHoa(row.tenVoChong), row.index);
+      const voFolded = chuanHoa(row.tenVoChong);
+      const voChong = giaiTen(voFolded, row.index);
       if (!voChong.ok)
-        warnings.push(voChong.ly === 'khong-thay' ? 'spouse-not-found' : 'spouse-ambiguous');
+        warnings.push(
+          voChong.ly === 'mo-ho'
+            ? 'spouse-ambiguous'
+            : tenBiBo.has(voFolded)
+              ? 'spouse-skipped'
+              : 'spouse-not-found',
+        );
     }
 
     return {
@@ -274,11 +331,8 @@ export async function commitSeedOp(
   if (rows.length === 0) return err('invalid', 'no rows to import');
 
   // ── Validate everything BEFORE the first write ──
-  for (const key of Object.keys(decisions)) {
-    const index = Number(key);
-    if (!Number.isInteger(index) || index < 0 || index >= rows.length)
-      return err('invalid', `decision for unknown row index '${key}'`);
-  }
+  const khoaHong = kiemKhoaQuyetDinh(rows, decisions);
+  if (khoaHong) return khoaHong;
   const decisionOf = (index: number): SeedDecision => quyetDinhCua(decisions, index);
 
   for (const row of rows) {

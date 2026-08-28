@@ -8,29 +8,27 @@
  * vựng về một chỗ là cách để lần sau thêm một loại cảnh báo thì cả hai bề mặt cùng biết.
  *
  * ── Vì sao ở `components/admin/` mà script cũng import ──────────────────────────────────────
- * Bảng nhãn phải nằm nơi một **client component** import được. `app/admin/nap-khung/
- * nap-khung-client.tsx` là `'use client'`, nên nó KHÔNG được import `@/core/*` — làm thế là kéo
- * `pg` vào bó trình duyệt (`Can't resolve 'dns'`, đã vấp một lần ở story 6-7). Đây là lý do mọi
- * module từ vựng thuần của bàn quản trị sống ở đây. Script là node và import được mọi thứ, nên
- * nó theo về đây chứ không dựng bảng nhãn thứ hai.
+ * Bảng nhãn phải nằm nơi một **client component** import được, và mọi module từ vựng thuần của
+ * bàn quản trị đã sống ở đây. Script là node nên import được, và nó theo về đây chứ không dựng
+ * bảng nhãn thứ hai.
  *
- * `docs/build-contract.md § Phân tầng`: file này KHÔNG import `@/core/*`.
+ * ── `import type`, không chép tay (sửa 27/08 sau code review) ───────────────────────────────
+ * Bản đầu chép tay lại `SeedRowWarning` với lý do *"`components/` không import `@/core/*`"* —
+ * **luật ấy không tồn tại**. `docs/build-contract.md:25-26` cấm `@/db`, `drizzle-orm`, `pg`, và
+ * ruột core (đường `ops` bên trong mỗi module); bề mặt `@/core/<module>` thì ĐƯỢC PHÉP, và
+ * `nap-khung-client.tsx` (`'use client'`) đang `import type` từ `@/core/seed` ngay trong nó.
+ *
+ * (Chú thích này cố ý không viết đường dẫn ruột core ra nguyên văn: chuỗi ấy chứa `*` rồi `/`,
+ * tức nó tự đóng khối chú thích. Repo đã vấp đúng chỗ ấy một lần ở story 6-1.)
+ *
+ * `import type` bị xoá lúc biên dịch nên không kéo `pg` vào bó nào (đó mới là cái bẫy thật của
+ * story 6-7 — nó là `import` GIÁ TRỊ). Và nó chặn trôi cả HAI chiều, trong khi bản chép tay chỉ
+ * chặn được chiều thêm loại.
  */
+import type { SeedRowWarning } from '@/core/seed';
 
-/**
- * Bản sao của `SeedRowWarning` (`core/seed/index.ts`) — chép tay vì `components/` không được
- * import core.
- *
- * Chép tay mà KHÔNG trôi: nơi gọi truyền `SeedRowWarning` thật vào các hàm dưới đây, nên thêm
- * một loại trong core mà quên ở đây là **tsc đỏ**, không phải một nhãn thiếu âm thầm.
- */
-export type LoaiCanhBao =
-  | 'father-not-found'
-  | 'father-ambiguous'
-  | 'spouse-not-found'
-  | 'spouse-ambiguous'
-  | 'skip-drops-edges'
-  | 'duplicate-in-file';
+/** Tên bề mặt của `SeedRowWarning` — một bí danh, không phải một bản sao. */
+export type LoaiCanhBao = SeedRowWarning;
 
 /**
  * `tieuDe` nói **bot thấy gì**; `mat` nói **cái gì mất**. Hai vế, vì vế thứ hai mới là thứ người
@@ -54,8 +52,16 @@ export const NHAN_CANH_BAO: Record<LoaiCanhBao, { tieuDe: string; mat: string }>
     mat: 'máy không đoán, nên cũng không ghi được mối vợ chồng',
   },
   'skip-drops-edges': {
-    tieuDe: 'dòng đang được để lại, mà có khai quan hệ',
-    mat: 'bỏ một dòng là bỏ luôn tên cha và tên vợ/chồng dòng ấy khai',
+    tieuDe: 'dòng đang được để lại, mà có quan hệ dính vào nó',
+    mat: 'bỏ một dòng là bỏ luôn mọi mối nối dòng ấy khai VÀ mọi mối nối khai về nó',
+  },
+  'father-skipped': {
+    tieuDe: 'người cha CÓ trong tệp, nhưng dòng ấy đang được để lại',
+    mat: 'cạnh cha–con không được ghi — tích lại dòng của người cha là xong',
+  },
+  'spouse-skipped': {
+    tieuDe: 'người vợ/chồng CÓ trong tệp, nhưng dòng ấy đang được để lại',
+    mat: 'union không được ghi — tích lại dòng của người ấy là xong',
   },
   'duplicate-in-file': {
     tieuDe: 'trùng tên với một dòng khác trong chính tệp',
@@ -111,6 +117,24 @@ export function canhBaoHienHanh(
  */
 export type HuongMacDinh = 'chua-quyet' | 'de-lai' | 'noi-vao-ung-vien' | 'tao-moi';
 
+/**
+ * Cảnh báo nào đủ nặng để BỎ TÍCH sẵn một dòng — chốt 27/08/2026 sau code review.
+ *
+ * ── Vì sao không phải "mọi cảnh báo" như bản đầu ────────────────────────────────────────────
+ * Story 6-3 thêm `spouse-not-found`, và nó bắt tay với luật cũ *"có cảnh báo thì bỏ tích"* thành
+ * một hồi quy đo được trên **chính tệp mẫu sản phẩm phát ra**: `ten_vo_chong` trỏ tới người
+ * không có dòng riêng — hình dạng thường gặp nhất của bảng tính chép tay, và là hình dạng tệp
+ * mẫu dạy — nên dòng ấy bị bỏ tích, và tệp hai dòng chỉ ghi được một, không cạnh nào.
+ *
+ * Chủ dự án chốt: **chỉ `spouse-*` thôi bỏ tích**, `father-*` giữ nguyên như cũ. Lý do đứng
+ * được: thiếu cha đổi CẤU TRÚC cây — người ấy thành gốc tạm của một mảnh mới, một chuyện đáng
+ * bắt dừng lại nhìn; thiếu vợ/chồng chỉ mất một union, không đổi hình cây.
+ *
+ * `skip-drops-edges` · `father-skipped` · `spouse-skipped` không bao giờ có mặt trong lượt MÙ
+ * (chúng đòi một dòng đang bị `skip`), nên chúng đứng ngoài bảng này theo định nghĩa.
+ */
+const BO_TICH: readonly LoaiCanhBao[] = ['father-not-found', 'father-ambiguous', 'duplicate-in-file'];
+
 export function huongMacDinh(a: {
   nghiTrung: boolean;
   khopNguoiCoSan: boolean;
@@ -119,7 +143,7 @@ export function huongMacDinh(a: {
   canhBao: readonly LoaiCanhBao[];
 }): HuongMacDinh {
   if (a.nghiTrung) return 'chua-quyet';
-  if (a.canhBao.length > 0) return 'de-lai';
+  if (a.canhBao.some((c) => BO_TICH.includes(c))) return 'de-lai';
   if (a.khopNguoiCoSan && a.coUngVien) return 'noi-vao-ung-vien';
   return 'tao-moi';
 }
