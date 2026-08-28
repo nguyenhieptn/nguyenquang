@@ -37,6 +37,7 @@ export type KhoaMan =
   | 'hop-nhat'
   | 'noi-chon'
   | 'so-dong-ho'
+  | 'tai-khoan'
   | 'nap-khung';
 
 /** Ba nhóm của thanh việc, theo thứ tự bày. Nhãn nhóm là NHÃN, không phải đường. */
@@ -137,6 +138,15 @@ export const MAN: ManAdmin[] = [
     nhan: 'Tên họ & đề từ',
     tieuDe: 'Sổ dòng họ',
     nhom: 'so-ho',
+    coSo: false,
+  },
+  {
+    khoa: 'tai-khoan',
+    duong: '/admin/tai-khoan',
+    nhan: 'Tài khoản',
+    tieuDe: 'Tài khoản và vai',
+    nhom: 'so-ho',
+    // Không phải hàng chờ. Số 0 trên một danh sách người thì không mang nghĩa gì.
     coSo: false,
   },
   {

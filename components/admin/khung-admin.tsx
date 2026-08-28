@@ -50,6 +50,7 @@ import {
   Unlink,
   Upload,
   UserRoundCheck,
+  UsersRound,
   UserRoundPlus,
   type LucideIcon,
 } from 'lucide-react';
@@ -64,6 +65,7 @@ const ICON: Record<KhoaMan, LucideIcon> = {
   'hop-nhat': Unlink,
   'noi-chon': MapPin,
   'so-dong-ho': ScrollText,
+  'tai-khoan': UsersRound,
   'nap-khung': Upload,
 };
 

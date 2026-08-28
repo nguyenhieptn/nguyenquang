@@ -26,12 +26,15 @@ import { createAdmin } from './bootstrap';
 import type { SessionContext } from './session';
 import {
   approveAttachmentOp,
+  detachAccountOp,
   detachSelfOp,
   getMyNotificationsOp,
+  listAttachmentsOp,
   listPendingAttachmentsOp,
   rejectAttachmentOp,
   markNotificationSeenOp,
   requestAttachmentOp,
+  setAttachmentRoleOp,
   updateSelfVisibilityOp,
 } from './ops';
 
@@ -653,6 +656,304 @@ describe('malformed ids (Postgres 22P02)', () => {
 
       const seen = await markNotificationSeenOp(tx, someone, { notificationId: bad });
       expect(!seen.ok && seen.error.code === 'not-found').toBe(true);
+    });
+  });
+});
+
+/**
+ * Story 6-2 — trao/hạ vai và gỡ gắn. Hai hàng rào ở đây là AN TOÀN, không phải tiện nghi: hạ vai
+ * quản trị cuối cùng là khoá cả dòng họ ra khỏi bàn quản trị, và không đường nào trong sản phẩm
+ * mở lại được.
+ */
+describe('vai và gỡ gắn (story 6-2)', () => {
+  /** Dựng một gắn kết `active` mới cho một người mới, trả về id gắn kết. */
+  const dungGanKet = async (
+    ten: string,
+    accountId: string,
+    vai: 'admin' | 'branch-head' | 'member' = 'member',
+  ): Promise<{ attachmentId: string; personId: string }> =>
+    withClanContext(clanId, async (tx) => {
+      const personId = uuidv7();
+      await tx.insert(person).values({ id: personId, clanId, fullName: ten, nameFolded: ten.toLowerCase() });
+      const attachmentId = uuidv7();
+      await tx.insert(attachment).values({
+        id: attachmentId,
+        clanId,
+        accountId,
+        personId,
+        role: vai,
+        status: 'active',
+      });
+      return { attachmentId, personId };
+    });
+
+  it('chỉ quản trị đổi được vai; đầu mối chi và thành viên bị chặn', async () => {
+    const { attachmentId } = await dungGanKet('S62 Bị Đổi Vai', `s62-a-${run}`);
+    for (const vai of ['branch-head', 'member'] as const) {
+      const r = await withClanContext(clanId, (tx) =>
+        setAttachmentRoleOp(tx, ctx(`s62-ke-${run}`, vai), { attachmentId, role: 'admin' }),
+      );
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error.code).toBe('forbidden');
+    }
+  });
+
+  it('đổi vai KHÔNG đụng vouchedBy, personId hay status; và ghi một revision', async () => {
+    const { attachmentId, personId } = await dungGanKet('S62 Lên Đầu Mối', `s62-b-${run}`);
+    await withClanContext(clanId, (tx) =>
+      tx.update(attachment).set({ vouchedByAttachmentId: attachmentId }).where(eq(attachment.id, attachmentId)),
+    );
+    const r = await withClanContext(clanId, (tx) =>
+      setAttachmentRoleOp(tx, ctx(adminAccountId, 'admin', adminPersonId), {
+        attachmentId,
+        role: 'branch-head',
+      }),
+    );
+    expect(r.ok).toBe(true);
+    await withClanContext(clanId, async (tx) => {
+      const [sau] = await tx.select().from(attachment).where(eq(attachment.id, attachmentId));
+      expect(sau!.role).toBe('branch-head');
+      expect(sau!.status).toBe('active');
+      expect(sau!.personId).toBe(personId);
+      expect(sau!.vouchedByAttachmentId).toBe(attachmentId); // dấu vết bảo lãnh còn nguyên
+      const nk = await tx.select().from(revision).where(eq(revision.entityId, attachmentId));
+      expect(nk.some((x) => x.note === 'đổi vai')).toBe(true);
+    });
+  });
+
+  it('KHÔNG tự hạ vai của chính mình, kể cả khi còn quản trị khác', async () => {
+    const accountId = `s62-c-${run}`;
+    const { attachmentId } = await dungGanKet('S62 Tự Hạ Mình', accountId, 'admin');
+    const r = await withClanContext(clanId, (tx) =>
+      setAttachmentRoleOp(tx, ctx(accountId, 'admin'), { attachmentId, role: 'member' }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('conflict');
+  });
+
+  /**
+   * HỒI QUY 27/08 — bài này TRƯỚC ĐÂY dựng một ctx `role: 'admin'` KHÔNG có gắn kết nào, tức một
+   * trạng thái **sản phẩm không tạo ra được**: `resolveSessionImpl` lấy `role` chỉ từ một gắn kết
+   * `active`. Bài xanh và chứng minh không gì cả.
+   *
+   * Sự thật code review chỉ ra: trong `setAttachmentRoleOp` và `detachAccountOp`, hàng rào ấy
+   * KHÔNG BAO GIỜ chạy được — người bấm luôn được đếm, và phép kiểm "chính mình" đứng trước nên
+   * target luôn là một admin khác ⇒ đếm luôn ≥ 2. Giữ chúng làm lớp phòng thủ thứ hai; còn bài
+   * test thì phải chạy trên cửa THẬT: `detachSelfOp`.
+   */
+  it('quản trị DUY NHẤT không tự gỡ được — cửa thật tới 0 quản trị', async () => {
+    const clanRieng = uuidv7();
+    clanPhu.push(clanRieng);
+    const accountId = `s62-mot-minh-${run}`;
+    await withClanContext(clanRieng, async (tx) => {
+      await tx.insert(clan).values({ id: clanRieng, name: 'S62 Một Quản Trị' });
+      const personId = uuidv7();
+      await tx.insert(person).values({
+        id: personId,
+        clanId: clanRieng,
+        fullName: 'S62 Duy Nhất',
+        nameFolded: 's62 duy nhat',
+      });
+      await tx.insert(attachment).values({
+        id: uuidv7(),
+        clanId: clanRieng,
+        accountId,
+        personId,
+        role: 'admin',
+        status: 'active',
+      });
+    });
+    const minh: SessionContext = { accountId, clanId: clanRieng, personId: null, role: 'admin' };
+
+    const tuGo = await withClanContext(clanRieng, (tx) => detachSelfOp(tx, minh));
+    expect(tuGo.ok).toBe(false);
+    if (!tuGo.ok) expect(tuGo.error.message).toMatch(/quản trị duy nhất/);
+
+    // Và hàng vẫn còn — không bị xoá nửa chừng.
+    await withClanContext(clanRieng, async (tx) => {
+      const con = await tx.select().from(attachment).where(eq(attachment.accountId, accountId));
+      expect(con).toHaveLength(1);
+      expect(con[0]!.status).toBe('active');
+    });
+
+    // Có quản trị thứ hai thì tự gỡ được.
+    await withClanContext(clanRieng, async (tx) => {
+      const p2 = uuidv7();
+      await tx.insert(person).values({ id: p2, clanId: clanRieng, fullName: 'S62 Thứ Hai', nameFolded: 's62 thu hai' });
+      await tx.insert(attachment).values({
+        id: uuidv7(),
+        clanId: clanRieng,
+        accountId: `s62-thu-hai-${run}`,
+        personId: p2,
+        role: 'admin',
+        status: 'active',
+      });
+    });
+    const lai = await withClanContext(clanRieng, (tx) => detachSelfOp(tx, minh));
+    expect(lai.ok).toBe(true);
+  });
+
+  it('không đổi được vai của gắn kết chưa hoạt động', async () => {
+    const { attachmentId } = await dungGanKet('S62 Còn Chờ', `s62-d-${run}`);
+    await withClanContext(clanId, (tx) =>
+      tx.update(attachment).set({ status: 'pending' }).where(eq(attachment.id, attachmentId)),
+    );
+    const r = await withClanContext(clanId, (tx) =>
+      setAttachmentRoleOp(tx, ctx(adminAccountId, 'admin', adminPersonId), { attachmentId, role: 'admin' }),
+    );
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('conflict');
+  });
+
+  /** AD-4: hàng ở lại, `status` đổi, lý do vào nhật ký — khác `detachSelfOp` vốn xoá hàng. */
+  it('gỡ gắn GIỮ hàng, đổi status, ghi lý do; và người bị gỡ xin lại được', async () => {
+    const accountId = `s62-e-${run}`;
+    const { attachmentId, personId } = await dungGanKet('S62 Bị Gỡ', accountId);
+    const r = await withClanContext(clanId, (tx) =>
+      detachAccountOp(tx, ctx(adminAccountId, 'admin', adminPersonId), {
+        attachmentId,
+        note: 'nhận nhầm node',
+      }),
+    );
+    expect(r.ok).toBe(true);
+    await withClanContext(clanId, async (tx) => {
+      const [sau] = await tx.select().from(attachment).where(eq(attachment.id, attachmentId));
+      expect(sau).toBeTruthy(); // KHÔNG xoá
+      expect(sau!.status).toBe('detached');
+      const nk = await tx.select().from(revision).where(eq(revision.entityId, attachmentId));
+      expect(nk.some((x) => (x.note ?? '').includes('nhận nhầm node'))).toBe(true);
+    });
+
+    // Xin lại: `requestAttachmentOp` dùng lại chính hàng ấy vì nó không `active`.
+    const xin = await withClanContext(clanId, (tx) =>
+      requestAttachmentOp(tx, ctx(accountId, 'member'), { personId }),
+    );
+    expect(xin.ok).toBe(true);
+    if (xin.ok) expect(xin.value.attachmentId).toBe(attachmentId);
+  });
+
+  it('gỡ gắn đòi một dòng lý do, và không tự gỡ chính mình', async () => {
+    const accountId = `s62-f-${run}`;
+    const { attachmentId } = await dungGanKet('S62 Lý Do Rỗng', accountId);
+    const rong = await withClanContext(clanId, (tx) =>
+      detachAccountOp(tx, ctx(adminAccountId, 'admin', adminPersonId), { attachmentId, note: '   ' }),
+    );
+    expect(rong.ok).toBe(false);
+    if (!rong.ok) expect(rong.error.code).toBe('invalid');
+
+    const tuGo = await withClanContext(clanId, (tx) =>
+      detachAccountOp(tx, ctx(accountId, 'admin'), { attachmentId, note: 'tự gỡ' }),
+    );
+    expect(tuGo.ok).toBe(false);
+    if (!tuGo.ok) expect(tuGo.error.code).toBe('conflict');
+  });
+
+  it('danh sách gắn kết: cùng cổng quyền với hàng chờ, và bày CẢ hàng không active', async () => {
+    const khach = await withClanContext(clanId, (tx) => listAttachmentsOp(tx, ctx(`s62-g-${run}`, 'member')));
+    expect(khach.ok).toBe(false);
+    if (!khach.ok) expect(khach.error.code).toBe('forbidden');
+
+    // Hàng gỡ RIÊNG cho bài này: hàng của bài trên đã quay về `pending` vì chính bài ấy cho
+    // người bị gỡ xin lại — đúng hành vi, nhưng không dùng làm mẫu ở đây được.
+    const { attachmentId } = await dungGanKet('S62 Gỡ Rồi Để Yên', `s62-h-${run}`);
+    await withClanContext(clanId, (tx) =>
+      detachAccountOp(tx, ctx(adminAccountId, 'admin', adminPersonId), {
+        attachmentId,
+        note: 'để yên cho bài danh sách',
+      }),
+    );
+
+    const ds = await withClanContext(clanId, (tx) =>
+      listAttachmentsOp(tx, ctx(adminAccountId, 'admin', adminPersonId)),
+    );
+    expect(ds.ok).toBe(true);
+    if (!ds.ok) return;
+    // Hàng đã gỡ phải CÒN trong danh sách — đó là điểm khác với danh sách hàng chờ.
+    expect(ds.value.find((r) => r.attachmentId === attachmentId)?.status).toBe('detached');
+    expect(ds.value.every((r) => r.personName.length > 0)).toBe(true);
+  });
+
+  it('cổng quyền của detachAccountOp: branch-head, member, guest đều bị chặn', async () => {
+    const { attachmentId } = await dungGanKet('S62 Cổng Gỡ', `s62-i-${run}`);
+    for (const vai of ['branch-head', 'member'] as const) {
+      const r = await withClanContext(clanId, (tx) =>
+        detachAccountOp(tx, ctx(`s62-ke2-${run}`, vai), { attachmentId, note: 'thử' }),
+      );
+      expect(r.ok, `vai ${vai} phải bị chặn`).toBe(false);
+      if (!r.ok) expect(r.error.code).toBe('forbidden');
+    }
+    const khach = await withClanContext(clanId, (tx) =>
+      detachAccountOp(tx, ctx(`s62-khach-${run}`, 'guest'), { attachmentId, note: 'thử' }),
+    );
+    expect(khach.ok).toBe(false);
+
+    // Cùng ca ấy cho hai phép còn lại — `guest` trước đây không xuất hiện ở bài nào.
+    const doi = await withClanContext(clanId, (tx) =>
+      setAttachmentRoleOp(tx, ctx(`s62-khach-${run}`, 'guest'), { attachmentId, role: 'admin' }),
+    );
+    expect(doi.ok).toBe(false);
+    const ds = await withClanContext(clanId, (tx) =>
+      listAttachmentsOp(tx, ctx(`s62-khach-${run}`, 'guest')),
+    );
+    expect(ds.ok).toBe(false);
+  });
+
+  it('gắn kết `rejected` hay `detached` thì không đổi vai và không gỡ được', async () => {
+    for (const tt of ['rejected', 'detached'] as const) {
+      const { attachmentId } = await dungGanKet(`S62 Trạng Thái ${tt}`, `s62-${tt}-${run}`);
+      await withClanContext(clanId, (tx) =>
+        tx.update(attachment).set({ status: tt }).where(eq(attachment.id, attachmentId)),
+      );
+      const doi = await withClanContext(clanId, (tx) =>
+        setAttachmentRoleOp(tx, ctx(adminAccountId, 'admin', adminPersonId), { attachmentId, role: 'admin' }),
+      );
+      expect(doi.ok, `đổi vai hàng ${tt}`).toBe(false);
+      const go = await withClanContext(clanId, (tx) =>
+        detachAccountOp(tx, ctx(adminAccountId, 'admin', adminPersonId), { attachmentId, note: 'thử' }),
+      );
+      expect(go.ok, `gỡ hàng ${tt}`).toBe(false);
+    }
+  });
+
+  /**
+   * `detached` là trạng thái thứ tư, và hai op cũ liệt kê tường minh ba trạng thái cũ — nên nó
+   * suýt rơi thẳng qua. Một đầu mối chi phục hồi được gắn kết mà quản trị vừa gỡ.
+   */
+  it('hàng đã GỠ không duyệt lại và không từ chối được — kể cả bởi đầu mối chi', async () => {
+    const { attachmentId } = await dungGanKet('S62 Gỡ Rồi Duyệt Lại', `s62-j-${run}`);
+    await withClanContext(clanId, (tx) =>
+      detachAccountOp(tx, ctx(adminAccountId, 'admin', adminPersonId), {
+        attachmentId,
+        note: 'gỡ để thử',
+      }),
+    );
+    const duyet = await withClanContext(clanId, (tx) =>
+      approveAttachmentOp(tx, ctx(`s62-dauMoi-${run}`, 'branch-head'), { attachmentId }),
+    );
+    expect(duyet.ok).toBe(false);
+    if (!duyet.ok) expect(duyet.error.code).toBe('conflict');
+
+    const tuChoi = await withClanContext(clanId, (tx) =>
+      rejectAttachmentOp(tx, ctx(`s62-dauMoi-${run}`, 'branch-head'), { attachmentId, note: 'x' }),
+    );
+    expect(tuChoi.ok).toBe(false);
+  });
+
+  it('gỡ gắn HẠ vai về member — hàng đã gỡ không được mang lời khai `admin`', async () => {
+    const { attachmentId } = await dungGanKet('S62 Admin Bị Gỡ', `s62-k-${run}`, 'admin');
+    const r = await withClanContext(clanId, (tx) =>
+      detachAccountOp(tx, ctx(adminAccountId, 'admin', adminPersonId), {
+        attachmentId,
+        note: 'thôi làm quản trị',
+      }),
+    );
+    expect(r.ok).toBe(true);
+    await withClanContext(clanId, async (tx) => {
+      const [sau] = await tx.select().from(attachment).where(eq(attachment.id, attachmentId));
+      expect(sau!.role).toBe('member');
+      // Vai cũ không mất — nó nằm trong `before` của revision.
+      const nk = await tx.select().from(revision).where(eq(revision.entityId, attachmentId));
+      expect(JSON.stringify(nk.map((x) => x.before))).toMatch(/admin/);
     });
   });
 });

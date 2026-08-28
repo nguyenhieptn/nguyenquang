@@ -7,16 +7,31 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ThaoTacXinVaoPha } from '@/components/admin/thao-tac-xin-vao-pha';
+import type { AttachmentRole } from '@/core/identity';
 import { nhanVaoPha, tuChoiVaoPha } from './actions';
 
 export type MucXin = {
   attachmentId: string;
   personId: string;
   personName: string;
+  /**
+   * AI đang xin — tên tài khoản, rơi về `accountId` khi không tra được (story 6-2).
+   *
+   * Trước 27/08 màn này chỉ nói *node nào* được xin. Người quản trị duyệt một yêu cầu mà không
+   * biết ai gửi nó — trong khi nhận là trao quyền ghi và mở bán kính riêng tư quanh chỗ ấy.
+   */
+  taiKhoan: string;
   luc: string;
 };
 
-export function DanhSachXin({ muc }: { muc: MucXin[] }) {
+export function DanhSachXin({
+  muc,
+  vaiCuaMinh,
+}: {
+  muc: MucXin[];
+  /** Vai của người đang duyệt — quyết định họ trao được vai nào. Do trang (server) đọc. */
+  vaiCuaMinh: AttachmentRole | 'guest';
+}) {
   const router = useRouter();
 
   return (
@@ -24,7 +39,7 @@ export function DanhSachXin({ muc }: { muc: MucXin[] }) {
       {muc.map((m) => (
         <li key={m.attachmentId} className="rounded-md border border-ban-vien bg-ban-o px-5 py-4">
           <p className="text-[17px]">
-            Một tài khoản đang nhận là{' '}
+            <strong>{m.taiKhoan}</strong> đang nhận là{' '}
             <span className="font-pha text-[19px] font-semibold">{m.personName}</span>
           </p>
           <p className="mt-1 text-[15px] text-muted-foreground">xin từ {m.luc}</p>
@@ -40,8 +55,9 @@ export function DanhSachXin({ muc }: { muc: MucXin[] }) {
 
           <ThaoTacXinVaoPha
             khoa={m.attachmentId}
-            onNhan={async () => {
-              const res = await nhanVaoPha(m.attachmentId);
+            vaiCuaMinh={vaiCuaMinh}
+            onNhan={async (vai) => {
+              const res = await nhanVaoPha(m.attachmentId, vai);
               if (!res.ok) return res.error.message;
               router.refresh();
               return null;

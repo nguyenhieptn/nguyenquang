@@ -283,6 +283,20 @@ nhân lên theo số dòng của tệp.
   trùng mili-giây ⇒ `daChon`, `canhBaoMoi`, `luotSoi` của tệp trước sống tiếp sang tệp sau.
   Story 6-3 vừa treo thêm ba mảnh state vào đúng chỗ ấy nên giá của nó vừa tăng.
 
+## Deferred from: code review of story 6-2 (2026-08-27)
+
+- **`detachSelfOp` XOÁ hàng thay vì giữ.** `core/identity/ops.ts` — khác hẳn `detachAccountOp`
+  (giữ hàng, đổi `status`), và nghịch tinh thần AD-4 mà chính QĐ-4 của story 6-2 viện dẫn. Hậu
+  quả kèm theo: một mắt xích `vouchedByAttachmentId` trỏ vào hàng đã xoá thành mồ côi, không gì
+  phát hiện. *Lý do hoãn: có từ Đợt 1; lượt 6-2 chỉ thêm hàng rào đếm quản trị, đổi cách xoá là
+  một vé riêng và đụng cả luồng "rời khỏi phả" chưa dựng.*
+
+- **`vouched_by_attachment_id` không có khoá ngoại** (`db/schema/domain.ts`). Cùng gốc với mục
+  trên. *Lý do hoãn: thêm FK cần migration và một quyết định về `ON DELETE`.*
+
+- **`listAttachmentsOp` không phân trang**, và màn Tài khoản dựng mỗi gắn kết thành một thẻ. Đây
+  là màn duy nhất mọc tuyến tính theo số tài khoản. *Lý do hoãn: phả có một hàng; chưa gặp.*
+
 ## Chốt BỎ — 26/08/2026
 
 Ba việc được nêu và chủ dự án chốt **không làm**. Ghi ra để lần sau không ai đề xuất lại như thể

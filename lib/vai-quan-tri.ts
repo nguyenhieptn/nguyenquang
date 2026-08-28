@@ -10,9 +10,21 @@
  * nó còn được dựng từ `error.tsx`, mà error boundary buộc phải là client.
  */
 import { resolveSession } from '@/core/identity';
+import type { AttachmentRole } from '@/core/identity';
 
 /** Đúng hai vai mà `app/admin/layout.tsx` cho qua cổng. Bày lối cho vai khác là mời tới cửa khoá. */
 export async function coBanLamViec(): Promise<boolean> {
   const phien = await resolveSession();
   return phien?.role === 'admin' || phien?.role === 'branch-head';
+}
+
+/**
+ * VAI của người đang xem — cho những màn cần biết *"mình trao được vai nào"* (story 6-2), chứ
+ * không chỉ *"mình có vào được bàn không"*.
+ *
+ * Cùng hàng rào import với `coBanLamViec` ở trên: CHỈ server component. Client nhận qua tham số.
+ */
+export async function vaiCuaToi(): Promise<AttachmentRole | 'guest'> {
+  const phien = await resolveSession();
+  return phien?.role ?? 'guest';
 }

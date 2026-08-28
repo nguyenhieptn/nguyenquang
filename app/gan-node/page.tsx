@@ -81,10 +81,27 @@ export default async function Page({
     ganKet.ok && ganKet.value && ganKet.value.status === 'rejected'
       ? ganKet.value.personName
       : null;
+  /**
+   * ĐÃ BỊ GỠ — cùng lý lẽ với `daTuChoi` ngay trên, cho trạng thái thứ tư (thêm 27/08 sau code
+   * review story 6-2). Hai chuyện khác nhau nên hai câu khác nhau: từ chối là *chưa bao giờ được
+   * nhận*, gỡ là *đã từng được nhận rồi bị gỡ*.
+   */
+  const daBiGo =
+    ganKet.ok && ganKet.value && ganKet.value.status === 'detached'
+      ? ganKet.value.personName
+      : null;
 
   return (
     <div className="flex min-h-dvh flex-col">
       <main className={`${DOC} flex-1 pb-28 pt-7 md:pb-16 md:pt-28`}>
+        {daBiGo ? (
+          <p className="mb-6 max-w-[60ch] border-l-4 border-destructive bg-canh-bao-nen px-3 py-2 text-[17px]">
+            Ban tu phả đã gỡ liên kết giữa tài khoản này và{' '}
+            <span className="font-[family-name:var(--font-pha)] font-semibold">{daBiGo}</span>. Nhận
+            lại chỗ ấy được, hoặc chọn một người khác.
+          </p>
+        ) : null}
+
         {daTuChoi ? (
           <p className="mb-6 max-w-[60ch] border-l-4 border-destructive bg-canh-bao-nen px-3 py-2 text-[17px]">
             Lần trước, lời nhận chỗ của{' '}

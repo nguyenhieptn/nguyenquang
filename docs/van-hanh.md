@@ -61,7 +61,12 @@ Log web: `var/log/giapha.log`. PID: `var/run/giapha.pid`.
   không dùng được; script này là đường thoát duy nhất.
 - **Không vào được `/admin`** (hiện màn "Khu vực Ban tu phả") → tài khoản thiếu vai. Cổng ở
   `app/admin/layout.tsx` chỉ nhận `admin` và `branch-head`. Xem vai hiện tại bằng
-  `reset-admin-password.ts --list`; nâng vai cần một admin khác duyệt attachment (chưa có màn UI).
+  `reset-admin-password.ts --list`. **Nâng/hạ vai nay có màn UI** — `/admin/tai-khoan` (story
+  6-2, 27/08/2026): liệt kê mọi gắn kết, trao và hạ vai, gỡ gắn kết. Hai việc màn ấy cố ý KHÔNG
+  cho làm, và cả hai đều là hàng rào an toàn: không hạ vai **quản trị cuối cùng**, và không **tự**
+  hạ vai mình (nhờ một quản trị khác — để hai người cùng biết). Cả hai gác ở `core/identity`, nên
+  POST thẳng không qua giao diện cũng bị chặn. Nếu phả chỉ còn đúng một quản trị và người ấy mất
+  quyền truy cập, đường duy nhất còn lại vẫn là `scripts/create-admin.ts`.
 - **Trang trắng / lỗi quyền** → kiểm xem đã có dòng họ trong database chưa (`create-admin.ts`).
   Từ 25/08/2026 id dòng họ KHÔNG còn nằm trong `.env` — nó đọc thẳng từ bảng `clan`.
 - **Cổng 3000 bị chiếm** → `./scripts/deploy.sh` tự dọn; nếu vẫn kẹt: `ss -tlnp | grep 3000`.

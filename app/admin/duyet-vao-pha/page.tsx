@@ -17,13 +17,14 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { tieuDeThe } from '@/components/admin/man-admin';
 import { listPendingAttachments } from '@/core/identity';
+import { vaiCuaToi } from '@/lib/vai-quan-tri';
 import { DanhSachXin } from './danh-sach-xin';
 
 export const metadata: Metadata = { title: tieuDeThe('duyet-vao-pha') };
 export const dynamic = 'force-dynamic';
 
 export default async function DuyetVaoPhaPage() {
-  const ds = await listPendingAttachments();
+  const [ds, vaiCuaMinh] = await Promise.all([listPendingAttachments(), vaiCuaToi()]);
 
   if (!ds.ok) {
     // `forbidden` ở đây là trạng thái thật, không phải trục trặc: vai khác vẫn vào được đường dẫn.
@@ -60,10 +61,14 @@ export default async function DuyetVaoPhaPage() {
         Nhận là trao quyền ghi và mở bán kính riêng tư quanh chỗ ấy.
       </p>
       <DanhSachXin
+        vaiCuaMinh={vaiCuaMinh}
         muc={ds.value.map((r) => ({
           attachmentId: r.attachmentId,
           personId: r.personId,
           personName: r.personName,
+          // Ai đang xin — không chỉ node nào được xin (story 6-2). `null` thì rơi về id, thà bày
+          // một chuỗi id còn hơn bịa một cái tên.
+          taiKhoan: r.accountName ?? r.accountId,
           luc: new Date(r.requestedAt).toLocaleDateString('vi-VN'),
         }))}
       />

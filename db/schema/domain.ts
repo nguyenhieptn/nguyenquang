@@ -239,7 +239,17 @@ export const attachment = pgTable(
      * nhánh "hàng cũ không `active` thì dùng lại, đặt về `pending`", người bị từ chối vẫn xin
      * lại được mà không vướng `attachment_account_clan_uq`.
      */
-    status: text('status').$type<'pending' | 'active' | 'rejected'>().notNull().default('pending'),
+    /**
+     * `detached` thêm 27/08/2026 (story 6-2). Quản trị GỠ một gắn kết đang hoạt động là chuyện
+     * khác hẳn TỪ CHỐI một yêu cầu chưa bao giờ được nhận — gộp hai thứ vào `rejected` là màn
+     * Tài khoản nói sai về một người thật. Hàng vẫn ở lại (cùng lẽ với `rejected`), và
+     * `requestAttachmentOp` vẫn cho người ấy xin lại vì nhánh dùng-lại chỉ hỏi "không phải
+     * active".
+     */
+    status: text('status')
+      .$type<'pending' | 'active' | 'rejected' | 'detached'>()
+      .notNull()
+      .default('pending'),
     vouchedByAttachmentId: uuid('vouched_by_attachment_id'),
     createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
   },

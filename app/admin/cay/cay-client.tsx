@@ -23,6 +23,8 @@ import { BieuMauThemNguoi } from '@/components/admin/bieu-mau-them-nguoi';
 import { ThaoTacXinVaoPha } from '@/components/admin/thao-tac-xin-vao-pha';
 import { camNutTam, type HuongThem } from '@/components/admin/dat-nut-tam';
 import { hanhDongEsc, hanhDongPhim } from '@/components/admin/phim-canvas';
+// `import type` — bị xoá lúc biên dịch, không kéo `pg` vào bó trình duyệt.
+import type { AttachmentRole } from '@/core/identity';
 import {
   ghiThemKhangDinh,
   ghiThemNoi,
@@ -51,6 +53,7 @@ export function CayClient({
   nut,
   moThemNgay,
   xinVaoPha,
+  vaiCuaMinh,
 }: {
   neoId: string;
   banKinh: number;
@@ -59,7 +62,9 @@ export function CayClient({
   /** Vào bằng nút ở thanh việc (`?them=roi`) — mở sẵn biểu mẫu, chưa có mốc. */
   moThemNgay: boolean;
   /** personId → yêu cầu vào phả đang chờ (story 5-5). Rỗng khi không đủ quyền duyệt. */
-  xinVaoPha: Record<string, { attachmentId: string; luc: string }>;
+  xinVaoPha: Record<string, { attachmentId: string; taiKhoan: string; luc: string }>;
+  /** Vai của người đang xem — quyết định họ trao được vai nào khi nhận (story 6-2). */
+  vaiCuaMinh: AttachmentRole | 'guest';
 }) {
   const router = useRouter();
   /**
@@ -598,14 +603,15 @@ export function CayClient({
                 Có người xin nhận chỗ này
               </h2>
               <p className="mt-1 max-w-[42ch] text-[17px] text-muted-foreground">
-                Một tài khoản đang nhận là {tenDangChon ?? 'người này'}, xin từ{' '}
-                {xinVaoPha[chonId].luc}. Nhận là trao quyền ghi và mở bán kính riêng tư quanh chỗ
-                này.
+                <strong>{xinVaoPha[chonId].taiKhoan}</strong> đang nhận là{' '}
+                {tenDangChon ?? 'người này'}, xin từ {xinVaoPha[chonId].luc}. Nhận là trao quyền
+                ghi và mở bán kính riêng tư quanh chỗ này.
               </p>
               <ThaoTacXinVaoPha
                 khoa={xinVaoPha[chonId].attachmentId}
-                onNhan={async () => {
-                  const res = await nhanVaoPha(xinVaoPha[chonId].attachmentId);
+                vaiCuaMinh={vaiCuaMinh}
+                onNhan={async (vai) => {
+                  const res = await nhanVaoPha(xinVaoPha[chonId].attachmentId, vai);
                   if (!res.ok) return res.error.message;
                   router.refresh();
                   return null;

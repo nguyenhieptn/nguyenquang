@@ -15,12 +15,15 @@ export { soleClanId } from './clan-registry';
 
 export {
   approveAttachment,
+  detachAccount,
   detachSelf,
+  listAttachments,
   listPendingAttachments,
   requestAttachment,
   rejectAttachment,
+  setAttachmentRole,
 } from './attachment';
-export type { AttachmentRole, PendingAttachment } from './attachment';
+export type { AttachmentRole, AttachmentRow, PendingAttachment } from './attachment';
 
 export { getMyNotifications, markNotificationSeen, updateSelfVisibility } from './self';
 export type { NotificationItem } from './self';

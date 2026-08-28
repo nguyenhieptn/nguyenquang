@@ -130,6 +130,35 @@ function ChuaNhanCho() {
   );
 }
 
+/**
+ * Gắn kết ĐÃ BỊ GỠ — nói thẳng, không xin lỗi, và mở sẵn đường xin lại.
+ *
+ * Không nói lý do: lý do nằm trong nhật ký của ban tu phả (AD-10), không đi tới người bị gỡ —
+ * cùng lẽ với lý do từ chối ở story 5-5. Nhưng *việc đã xảy ra* thì phải nói, kẻo người ta xin
+ * lại mà không hiểu vì sao lần trước mất chỗ.
+ */
+function DaBiGo({ tenNguoi }: { tenNguoi: string }) {
+  return (
+    <Khung>
+      <h1 className="font-[family-name:var(--font-pha)] text-[27px] leading-tight">
+        Chỗ trong phả đã được gỡ
+      </h1>
+      <p className="mt-2 text-[17px]">
+        Ban tu phả đã gỡ liên kết giữa tài khoản này và{' '}
+        <span className="font-[family-name:var(--font-pha)] font-semibold">{tenNguoi}</span>. Hỏi
+        ban tu phả nếu thấy chưa đúng — và nhận lại chỗ của mình được, ngay dưới đây.
+      </p>
+      <div className="mt-5 grid gap-2.5">
+        <Button asChild className="h-12 w-full text-[17px]">
+          <Link href="/gan-node">Nhận chỗ của mình trong phả</Link>
+        </Button>
+      </div>
+      <TieuDeMuc>Tài khoản</TieuDeMuc>
+      <TaiKhoan />
+    </Khung>
+  );
+}
+
 /** Đã xin nhận chỗ, đang chờ bảo lãnh (AD-8) — trạng thái ỔN, ấm, không xin lỗi. */
 function DangChoXacNhan({ tenNguoi }: { tenNguoi: string }) {
   return (
@@ -162,6 +191,20 @@ export default async function Page() {
     const ganKet = await getMyAttachment();
     if (ganKet.ok && ganKet.value && ganKet.value.status === 'pending')
       return <DangChoXacNhan tenNguoi={ganKet.value.personName} />;
+    /**
+     * ĐÃ BỊ GỠ — nói ra, đừng mời đi tìm lại (thêm 27/08 sau code review story 6-2).
+     *
+     * `detached` là trạng thái thứ tư; hai nhánh trên so `=== 'pending'` nên nó rơi thẳng xuống
+     * `<ChuaNhanCho />`, tức người vừa bị gỡ đọc *"chỗ trong phả thì chưa nhận"* — như chưa từng
+     * xin. Họ đi tìm lại đúng người cũ và xin lại, còn ban tu phả nhận một yêu cầu trông y hệt
+     * một yêu cầu mới. Chú thích ở `core/identity/info.ts` đã tả đúng hậu quả này khi nó xảy ra
+     * lần trước với `rejected`.
+     *
+     * Lý do gỡ KHÔNG hiện ở đây: nó nằm trong nhật ký của ban tu phả, không phải một hộp thư —
+     * cùng lẽ với lý do từ chối (story 5-5).
+     */
+    if (ganKet.ok && ganKet.value && ganKet.value.status === 'detached')
+      return <DaBiGo tenNguoi={ganKet.value.personName} />;
     return <ChuaNhanCho />;
   }
 

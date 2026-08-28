@@ -8,10 +8,24 @@
  */
 import { revalidatePath } from 'next/cache';
 import { approveAttachment, rejectAttachment } from '@/core/identity';
+import type { AttachmentRole } from '@/core/identity';
 import type { Result } from '@/core/types';
 
-export async function nhanVaoPha(attachmentId: string): Promise<Result<unknown>> {
-  const res = await approveAttachment(attachmentId);
+/**
+ * `vai` truyền tường minh từ 27/08 (story 6-2).
+ *
+ * `approveAttachment` nhận `role` từ Đợt 1, và KHÔNG nơi gọi nào truyền — nên mọi lượt duyệt của
+ * cả sản phẩm đều ra `member`, và không màn nào sửa lại được (`core/identity` đặt `role` đúng một
+ * lần, trong chính lượt duyệt). `docs/van-hanh.md` đã phải ghi *"nâng vai chưa có màn UI"*.
+ *
+ * Mặc định vẫn `member` — thứ đổi là **có đường để chọn khác**. Quyền trao vai nào do core gác
+ * (`approveAttachmentOp`: vai trên `member` đòi admin), không do lựa chọn trên màn.
+ */
+export async function nhanVaoPha(
+  attachmentId: string,
+  vai: AttachmentRole = 'member',
+): Promise<Result<unknown>> {
+  const res = await approveAttachment(attachmentId, vai);
   if (res.ok) lamMoiSo();
   return res;
 }

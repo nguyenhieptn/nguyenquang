@@ -3,7 +3,7 @@
 # (Đợt 1, epic 1-4), epics-dot-2.md (Đợt 2, epic 5), epics-dot-3.md (Đợt 3, epic 6).
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
-last_updated: 2026-08-26
+last_updated: 2026-08-27
 project: Gia phả dòng họ Nguyễn Quang
 project_key: giapha
 tracking_system: sprint-status.yaml
@@ -86,7 +86,18 @@ development_status:
   # KHÔNG chốt done: AC 28 (nghiệm thu trên phả thật) chưa ai bấm, T9 còn trống. Chốt done với
   # một AC chưa đạt là đúng lớp lỗi lượt review vừa bắt.
   6-1-noi-nguoi-da-co: in-progress
-  6-2-tai-khoan-va-vai: backlog
+  # Dựng 27/08. Defect gốc: `approveAttachment` nhận `role` từ Đợt 1 mà KHÔNG nơi gọi nào truyền,
+  # nên mọi lượt duyệt ra `member` và không màn nào sửa lại được. Nay prop `vaiCuaMinh` là BẮT
+  # BUỘC nên nơi gọi không thể quên. Thêm `setAttachmentRole` + `detachAccount` + màn Tài khoản,
+  # hai hàng rào an toàn (quản trị cuối cùng, tự hạ vai mình) đếm TRONG transaction.
+  # CHƯA chốt done: phả thật chỉ có MỘT gắn kết nên đường trao vai chưa ai đi trên trình duyệt.
+  # Code review 27/08 — ba tầng, 16 patch + 1 quyết định, ĐÃ VÁ HẾT, 3 mục vào deferred-work.
+  # Ba lỗi nặng nhất đều của tầng dựng: hàng rào "quản trị cuối cùng" là MÃ CHẾT (ctx.role chỉ
+  # đến từ gắn kết active nên người bấm luôn được đếm) — cửa thật là `detachSelfOp`, vốn xoá hàng
+  # và không gác gì; phép đếm thiếu `FOR UPDATE` (write skew) trong khi `info.ts` đã có bản vá
+  # đúng; và mọi yêu cầu chờ dùng chung một nhóm radio nên phím mũi tên đổi vai của hàng khác.
+  # Tầng nghiệm thu kiểm hồ sơ: mọi con số test, File List 21/21, bản kê đo trình duyệt — ĐÚNG.
+  6-2-tai-khoan-va-vai: done
   # Story 6-3, 26/08. Ba lỗ im lặng của bộ nạp khung — nhưng gốc là MỘT: xem trước và lượt ghi
   # mỗi bên tự giải tên. Nay một phép, hai chỗ gọi. Lượt soi bằng trình duyệt bắt thêm hai thứ
   # không cổng nào thấy: dòng bị để lại mất luôn LÝ DO nó bị để lại, và `TableCell` mang

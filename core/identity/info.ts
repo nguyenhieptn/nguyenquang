@@ -44,7 +44,7 @@ export type MyAttachment = {
    * bị từ chối rơi lại vào luồng nhận chỗ như chưa từng xin, và luồng FR-64 vẫn đứt — chỉ đứt
    * theo một kiểu khác, im lặng hơn.
    */
-  status: 'pending' | 'active' | 'rejected';
+  status: 'pending' | 'active' | 'rejected' | 'detached';
   role: AttachmentRole;
 };
 

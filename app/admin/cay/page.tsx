@@ -21,6 +21,7 @@ import { tieuDeThe } from '@/components/admin/man-admin';
 import type { NutCanvas } from '@/components/admin/khung-cay-admin';
 import { listPendingAttachments, resolveSession } from '@/core/identity';
 import { getClanOverview, getNeighborhood } from '@/core/tree';
+import { vaiCuaToi } from '@/lib/vai-quan-tri';
 import { CayClient } from './cay-client';
 
 export const metadata: Metadata = { title: tieuDeThe('cay') };
@@ -89,6 +90,7 @@ export default async function CayPage({
 
   const giuParam = Array.isArray(sp.giu) ? sp.giu[0] : sp.giu;
 
+  const vaiCuaMinh = await vaiCuaToi();
   const vung = await getNeighborhood(neoId, banKinh);
   if (!vung.ok) {
     // `not-found` ở đây thường là một đường dẫn cũ dán lại sau khi người ấy đã bị gộp hoặc gỡ.
@@ -114,7 +116,14 @@ export default async function CayPage({
   const xinTheoNguoi = new Map(
     (xin.ok ? xin.value : []).map((r) => [
       r.personId,
-      { attachmentId: r.attachmentId, luc: new Date(r.requestedAt).toLocaleDateString('vi-VN') },
+      {
+        attachmentId: r.attachmentId,
+        // AI đang xin — không chỉ *node nào* (AC 7, sửa 27/08 sau code review). `accountName` đã
+        // được `listPendingAttachments` tra về từ 6-2 rồi bị chính chỗ này đánh rơi, nên hai nơi
+        // gọi có hai hành vi trong khi AC 2 chốt "một hành vi".
+        taiKhoan: r.accountName ?? r.accountId,
+        luc: new Date(r.requestedAt).toLocaleDateString('vi-VN'),
+      },
     ]),
   );
 
@@ -172,6 +181,8 @@ export default async function CayPage({
       // chuyện được với trang bằng cách nào khác — cùng lý do neo nằm ở URL.
       moThemNgay={(Array.isArray(sp.them) ? sp.them[0] : sp.them) === 'roi'}
       xinVaoPha={Object.fromEntries(xinTheoNguoi)}
+      // Vai của người đang xem — client không tự đọc được (kéo `pg` vào bó, xem `lib/vai-quan-tri`).
+      vaiCuaMinh={vaiCuaMinh}
     />
   );
 }

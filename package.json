@@ -13,7 +13,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx scripts/db-migrate.ts",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "soi:tai-khoan": "node scripts/soi-tai-khoan.mjs",
+    "soi:nap-khung": "node scripts/soi-nap-khung.mjs"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
