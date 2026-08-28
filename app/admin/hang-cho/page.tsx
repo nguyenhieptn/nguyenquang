@@ -25,8 +25,22 @@
  * khỏi dữ liệu đang bày, toàn văn nằm nguyên trong nhật ký (AD-4). Nên màn này có "Trả lại",
  * bắt buộc kèm ghi chú lý do.
  *
- * ⚠️ NỢ TÀI LIỆU (giữ từ prototype): hành trình gốc của việc duyệt (UJ-3) đã mất; màn dựng từ
- * § IA, không từ một hành trình có thật. Xem EXPERIENCE.md § Luồng chưa distill.
+ * ── HÀNH TRÌNH CỦA MÀN NÀY (nợ tài liệu của 3-3, trả 27/08/2026 — story 6-8) ────────────────
+ * Từ 3-3 tới 6-8, đầu file này mang một dòng nợ: *"hành trình gốc của việc duyệt (UJ-3) đã mất;
+ * màn dựng từ § IA, không từ một hành trình có thật."* Hành trình nay CÓ, từ lượt bấm thật đầu
+ * tiên trên phả sạch (26/08/2026):
+ *
+ *   > "Cách duyệt thông tin vào cây đang khá phức tạp — nên hiện all của một người rồi duyệt
+ *   > một thể, duyệt từng nội dung thông tin rất nhiều mục."
+ *
+ * Đơn vị **chú ý** của người vận hành là CON NGƯỜI: họ đọc xong một người thì quyết xong một
+ * người. Đơn vị **hành động** của hệ vẫn là KHẲNG ĐỊNH (AD-9) — `promoteAssertion` nâng đúng một
+ * câu. Màn này là chỗ hai đơn vị ấy gặp nhau, và `components/admin/gom-hang-cho.ts` là phép nối.
+ *
+ * Chỗ khó nằm ở đó chứ không ở việc gom: hai khẳng định cùng một loại ĐƠN TRỊ về cùng một người
+ * không thể cùng lên Tầng chính thức, nên gộp chúng vào một lượt là để MÁY chọn hộ bằng thứ tự
+ * lặp. Cụm ấy vì thế đứng ngoài lượt duyệt cả nhóm, và `duyetHangLoat` (`actions.ts`) gác lại
+ * một lần nữa ở ranh giới của lượt — vì màn có ba lối tới đó, không phải một.
  */
 import type { Metadata } from 'next';
 import { tieuDeThe } from '@/components/admin/man-admin';
@@ -38,6 +52,8 @@ import {
   type HiddenAssertion,
   type PendingAssertion,
 } from '@/core/assertion';
+import { DON_TRI, HANG, NHAN } from '@/core/person';
+import { gomTheoNguoi } from '@/components/admin/gom-hang-cho';
 import { Button } from '@/components/ui/button';
 import { BangChoDuyet, type DongChoDuyet } from './bang-cho-duyet';
 import { khoiPhucKhangDinh } from './actions';
@@ -116,11 +132,14 @@ function raDong(m: PendingAssertion): DongChoDuyet {
     assertionId: m.assertionId,
     personId: m.personId,
     personName: m.personName,
+    kind: m.kind,
     cau: cauKhangDinh(m.kind, m.value),
     tinCay: m.confidence,
     nguon: m.sourceDescription.trim() || 'không ghi rõ nguồn',
     nguoiKhai: m.createdByName,
     luc: luc(m.createdAt),
+    // Mốc THÔ để xếp — `luc()` ở trên đã định dạng cho mắt và không so sánh được.
+    lucISO: m.createdAt,
   };
 }
 
@@ -152,6 +171,13 @@ export default async function Page() {
   }
 
   const dong = ketQua.value.map(raDong);
+  /**
+   * Gom ở SERVER, không ở client (story 6-8): luật `DON_TRI`/`HANG` sống trong core, và một
+   * client component không được import giá trị từ `@/core/*` — chuỗi phụ thuộc kéo `pg` vào bó
+   * trình duyệt (`Can't resolve 'dns'`, đã vấp ở 6-7). Phép gom là thuần nên chạy ở đâu cũng
+   * được; chạy ở đây thì luật chỉ có một bản.
+   */
+  const nhom = gomTheoNguoi(dong, { donTri: DON_TRI, thuTuLoai: HANG });
   // Khu "đã ẩn theo báo cáo" (AD-17) — đọc hỏng thì khu vắng lặng, không hỏng cả màn.
   const daAn: HiddenAssertion[] = daAnKq.ok ? daAnKq.value : [];
 
@@ -172,7 +198,7 @@ export default async function Page() {
           Không còn khẳng định nào chờ duyệt. Khi có người khai thêm, dòng mới hiện ra ở đây.
         </p>
       ) : (
-        <BangChoDuyet dong={dong} />
+        <BangChoDuyet dong={dong} nhom={nhom} nhanLoai={NHAN} />
       )}
 
       {/* ── ĐÃ ẨN THEO BÁO CÁO (AD-17) — khu RIÊNG, dưới hàng chờ ─────────────────────────

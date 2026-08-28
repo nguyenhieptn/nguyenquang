@@ -83,14 +83,18 @@ development_status:
   # 6-6 sau khi có màn để đo.
   epic-6: in-progress
   # Code review 26/08 — ba tầng đối kháng, 19 patch + 2 decision đã vá, 3 mục vào deferred-work.
-  # KHÔNG chốt done: AC 28 (nghiệm thu trên phả thật) chưa ai bấm, T9 còn trống. Chốt done với
-  # một AC chưa đạt là đúng lớp lỗi lượt review vừa bắt.
+  # Dọn 27/08: lý do chặn ghi ở đây đã HẾT hiệu lực — AC 28 (nghiệm thu trên phả thật) ĐẠT 26/08
+  # (§ Nghiệm thu AC 28 của story) và T9 đã tích. Cái còn chặn là bảy ô test cho `ghiThemQuanHe`,
+  # để TRỐNG có chủ ý: server action `'use server'` đòi một phiên thật, repo chưa có tầng test nào
+  # cho adapter. Nhà của chúng nó là story 6-6, còn ở backlog — nên 6-1 KHÔNG tự đóng được.
   6-1-noi-nguoi-da-co: in-progress
   # Dựng 27/08. Defect gốc: `approveAttachment` nhận `role` từ Đợt 1 mà KHÔNG nơi gọi nào truyền,
   # nên mọi lượt duyệt ra `member` và không màn nào sửa lại được. Nay prop `vaiCuaMinh` là BẮT
   # BUỘC nên nơi gọi không thể quên. Thêm `setAttachmentRole` + `detachAccount` + màn Tài khoản,
   # hai hàng rào an toàn (quản trị cuối cùng, tự hạ vai mình) đếm TRONG transaction.
-  # CHƯA chốt done: phả thật chỉ có MỘT gắn kết nên đường trao vai chưa ai đi trên trình duyệt.
+  # Dọn 27/08: đã chốt done, nhưng done KÈM ba mục cần MẮT NGƯỜI ở § CHƯA kiểm được của story —
+  # phả thật có ĐÚNG MỘT gắn kết (của chính quản trị), nên đường trao vai và bước xác nhận khi đổi
+  # vai chưa ai đi trên trình duyệt. Cần một tài khoản thứ hai, hoặc một lượt bấm của chủ dự án.
   # Code review 27/08 — ba tầng, 16 patch + 1 quyết định, ĐÃ VÁ HẾT, 3 mục vào deferred-work.
   # Ba lỗi nặng nhất đều của tầng dựng: hàng rào "quản trị cuối cùng" là MÃ CHẾT (ctx.role chỉ
   # đến từ gắn kết active nên người bấm luôn được đếm) — cửa thật là `detachSelfOp`, vốn xoá hàng
@@ -118,7 +122,19 @@ development_status:
   # KHÔNG chốt done: § CHƯA kiểm được còn bốn mục cần mắt người, và chồng mâu thuẫn chưa dựng
   # được ca thật để nhìn (dựng ca ấy đòi ghi vào phả).
   6-7-ho-so-day-du-o-cot-phai: in-progress
-  6-8-duyet-theo-nguoi: backlog
+  # Dựng 27/08. Nội dung thật không phải `group by`: `promoteAssertionOp` chặn giá trị chính
+  # thức thứ hai của một loại đơn trị, nên "duyệt trọn người này" trên một người có hai khẳng
+  # định `birth` là để MÁY chọn hộ bằng thứ tự lặp. `gomTheoNguoi` tách cụm đụng độ ra khỏi lượt
+  # duyệt nhóm, và bất biến ấy có test 200 tổ hợp. Gỡ nợ tài liệu của 3-3 (hành trình gốc UJ-3).
+  # Cổng thứ năm ĐỎ ở lượt đầu: sàn chạm 26px, và bảng rộng 1239/972 — món hoãn của review 6-3.
+  # Code review 27/08 — ba tầng, 19 patch + 1 quyết định, ĐÃ VÁ HẾT, 3 mục vào deferred-work.
+  # Hai CHẶN cùng một bệnh: bất biến "máy không chọn hộ" gác ở MỘT lối ra trong khi màn có BA
+  # (ô "Chọn cả nhóm" và "Chọn tất cả" đưa cả cụm đụng độ vào một lượt) — hàng rào nay ở
+  # `duyetHangLoat`, đúng ranh giới của lượt. Và phép gom xếp bằng chuỗi HIỂN THỊ thay vì
+  # `lucISO` (mã chết), nên "cũ nhất trước" sai ngay trên hàng chờ thật.
+  # Ba lời khai sai của tầng dựng, nặng nhất: T5 khai đã gỡ nợ tài liệu 3-3 ở BỐN chỗ (kể cả
+  # tiêu đề story) trong khi diff không chạm một dòng nào. Nay gỡ thật.
+  6-8-duyet-theo-nguoi: done
   # Thêm 26/08 từ phản hồi dùng thật: chép một trang phả mười người tốn bốn chặng mỗi người.
   # Enter = con, Shift+Enter = anh em. KHÔNG dùng Tab — nó là phím của trình duyệt.
   #
@@ -134,14 +150,15 @@ development_status:
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──
 # Loại: story → vào Đợt 3 (epics-dot-3.md) · sửa → vá có chủ ý · vận hành → không phải mã.
 action_items:
+  # Dọn 27/08: hai mục dưới đã có story gánh, trạng thái theo story.
   - epic: 5
     action: "Nối hai người ĐÃ CÓ trong phả — bộ chọn người + ghi parent-child/union-partner"
-    owner: "Đợt 3, story đầu tiên"
-    status: open
+    owner: "Đợt 3, story đầu tiên → 6-1-noi-nguoi-da-co"
+    status: in-progress
   - epic: 5
     action: "Người dùng & vai — màn quản lý tài khoản; truyền `role` khi duyệt vào phả"
-    owner: "Đợt 3"
-    status: open
+    owner: "Đợt 3 → 6-2-tai-khoan-va-vai"
+    status: done
   # Làm 26/08 trong story 6-3, cùng với mục dưới — hai mục là hai triệu chứng của MỘT bệnh:
   # xem trước và lượt ghi mỗi bên tự giải tên theo cách riêng. Nay dùng chung `dungPhepGiaiTen`.
   - epic: 5

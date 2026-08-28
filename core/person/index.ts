@@ -18,6 +18,20 @@ import { getPersonOps, type RawPersonAssertion } from './read-ops';
 import { xepChong, type AssertionStack } from './chong';
 
 export type { AssertionStack, StackKind } from './chong';
+/**
+ * Luật xếp chồng, xuất ra cho tầng bày (story 6-8).
+ *
+ * `DON_TRI` — loại nào chỉ được có MỘT giá trị chính thức; `HANG` — thứ tự loại trên phiếu lý
+ * lịch. Hàng chờ gom theo người cần cả hai, và chép tay chúng sang `components/` là đúng lỗi mà
+ * lượt code review 6-3 vừa bắt ở `SeedRowWarning`. Đây là bề mặt, nên `app/` gọi được (AD-1).
+ */
+export { DON_TRI, HANG, NHAN } from './chong';
+/**
+ * Kiểu của khoá ba bảng trên. Xuất lại từ `@/db/schema` vì `app/` và `components/` bị eslint cấm
+ * import `@/db` (AD-1) — mà không có kiểu này thì nơi gọi phải tra bằng `string` và mất đúng
+ * phép kiểm `tsc` mà ba bảng ấy dựng ra. `export type` bị xoá lúc biên dịch: không kéo gì vào bó.
+ */
+export type { AssertionKind } from '@/db/schema';
 import type { RawPersonCard } from '@/core/tree/ops';
 
 export type SourceKind = 'self' | 'told-by' | 'document' | 'recording' | 'seed-import';

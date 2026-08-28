@@ -57,7 +57,7 @@ export const DON_TRI: Record<AssertionKind, boolean> = {
   place: false,
 };
 
-const NHAN: Record<AssertionKind, string> = {
+export const NHAN: Record<AssertionKind, string> = {
   name: 'Tên',
   gender: 'Giới tính',
   birth: 'Sinh',
@@ -75,7 +75,11 @@ const NHAN: Record<AssertionKind, string> = {
  * được `tsc` kiểm đầy đủ, nên thêm loại thứ chín mà quên nó thì khẳng định ấy lặng lẽ biến mất
  * khỏi panel — đúng lớp lỗi mà `DON_TRI` và `NHAN` dựng ra để chặn.
  */
-const HANG: Record<AssertionKind, number> = {
+/**
+ * Thứ tự loại trên phiếu lý lịch. Xuất ra từ 27/08 (story 6-8): hàng chờ gom theo người cần
+ * đúng thứ tự này, và một bảng thứ hai là một nguồn sự thật thứ hai.
+ */
+export const HANG: Record<AssertionKind, number> = {
   name: 0,
   gender: 1,
   birth: 2,

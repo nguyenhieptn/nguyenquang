@@ -9,7 +9,9 @@
  */
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
-import { promoteAssertion, rejectAssertion, restoreAssertion } from '@/core/assertion';
+import { listPendingAssertions, promoteAssertion, rejectAssertion, restoreAssertion } from '@/core/assertion';
+import { DON_TRI, NHAN } from '@/core/person';
+import type { AssertionKind } from '@/core/person';
 import { err, ok, type Result } from '@/core/types';
 
 const DUONG = '/admin/hang-cho';
@@ -32,10 +34,48 @@ export async function duyetKhangDinh(assertionId: string): Promise<Result<void>>
  * (không có gì để mất) mới đưa thẳng về màn đăng nhập; còn lại trả `{ daNang, loi }`, mỗi
  * dòng chưa duyệt một câu — để con số ở đầu khối lỗi vẫn đúng bằng số dòng không nâng được.
  */
+/**
+ * ── HÀNG RÀO ĐẶT Ở LỐI RA, không ở lối vào (thêm 27/08 sau code review story 6-8) ────────────
+ *
+ * Story 6-8 dựng phép gom sao cho nút của một nhóm không bao giờ gửi hai khẳng định cùng loại
+ * ĐƠN TRỊ của cùng một người. Nhưng màn có **BA** lối tới đây — nút của nhóm, ô *"Chọn cả nhóm"*,
+ * ô *"Chọn tất cả"* — và bất biến chỉ được gác ở lối thứ nhất. Hai lối kia đưa cả cụm đụng độ
+ * vào cùng một lượt ⇒ `promoteAssertionOp` nâng cái đầu, từ chối cái sau ⇒ **máy chọn hộ giá trị
+ * nào thắng bằng thứ tự lặp**, trên một kho không có phép xoá (AD-4).
+ *
+ * `promoteAssertionOp` không tự chặn được: nó thấy đúng một khẳng định mỗi lượt, và giá trị
+ * chính thức mà nó va phải chính là thứ vòng lặp này vừa tạo ra ở nhịp trước. Đây là ràng buộc
+ * của một LƯỢT, nên nó phải được gác ở ranh giới của lượt — chỗ này.
+ *
+ * Từ chối cả lượt chứ không lặng lẽ lọc: người vận hành vừa bấm một nút hứa nâng N mục, và giao
+ * N−2 mục kèm im lặng là đúng lớp lỗi mà cả story sinh ra để chữa.
+ */
+async function cumDungDoTrongLuot(assertionIds: string[]): Promise<string | null> {
+  const ds = await listPendingAssertions();
+  // Đọc hỏng thì KHÔNG chặn — quyền và tính đúng của từng lượt nâng vẫn do core gác; hàng rào
+  // này chỉ ngăn máy chọn hộ, và mất nó thì hành vi lùi về đúng trạng thái trước story 6-8.
+  if (!ds.ok) return null;
+  const theoId = new Map(ds.value.map((r) => [r.assertionId, r]));
+  const daThay = new Map<string, string>();
+  for (const id of assertionIds) {
+    const r = theoId.get(id);
+    if (!r || !(DON_TRI[r.kind as AssertionKind] ?? true)) continue;
+    const khoa = `${r.personId}|${r.kind}`;
+    if (daThay.has(khoa)) {
+      const ten = NHAN[r.kind as AssertionKind] ?? r.kind;
+      return `Lượt này có hai giá trị cùng khai về ${ten.toLowerCase()} của ${r.personName} — chỉ một cái lên Tầng chính thức được. Bỏ tích một trong hai rồi thử lại.`;
+    }
+    daThay.set(khoa, id);
+  }
+  return null;
+}
+
 export async function duyetHangLoat(
   assertionIds: string[],
 ): Promise<Result<{ daNang: number; loi: string[] }>> {
   if (assertionIds.length === 0) return err('invalid', 'chưa chọn dòng nào');
+  const dungDo = await cumDungDoTrongLuot(assertionIds);
+  if (dungDo) return err('conflict', dungDo);
   let daNang = 0;
   const loi: string[] = [];
   for (const [viTri, id] of assertionIds.entries()) {

@@ -213,7 +213,13 @@ gốc để lần sau không phải điều tra lại.
   **Mảnh chưa nối**"* chạy quá mép hộp 56px — `max-w-[70ch]` viết từ story 3-2 chưa từng có hiệu
   lực, và bốn cổng xanh suốt từ đó.
 
-  **Chỗ CÒN LẠI chưa vá:** `app/admin/hang-cho/bang-cho-duyet.tsx:225` và `:231` đặt `{d.cau}`
+  ✅ **ĐÃ LÀM — story 6-8, 27/08/2026** (đóng ở lượt code review, không ở lượt dựng). Lượt dựng
+  vá HAI ô và đánh dấu ✅ ngay — trong khi ô thứ ba, `nguoiKhai` (`authUser.name`, chữ người dùng
+  tự gõ, dài tuỳ ý), còn nguyên `whitespace-nowrap`. Lượt soi xanh chỉ vì hôm ấy mọi tên đều
+  ba–bốn chữ. Nay cả ba ô đã vá. *Ghi lại vì một dấu ✅ sai trong sổ này đắt hơn một mục chưa
+  đóng: mục chưa đóng thì còn ai đi tìm.*
+
+  **Chỗ CÒN LẠI chưa vá (nguyên văn khi ghi):** `app/admin/hang-cho/bang-cho-duyet.tsx:225` và `:231` đặt `{d.cau}`
   (câu của một khẳng định) và `{d.nguon}` (xuất xứ do người gõ tay, dài tuỳ ý) trong `TableCell`
   với `max-w-[42ch]` / `max-w-[32ch]` — cùng lớp lỗi, chỉ chưa gặp dữ liệu đủ dài để lộ.
   *Lý do hoãn: đó là màn của 6-8, story sắp dựng lại chính hàng chờ ấy — vá bây giờ sẽ bị viết đè.*
@@ -296,6 +302,22 @@ nhân lên theo số dòng của tệp.
 
 - **`listAttachmentsOp` không phân trang**, và màn Tài khoản dựng mỗi gắn kết thành một thẻ. Đây
   là màn duy nhất mọc tuyến tính theo số tài khoản. *Lý do hoãn: phả có một hàng; chưa gặp.*
+
+## Deferred from: code review of story 6-8 (2026-08-27)
+
+- **`app/admin/hang-cho/bang-cho-duyet.tsx` nay hơn 430 dòng**, ôm ba khối state độc lập.
+  `NhomMotNguoi` là đường cắt tự nhiên nếu có lượt tách file. *Lý do hoãn: tách file giữa một
+  lượt vá 19 mục là mời thêm hồi quy.*
+
+- **Hai người TRÙNG TÊN ra hai nhóm không phân biệt được.** `key`/`href` dùng `personId` nên máy
+  không nhầm, nhưng người đọc chỉ thấy chữ, và cột "Người" đã bỏ. Cần đời/chi trong tiêu đề nhóm
+  — mà `PendingAssertion` chưa mang hai trường ấy (`TODO(core)` cũ, xem dưới). *Lý do hoãn: đòi
+  một lượt sửa `listPendingAssertions`.*
+
+- **`TODO(core)`: `listPendingAssertions` chưa bày `objectPersonId`, tên cha/mẹ, đời, chi.** Ghi
+  chú này sống trong ô "Người" của bảng cũ và bị xoá cùng cột ấy ở story 6-8; chép sang đây để nó
+  không mất dấu. Nó chặn hai việc: câu *"là con của <tên>"* thay cho *"là con của một người đã
+  ghi trong phả"*, và việc phân biệt hai người trùng tên ở mục trên.
 
 ## Chốt BỎ — 26/08/2026
 
