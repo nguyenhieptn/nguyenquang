@@ -21,6 +21,11 @@ export type KetQuaMan = {
   rong: number;
   /** Lý do màn này bị bỏ qua, nếu có (chưa có dữ liệu, chặn quyền…). */
   boQua?: string;
+  /**
+   * Bỏ qua vì HẠ TẦNG hỏng (đăng nhập không qua, quyền bị chặn) — khác hẳn bỏ qua vì phả chưa có
+   * dữ liệu để mở màn. Cái sau là thông tin; cái này là cổng đang không đo gì mà vẫn xanh.
+   */
+  boQuaNang?: boolean;
   phepDo: KetQuaPhepDo[];
   anh?: string;
 };
@@ -38,9 +43,20 @@ function moiViPhamDo(bk: BanKe): ViPham[] {
   return bk.man.flatMap((m) => m.phepDo.flatMap((p) => chiCaiLamDo(p.viPham)));
 }
 
-/** Vi phạm MỚI — cái thật sự hạ cổng. */
+/**
+ * Màn bị bỏ qua vì hạ tầng hỏng. Mỗi màn như thế là một khoảng cổng KHÔNG gác gì.
+ *
+ * Đo được 28/08: chạy vào một origin chưa khai tin, cả mười màn quản trị rơi vào nhánh "không qua
+ * được màn đăng nhập" — và bản kê vẫn in `✓ sàn giữ nguyên`. Một cổng xanh vì nó không nhìn thấy
+ * gì thì tệ hơn một cổng đỏ.
+ */
+export function demBoQuaNang(bk: BanKe): number {
+  return bk.man.filter((m) => m.boQuaNang).length;
+}
+
+/** Vi phạm MỚI — cái thật sự hạ cổng. Màn bỏ qua vì hạ tầng cũng tính. */
 export function demDo(bk: BanKe): number {
-  return tachDaBiet(moiViPhamDo(bk)).moi.length;
+  return tachDaBiet(moiViPhamDo(bk)).moi.length + demBoQuaNang(bk);
 }
 
 /** Vi phạm đã ghi nợ, đếm theo từng mục của nền. */
@@ -86,7 +102,7 @@ export function veMan(m: KetQuaMan): string {
   const dau = `── ${m.duong} @${m.rong}px ${'─'.repeat(Math.max(2, 52 - m.duong.length - String(m.rong).length))}`;
   dong.push(dau);
   if (m.boQua) {
-    dong.push(`  ⊘ bỏ qua — ${m.boQua}`);
+    dong.push(`  ${m.boQuaNang ? DAU.do + ' BỎ QUA (hạ tầng)' : '⊘ bỏ qua'} — ${m.boQua}`);
     return dong.join('\n');
   }
   for (const p of m.phepDo) {
@@ -114,6 +130,9 @@ export function veTongKet(bk: BanKe): string {
     '═'.repeat(60),
     `Đo ${bk.man.length} lượt (màn × khung nhìn) · bỏ qua ${boQua}`,
     `${do_ === 0 ? DAU.xanh : DAU.do} ${do_} vi phạm MỚI — cái hạ cổng`,
+    ...(demBoQuaNang(bk) > 0
+      ? [`${DAU.do} ${demBoQuaNang(bk)} màn KHÔNG đo được vì hạ tầng — cổng không gác gì ở đó`]
+      : []),
     `${DAU.mat} ${mat} mục cần mắt người — KHÔNG hạ cổng, nhưng cũng không được quên`,
   ];
   /**

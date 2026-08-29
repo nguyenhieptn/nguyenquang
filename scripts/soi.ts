@@ -88,6 +88,7 @@ async function doMotMan(
 
   if (m.quyen === 'quan-tri' && (await bikChanQuyen(p))) {
     kq.boQua = 'màn "Khu vực Ban tu phả" — tài khoản đang dùng không đủ quyền';
+    kq.boQuaNang = true;
     return kq;
   }
 
@@ -171,7 +172,7 @@ async function chay(): Promise<number> {
     const canPhien = cua.filter((m) => m.quyen !== 'khach');
     console.log(`\n█ khung nhìn ${rong}px — ${cua.length} màn (${khach.length} công khai)`);
 
-    const phien = await moTrinhDuyet(rong);
+    const phien = await moTrinhDuyet(mt.goc, rong);
     try {
       // Màn công khai đo TRƯỚC, khi trình duyệt còn chưa có phiên nào — đúng thứ khách thật thấy.
       for (const m of khach) {
@@ -186,7 +187,7 @@ async function chay(): Promise<number> {
           : 'không có SOI_TEN/SOI_MK trong môi trường';
         if (loiDangNhap) {
           for (const m of canPhien) {
-            const kq = { khoa: m.khoa, duong: m.duong, rong, boQua: loiDangNhap, phepDo: [] };
+            const kq = { khoa: m.khoa, duong: m.duong, rong, boQua: loiDangNhap, boQuaNang: true, phepDo: [] };
             bk.man.push(kq);
             console.log(veMan(kq));
           }

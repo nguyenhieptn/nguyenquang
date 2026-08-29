@@ -61,6 +61,19 @@ SOI_GOC="http://$(tailscale ip -4):3100" SOI_TEN=<tên đăng nhập> SOI_MK='<m
 >
 > **Cổng phải khác 3000.** Bản dòng họ đang dùng chạy ở `3000` trên chính IP ấy
 > (`scripts/deploy.sh`). Dựng bản đo ở `3100` để không đè lên nó.
+>
+> **Và cổng khác thì phải khai origin.** Thêm địa chỉ bản đo vào `BETTER_AUTH_TRUSTED_ORIGINS`
+> trong `.env`, nếu không sẽ nhận `403 INVALID_ORIGIN` khi đăng nhập:
+>
+> ```
+> BETTER_AUTH_TRUSTED_ORIGINS=http://100.94.148.68:3100
+> ```
+>
+> Lỗi này trông như ngẫu nhiên, nên đáng biết vì sao: Better Auth **chỉ kiểm origin khi request có
+> cookie**. Tab ẩn danh hay máy chưa từng vào phả thì đăng nhập được; trình duyệt đã từng vào
+> `:3000` thì **403** — vì cookie không phân biệt cổng, nên nó gửi cookie của `:3000` sang `:3100`
+> và bật phép kiểm lên. Nghĩa là bản đo "chạy tốt" với một người và hỏng với người khác, trên cùng
+> một địa chỉ.
 
 | Việc | Lệnh |
 |---|---|

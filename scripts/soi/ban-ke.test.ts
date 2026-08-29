@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type BanKe, demCanMat, demDaBiet, demDo, demManBoQua, luatPhaKhongDoi, veMan, veTongKet } from './ban-ke';
+import { type BanKe, demBoQuaNang, demCanMat, demDaBiet, demDo, demManBoQua, luatPhaKhongDoi, veMan, veTongKet } from './ban-ke';
 
 const man = (phepDo: BanKe['man'][number]['phepDo'], boQua?: string) => ({
   khoa: 'x',
@@ -111,5 +111,35 @@ describe('vẽ bản kê', () => {
     expect(s).toContain('0 vi phạm MỚI');
     expect(s).toContain('1 mục cần mắt người');
     expect(s).toContain('phả không đổi');
+  });
+});
+
+describe('bỏ qua vì hạ tầng là ĐỎ, không phải im lặng', () => {
+  const hong: BanKe = {
+    man: [{ khoa: 'x', duong: '/admin/x', rong: 1280, boQua: 'không qua được màn đăng nhập', boQuaNang: true, phepDo: [] }],
+  };
+  const thieuDuLieu: BanKe = {
+    man: [{ khoa: 'y', duong: '/nguoi/[id]', rong: 390, boQua: 'phả chưa có dữ liệu', phepDo: [] }],
+  };
+
+  it('hỏng đăng nhập ⇒ hạ cổng — cổng xanh vì không nhìn thấy gì là tệ hơn cổng đỏ', () => {
+    expect(demBoQuaNang(hong)).toBe(1);
+    expect(demDo(hong)).toBe(1);
+  });
+
+  it('chưa có dữ liệu ⇒ KHÔNG hạ cổng, chỉ là thông tin', () => {
+    expect(demBoQuaNang(thieuDuLieu)).toBe(0);
+    expect(demDo(thieuDuLieu)).toBe(0);
+  });
+
+  it('cả hai đều được đếm là "bỏ qua" — không màn nào biến mất khỏi bản kê', () => {
+    expect(demManBoQua(hong)).toBe(1);
+    expect(demManBoQua(thieuDuLieu)).toBe(1);
+  });
+
+  it('bản kê nói rõ hai loại khác nhau', () => {
+    expect(veMan(hong.man[0])).toContain('hạ tầng');
+    expect(veMan(thieuDuLieu.man[0])).toContain('⊘ bỏ qua');
+    expect(veTongKet(hong)).toContain('KHÔNG đo được vì hạ tầng');
   });
 });

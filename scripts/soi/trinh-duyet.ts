@@ -24,7 +24,7 @@ export type Phien = {
  * `rong` là tham số BẮT BUỘC, không có mặc định: cả bốn script đời trước cứng 1280px và đó chính
  * là lý do mười bảy màn của bề mặt A — vốn thiết kế cho màn 390px — chưa từng được đo lần nào.
  */
-export async function moTrinhDuyet(rong: number, cao = 900): Promise<Phien> {
+export async function moTrinhDuyet(goc: string, rong: number, cao = 900): Promise<Phien> {
   mkdirSync(THU_MUC_ANH, { recursive: true });
   const b = await chromium.launch();
   const ctx = await b.newContext({ viewport: { width: rong, height: cao } });
@@ -45,6 +45,25 @@ export async function moTrinhDuyet(rong: number, cao = 900): Promise<Phien> {
    * ấy, nên nó sẽ cần chính cái shim mà nó đang định cài.
    */
   await ctx.addInitScript({ content: 'globalThis.__name = globalThis.__name || ((f) => f);' });
+
+  /**
+   * ── Một cookie giả, đặt CÓ CHỦ Ý trước khi đăng nhập ────────────────────────────────────────
+   *
+   * Better Auth chỉ kiểm origin khi request **có cookie**
+   * (`better-auth/dist/api/middlewares/origin-check.mjs`: `if (!(forceValidate || useCookies))
+   * return;`). Một phiên trình duyệt sạch vì thế đi vòng qua phép kiểm ấy — và bộ đo, vốn luôn mở
+   * phiên sạch, **cấu trúc không thấy được** cả một lớp lỗi.
+   *
+   * Nó đã cắn thật, 28/08/2026: bộ đo đăng nhập trơn tru ở `:3100` và báo 27 màn xanh, trong khi
+   * chủ dự án mở đúng địa chỉ ấy thì nhận `403 INVALID_ORIGIN` liên tiếp — vì trình duyệt của anh
+   * mang sẵn cookie của `:3000`, và cookie KHÔNG phân biệt cổng.
+   *
+   * Nên từ đây lượt đăng nhập của bộ đo mang theo một cookie vô hại, để nó đi đúng con đường
+   * người thật đi. Một cổng chỉ thử được đường dễ nhất thì nó đang gác nửa cánh cửa.
+   */
+  await ctx.addCookies([
+    { name: 'soi-co-cookie', value: '1', url: goc },
+  ]);
 
   const p = await ctx.newPage();
 

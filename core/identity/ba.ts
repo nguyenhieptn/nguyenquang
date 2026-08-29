@@ -21,8 +21,31 @@ import { authAccount, authSession, authUser, authVerification } from '@/db/schem
 const googleId = process.env.GOOGLE_CLIENT_ID;
 const googleSecret = process.env.GOOGLE_CLIENT_SECRET;
 
+/**
+ * ── Origin được tin, ngoài `baseURL` ────────────────────────────────────────────────────────
+ *
+ * Better Auth chỉ kiểm origin khi request CÓ COOKIE
+ * (`node_modules/better-auth/dist/api/middlewares/origin-check.mjs`: `if (!(forceValidate ||
+ * useCookies)) return;`). Đó là chỗ nó cắn, vì nó làm lỗi trông như ngẫu nhiên:
+ *
+ *   · phiên sạch (curl, Playwright mới mở, tab ẩn danh) ⇒ không cookie ⇒ **200**;
+ *   · trình duyệt đã từng vào phả ⇒ có cookie ⇒ kiểm bật ⇒ **403 INVALID_ORIGIN**.
+ *
+ * Và cookie **không phân biệt cổng**: đã vào `:3000` một lần thì trình duyệt gửi cookie ấy sang
+ * `:3100` cùng host. Nên một bản dựng tạm ở cổng khác (bộ đo giao diện, `docs/van-hanh.md § Bộ đo`)
+ * đăng nhập được từ máy sạch mà **403 với đúng người đang cần dùng nó**. Đo được 28/08/2026.
+ *
+ * Khai thêm bằng `BETTER_AUTH_TRUSTED_ORIGINS`, ngăn cách bằng dấu phẩy. KHÔNG có ký tự đại diện
+ * và không có mặc định: mỗi origin phải được viết ra một cách có chủ ý.
+ */
+const trustedOrigins = (process.env.BETTER_AUTH_TRUSTED_ORIGINS ?? '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 export const auth = betterAuth({
   baseURL: process.env.BETTER_AUTH_URL,
+  ...(trustedOrigins.length > 0 ? { trustedOrigins } : {}),
   secret: process.env.BETTER_AUTH_SECRET,
   database: drizzleAdapter(dbGlobal, {
     provider: 'pg',

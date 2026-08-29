@@ -371,6 +371,34 @@ là cha con đảo nhau trong một hệ không có nút xoá.
 Mốc bám `data-cau-se-ghi` đã đặt sẵn nên phép đo chỉ còn là bước lái biểu mẫu. Chốt bỏ vì nó
 **không đóng được ô nào** trong bảy ô của 6-1 — cả bảy nằm trên đường GHI — chứ không vì nó khó.
 
+### 403 INVALID_ORIGIN — và một lỗ trong chính bộ đo, đã VÁ
+
+Chủ dự án mở bản đo ở `:3100` và nhận `403` liên tiếp, trong khi bộ đo vừa báo 27 màn xanh trên
+đúng địa chỉ ấy. Nguyên nhân ở
+`node_modules/better-auth/dist/api/middlewares/origin-check.mjs`:
+
+```js
+const useCookies = headers.has("cookie");
+if (!(forceValidate || useCookies)) return;   // không cookie ⇒ BỎ QUA kiểm origin
+```
+
+Đo được: không cookie + origin `:3100` ⇒ **200**; **có cookie** + origin `:3100` ⇒ **403**; có
+cookie + origin `:3000` ⇒ 200. Cookie **không phân biệt cổng**, nên trình duyệt đã từng vào `:3000`
+gửi cookie ấy sang `:3100` và bật phép kiểm lên.
+
+**Đã vá, không hoãn:**
+
+1. `core/identity/ba.ts` nhận `BETTER_AUTH_TRUSTED_ORIGINS` (ngăn cách bằng dấu phẩy, không ký tự
+   đại diện, không mặc định). `.env.example` ghi rõ khi nào cần.
+2. **Bộ đo nay mang theo một cookie khi đăng nhập.** Nó luôn mở phiên SẠCH, nên nó đi vòng qua đúng
+   phép kiểm mà người thật đâm vào — một cổng chỉ thử được đường dễ nhất thì đang gác nửa cánh cửa.
+3. **Bỏ qua vì hạ tầng nay là ĐỎ.** Trước đó cả mười màn quản trị rơi vào nhánh "không qua được màn
+   đăng nhập" mà bản kê vẫn in `✓ sàn giữ nguyên`. Cùng bệnh với "soi 0 phần tử": cổng xanh vì
+   không nhìn thấy gì thì tệ hơn cổng đỏ. Bỏ qua vì phả **chưa có dữ liệu** thì vẫn chỉ là thông tin.
+
+Kiểm chứng cả hai chiều: chạy vào một origin chưa khai tin ⇒ cổng ĐỎ *"1 màn KHÔNG đo được vì hạ
+tầng"*; chạy trọn bộ trên origin đã khai ⇒ XANH.
+
 ### Một giả định của chính bộ đo, đã sửa chứ không hoãn
 
 Bản đầu đo bề mặt B ở **cả 768px**, và ra bốn ca tràn ngang ở đúng khung ấy. Không ca nào là lỗi:
