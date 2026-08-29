@@ -27,8 +27,109 @@
 | Tạo tài khoản quản trị (dòng họ tự dựng nếu chưa có) | `npx tsx scripts/create-admin.ts <email> '<mật khẩu>' '<Họ tên>'` |
 | Xem các tài khoản trong dòng họ (vai, tên đăng nhập) | `npx tsx scripts/reset-admin-password.ts --list` |
 | **Đặt lại mật khẩu** (quên mật khẩu quản trị) | `npx tsx scripts/reset-admin-password.ts <email hoặc tên đăng nhập>` |
+| **Bộ đo giao diện** (cổng thứ năm — xem § dưới) | `npm run soi` |
 
 Log web: `var/log/giapha.log`. PID: `var/run/giapha.pid`.
+
+## Bộ đo giao diện — cổng thứ năm
+
+Bốn cổng `npm run lint` · `npx tsc --noEmit` · `npm test` · `npm run build` chạy trên **mã nguồn**.
+Cổng thứ năm chạy trên một **hệ đang sống**: nó mở trình duyệt thật, đi hết hai mươi bảy màn và đo
+các sàn đã cam kết ở `EXPERIENCE.md § Accessibility Floor`.
+
+Nó tồn tại vì bốn cổng kia xanh với gần như mọi lỗi giao diện. Hai lỗi nặng nhất của Đợt 2 — nhãn
+sơn đè lên họ tên, và mọi màn dài mất trắng 34px đệm đáy — chỉ bị bắt khi có người dựng trình duyệt
+lên và ĐO.
+
+### Chạy
+
+```bash
+# 1. Dựng một bản RIÊNG để đo, trên chính máy này, ở CỔNG KHÁC bản dòng họ đang dùng.
+#    Bind vào IP Tailscale, KHÔNG phải 127.0.0.1 — xem § Vì sao không dùng 127.0.0.1.
+npm run build
+npx next start -H "$(tailscale ip -4)" -p 3100
+
+# 2. Đo, ở một cửa sổ khác
+SOI_GOC="http://$(tailscale ip -4):3100" SOI_TEN=<tên đăng nhập> SOI_MK='<mật khẩu>' npm run soi
+```
+
+> ### Vì sao không dùng `127.0.0.1`
+>
+> Server bind vào loopback thì **chỉ máy chạy lệnh mới vào được**. Ai làm việc từ máy khác qua
+> Tailscale sẽ không mở được địa chỉ ấy — không xem được ảnh chụp, không bấm thử lại được thứ bộ
+> đo vừa báo. Dự án đã có sẵn `npm run dev:vpn` và `npm run start:vpn` làm đúng việc này.
+>
+> **Cổng phải khác 3000.** Bản dòng họ đang dùng chạy ở `3000` trên chính IP ấy
+> (`scripts/deploy.sh`). Dựng bản đo ở `3100` để không đè lên nó.
+
+| Việc | Lệnh |
+|---|---|
+| Cả hai mươi bảy màn | `npm run soi` |
+| Một màn | `npm run soi -- hang-cho` |
+| Chỉ bề mặt điện thoại (390px) | `npm run soi -- --be-mat A` |
+| Chỉ bàn làm việc (1280 + 768px) | `npm run soi -- --be-mat B` |
+| Xem danh sách khoá màn | `npm run soi -- khoa-khong-co-that` |
+
+### Biến môi trường
+
+| Biến | Bắt buộc | Nghĩa |
+|---|---|---|
+| `SOI_GOC` | có | Địa chỉ gốc, ví dụ `http://127.0.0.1:3100` |
+| `SOI_TEN` | có | Tên đăng nhập của một tài khoản **quản trị** |
+| `SOI_MK` | có | Mật khẩu. Không bao giờ đặt vào mã hay vào `.env` được commit |
+| `SOI_CHO_PHEP_XA` | không | `=1` để bỏ hàng rào chặn đo máy xa. Đọc § An toàn trước |
+
+**Không biến nào có mặc định.** Hai script đời trước nhúng sẵn địa chỉ VPN và tên đăng nhập, nên gõ
+nhầm một lệnh là mở trình duyệt vào phả thật của dòng họ. Nay thiếu biến thì dừng và nói rõ thiếu cái gì.
+
+### Đọc bản kê
+
+```
+── /admin/hang-cho @1280px ───────────────
+  có mặt          3 phần tử · ✓
+  chữ            84 phần tử · ✗ 2 vi phạm
+      ✗ 14.88px < 15px tuyệt đối — span · "xin từ 12/08"
+  chạm           19 phần tử · ✓
+  ...
+✗ 2 vi phạm làm ĐỎ cổng
+👁 4 mục cần mắt người — KHÔNG hạ cổng, nhưng cũng không được quên
+✓ revision 412 → 412 — phả không đổi
+```
+
+- `✗` hạ cổng. Lệnh thoát khác 0.
+- `👁` **không** hạ cổng: bộ đo thấy một thứ đáng ngờ mà chỉ người mới quyết được (một nhãn xuống
+  dòng có thể đúng nếu tên chi dài). Đọc hết chúng — chúng là chỗ lỗi nấp.
+- `⊘ bỏ qua` nghĩa là màn không mở được (chưa có dữ liệu, hoặc tài khoản không đủ quyền). Một màn
+  bỏ qua là một màn **không được gác** — đừng đọc nó thành xanh.
+- `n phần tử` là số phần tử đã soi. **Soi 0 phần tử là ĐỎ**, không phải xanh: cổng nào không tìm
+  thấy gì thì nó đang gác không khí.
+
+### An toàn — vì sao có hàng rào chặn đo máy xa
+
+Bộ đo mở những màn có nút **ghi vĩnh viễn** vào một kho không có phép xoá (AD-4). Chuyện xấu nhất đã
+xảy ra một lần rồi: một lượt bấm thử nâng tầng **40 khẳng định**, không gỡ lại được.
+
+Ba hàng rào:
+
+1. **Chặn máy XA.** `SOI_GOC` phải trỏ vào một địa chỉ đang gắn trên chính máy chạy lệnh —
+   loopback, LAN, hoặc Tailscale đều được; một máy khác thì lệnh từ chối. Ý định là *"đừng lái một
+   máy khác"*, không phải *"chỉ loopback"*: bản đầu chỉ nhận loopback và vì thế từ chối luôn IP
+   Tailscale của chính máy đang chạy bộ đo.
+2. **Cấm bấm.** `scripts/soi/cam-bam.test.ts` đọc mã nguồn của cả bộ đo và ĐỎ nếu có chỗ nào nhắm
+   vào một điều khiển ghi (*Duyệt*, *Trả lại*, *Ghi … vào phả*, *Loại quan hệ này*, …).
+3. **Đếm `revision`.** Mỗi lượt chạy đếm số hàng `revision` trước và sau. Hai số khác nhau nghĩa là
+   lượt ĐO đã GHI — lỗi nặng nhất bộ đo có thể mắc, và cổng đỏ vì nó.
+
+### Khi thêm một màn mới
+
+Thêm một dòng vào `scripts/soi/dang-ky.ts`. Quên thì `npm test` ĐỎ — `dang-ky.test.ts` đối chiếu bản
+đăng ký với mọi `page.tsx` trong `app/`, cả hai chiều.
+
+### Vì sao nó KHÔNG chạy trong `npm run build`
+
+Nó cần một server đang chạy, một database có dữ liệu, và một mật khẩu. Gắn vào `build` là làm `build`
+hỏng trên mọi máy chưa dựng đủ — và một cổng hay đỏ vì lý do ngoài mã là một cổng sắp bị bỏ qua.
+Chạy tay trước mỗi lần phát hành.
 
 ## Ngày đầu tiếp quản — checklist
 

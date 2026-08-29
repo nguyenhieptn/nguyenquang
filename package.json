@@ -14,9 +14,11 @@
     "db:migrate": "tsx scripts/db-migrate.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "soi:tai-khoan": "node scripts/soi-tai-khoan.mjs",
-    "soi:nap-khung": "node scripts/soi-nap-khung.mjs",
-    "soi:hang-cho": "node scripts/soi-hang-cho.mjs"
+    "soi": "tsx scripts/soi.ts",
+    "soi:cay": "tsx scripts/soi.ts cay",
+    "soi:tai-khoan": "tsx scripts/soi.ts tai-khoan",
+    "soi:nap-khung": "tsx scripts/soi.ts nap-khung",
+    "soi:hang-cho": "tsx scripts/soi.ts hang-cho"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",

@@ -25,6 +25,12 @@ Bản đồ thi công cho mọi story. **Đọc trước khi viết dòng code n
 - **ESLint AD-1 + AD-24**: `app/`, `components/`, `lib/` bị CẤM import `@/db`, `drizzle-orm`, `pg`,
   **và** cả dạng tương đối (`../../db`) lẫn ruột core (`@/core/*/ops`) — chỉ gọi `@/core/<module>`.
 - **Test**: vitest (`npm test`), chạy tuần tự, `.env` tự nạp. UUIDv7 qua `uuid` (`v7 as uuidv7`).
+- **Cổng thứ năm — bộ đo giao diện** (`npm run soi`, story 6-6): mở trình duyệt thật, đi hết 27 màn
+  trong `scripts/soi/dang-ky.ts` và đo sàn chữ 15/17px · sàn chạm 44px · tràn ngang · tương phản ·
+  đệm đáy · đè lên tên. Luật là hàm THUẦN ở `scripts/soi/luat.ts` và có test; trình duyệt chỉ thu số.
+  **KHÔNG chạy trong `npm run build`** — nó cần server sống + database + mật khẩu. Chạy tay trước khi
+  phát hành; cách chạy ở `docs/van-hanh.md § Bộ đo giao diện`. Thêm `page.tsx` mà quên khai vào bản
+  đăng ký thì `npm test` đỏ.
 - Sinh migration mới: `npm run db:generate -- --name <tên>` rồi `npm run db:migrate`
   (cần `set -a; . ./.env; set +a` hoặc dotenv đã lo trong script).
 

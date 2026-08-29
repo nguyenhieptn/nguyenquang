@@ -267,9 +267,16 @@ export function BieuMauGhiThem({
             ) : null}
 
             {/* Câu SẼ ĐƯỢC GHI, dựng đúng hình panel sẽ hiện lại. Đây là hàng rào duy nhất chống
-                ghi ngược chiều — và nó chỉ đòi người vận hành đọc một câu tiếng Việt. */}
+                ghi ngược chiều — và nó chỉ đòi người vận hành đọc một câu tiếng Việt.
+
+                `data-cau-se-ghi` là mốc bám cho bộ đo (story 6-6): câu này là thứ DUY NHẤT đứng
+                giữa người vận hành và một cạnh cha-con ghi ngược, nên nó đáng có một chọn tử không
+                đổi theo lượt sửa class. */}
             {nguoiKia ? (
-              <p className="mt-2 border-l-4 border-ban-vien bg-ban-o px-2.5 py-1.5 text-[17px]">
+              <p
+                data-cau-se-ghi
+                className="mt-2 border-l-4 border-ban-vien bg-ban-o px-2.5 py-1.5 text-[17px]"
+              >
                 {cauSeGhi({
                   loai: loai as LoaiQuanHe,
                   huong,

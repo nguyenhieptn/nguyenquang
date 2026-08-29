@@ -3,7 +3,7 @@
 # (Đợt 1, epic 1-4), epics-dot-2.md (Đợt 2, epic 5), epics-dot-3.md (Đợt 3, epic 6).
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
-last_updated: 2026-08-27
+last_updated: 2026-08-28
 project: Gia phả dòng họ Nguyễn Quang
 project_key: giapha
 tracking_system: sprint-status.yaml
@@ -115,7 +115,26 @@ development_status:
   6-3-nap-khung-noi-that: done
   6-4-sua-va-gop-noi: backlog
   6-5-man-mau-thuan: backlog
-  6-6-do-that-tren-trinh-duyet: backlog
+  # Dựng 27–28/08. Gom bốn script `soi-*.mjs` — chúng chép tay bốn lần cùng bốn việc, đo bốn kiểu
+  # khác nhau, và `soi-man.mjs` LUÔN thoát 0 (trông như cổng mà không phải). Nay một runner đi
+  # theo bản đăng ký 27 màn, luật là hàm THUẦN có test, và một bài test đọc mã nguồn bắt màn thiếu
+  # khai (lối `chrome.test.ts`). Bề mặt A đo ở 390px LẦN ĐẦU — sàn viết cho điện thoại mà điện
+  # thoại chưa từng được đo; bốn script cũ chỉ chạm 4 trong 27 `page.tsx`, tất cả ở 1280px.
+  #
+  # Lượt chạy thật đầu ra 426 vi phạm. Đường từ 426 → 0 mới là nội dung story: −396 khai vào nền
+  # đã biết (5 mục, mỗi mục có lý do + chỗ ghi nợ), −4 là GIẢ ĐỊNH SAI CỦA CHÍNH BỘ ĐO (đo bề mặt
+  # B ở 768px, mà EXPERIENCE.md:498 nói nó desktop-only), −18 là hai khiếm khuyết THẬT trên màn
+  # chưa ai đo. 92% vi phạm là MỘT token: `--muted-foreground` trên nền bàn = 4.42:1, sàn 4.5 —
+  # kiểm số học độc lập, trên ô trắng cùng token ấy đạt 5.31:1.
+  #
+  # Ba lỗi của chính bộ đo do lượt chạy thật bắt, không cổng nào khác thấy: `__name` của esbuild
+  # làm mọi `page.evaluate` chết; luật sàn chữ đoán "chữ thân" theo THẺ nên đẻ 11 vi phạm giả ngay
+  # màn đầu; và hàng rào `revision` đếm 0 ở mọi lượt vì RLS ép buộc (AD-20) — tức hàng rào cuối
+  # của AD-4 đang gác không khí, đúng bài học `rls.gate.test.ts` lặp lại.
+  #
+  # KHÔNG chốt done: chưa qua code review. T11 chủ dự án chốt BỎ 28/08, cái giá ghi ở story và
+  # deferred-work. Bảy mục nợ vào deferred-work.md § 6-6.
+  6-6-do-that-tren-trinh-duyet: review
   # Thêm 26/08 từ lượt bấm thật đầu tiên trên phả sạch. Cả hai rẻ hơn vẻ ngoài: `xemHoSo` đang
   # vứt `card` + `relations` mà `getPerson` đã tính, và `duyetHangLoat` thì đã chạy được từ 3-3.
   # Code review 26/08 — ba tầng, CẢ BA có trình duyệt. 15 patch đã vá, 4 mục vào deferred-work.

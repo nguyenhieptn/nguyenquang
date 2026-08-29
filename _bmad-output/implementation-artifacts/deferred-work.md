@@ -319,6 +319,65 @@ nhân lên theo số dòng của tệp.
   không mất dấu. Nó chặn hai việc: câu *"là con của <tên>"* thay cho *"là con của một người đã
   ghi trong phả"*, và việc phân biệt hai người trùng tên ở mục trên.
 
+## Deferred from: 6-6-do-that-tren-trinh-duyet (2026-08-28)
+
+Bảy mục dưới đây do **lượt chạy trọn bộ đầu tiên của bộ đo** tìm ra — 27 màn, hai khung nhìn, trên
+phả thật. Chúng KHÔNG được vá trong 6-6 vì story ấy dựng **cái cân**, không sửa thứ cân đo được;
+vá giao diện trong đó là mở rộng phạm vi đúng lớp mà mấy lượt review vừa qua liên tục bắt.
+
+Cả bảy đã khai trong `scripts/soi/da-biet.ts`, nên `npm run soi` xanh trên chúng nhưng **in số đếm
+từng mục**. Đếm tăng lên = một hồi quy mới đang nấp sau một miễn trừ cũ, và nó nhìn thấy được.
+
+### Tương phản — quyết định THIẾT KẾ, không phải bản vá kỹ thuật
+
+- **`--muted-foreground` #796952 trên nền bàn #edeae4 = 4.42:1, sàn là 4.5:1 — 185 chỗ.**
+  Một token, mọi màn của bề mặt B. Trên ô bảng trắng #ffffff cùng token ấy đạt **5.31:1**, nên chỉ
+  nền bàn mới hụt. Số học kiểm độc lập, không chỉ tin phép đo.
+  Vá là đổi token ⇒ đổi cả `DESIGN.md` (`specs/frontend-stack.md § 7`), và đổi diện mạo mọi màn
+  quản trị. Việc của người đặt ra bảng màu.
+
+- **Chấm tin cậy "tồn nghi" (`--color-tin-ton-nghi`) trên nền bàn = 2.72:1 — 10 chỗ.**
+  Nặng hơn mục trên, vì `EXPERIENCE.md:394` gọi **đích danh** ca này: *"≥ 4.5:1, kể cả node tồn
+  nghi"*. Nhưng `app/globals.css:191-195` lại cấm làm mờ tầng tồn nghi — *"làm mờ đóng góp của
+  người vừa khai là giết đúng cảm xúc sản phẩm tồn tại để tạo ra"*. Hai ràng buộc do cùng một người
+  đặt ra, và chỉ người ấy hoà giải được. Đây là mục đáng quyết sớm nhất trong cả bảy.
+
+### Nhãn ghi công React Flow — ba vi phạm trên cùng một phần tử của thư viện
+
+- tương phản **2.85:1** · đích chạm **13×60px** · chữ **10px** (dưới sàn tuyệt đối 15px).
+  Không phải mã của dự án. Gỡ nó là quyết định về giấy phép, giữ nó là chấp nhận cả ba. Ghi thành
+  ba mục riêng để không mục nào lặng lẽ biến mất khi ai đó xử lý một mục.
+
+### Hai khiếm khuyết THẬT trên màn chưa từng ai đo
+
+- **`/admin/hang-cho`: 10 bộ cuộn bảng tràn 1517px trong hộp 972px** khi mở hết khối *"Trả lại"*.
+  Cùng lớp lỗi code review 6-8 đã vá một lần (1239/972, do `whitespace-nowrap`) — nhưng ca này
+  chưa ai đo, vì nó chỉ hiện sau khi mở `<details>`, mà bốn script đời trước không mở.
+
+- **`/admin/hop-nhat`: 8 liên kết tên người cao 23px, dưới sàn chạm 44px.**
+  Màn này chưa script nào từng đo. **Trông như một dòng class** (`min-h-11 inline-flex items-center`)
+  và sàn 44px sinh ra cho *"người dùng đích có tay run"* (`DESIGN.md:224`) — đáng làm ngay sau 6-6.
+
+### T11 chốt BỎ 28/08 — câu xem trước chưa ai đo thấy trên màn
+
+`cauSeGhi` có 16 bài thuần chứng minh nó dựng đúng chuỗi cho từng hướng và từng `relation`. Nhưng
+**chuỗi ấy có đến được mắt người vận hành hay không thì chưa đo**: nếu `bieu-mau-ghi-them.tsx` một
+ngày thôi render khối `[data-cau-se-ghi]`, không cổng nào đỏ.
+
+Đắt hơn vẻ ngoài, vì đó là hàng rào **duy nhất** chống ghi ngược chiều cha-con
+(`bieu-mau-ghi-them.tsx:268-271`) — ghi ngược không sinh lỗi nào, `tsc` xanh, cây vẽ vẫn đẹp, chỉ
+là cha con đảo nhau trong một hệ không có nút xoá.
+
+Mốc bám `data-cau-se-ghi` đã đặt sẵn nên phép đo chỉ còn là bước lái biểu mẫu. Chốt bỏ vì nó
+**không đóng được ô nào** trong bảy ô của 6-1 — cả bảy nằm trên đường GHI — chứ không vì nó khó.
+
+### Một giả định của chính bộ đo, đã sửa chứ không hoãn
+
+Bản đầu đo bề mặt B ở **cả 768px**, và ra bốn ca tràn ngang ở đúng khung ấy. Không ca nào là lỗi:
+`EXPERIENCE.md:498` nói thẳng *"Bề mặt B chỉ cần chạy tốt trên desktop. Không tối ưu cho tablet"*.
+Đo một bề mặt theo một lời hứa **không ai hứa** thì sinh nhiễu, và nhiễu trong một cổng là thứ dạy
+người ta bỏ qua nó. Đã bỏ 768px khỏi bề mặt B.
+
 ## Chốt BỎ — 26/08/2026
 
 Ba việc được nêu và chủ dự án chốt **không làm**. Ghi ra để lần sau không ai đề xuất lại như thể
