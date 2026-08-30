@@ -18,7 +18,8 @@
     "soi:cay": "tsx scripts/soi.ts cay",
     "soi:tai-khoan": "tsx scripts/soi.ts tai-khoan",
     "soi:nap-khung": "tsx scripts/soi.ts nap-khung",
-    "soi:hang-cho": "tsx scripts/soi.ts hang-cho"
+    "soi:hang-cho": "tsx scripts/soi.ts hang-cho",
+    "dong-ho-thu": "tsx scripts/dong-ho-thu.ts"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",

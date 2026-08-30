@@ -204,6 +204,21 @@
   }
 }
 
+/* ── BỀ MẶT A MƯỢN THẺ NGƯỜI, PHIẾU VÀ BIỂU MẪU CỦA BÀN TU PHẢ (story 6-10) ─────────────────
+ * `DESIGN.md § Bề mặt B` vạch ranh giới: *"nếu một pixel biểu diễn MỘT KHẲNG ĐỊNH về người thật,
+ * nó theo luật bề mặt A. Còn lại theo khung trần."* Thẻ người, phiếu lý lịch và ba biểu mẫu ghi
+ * đều là dữ liệu phả — nên "Phả quanh mình" dùng ĐÚNG những component ấy, và chỉ đổi cái KHUNG:
+ * ba token khung trần trỏ về ba token giấy dó, trong đúng một lớp bao. Tailwind v4 phát utility
+ * dưới dạng `var(--color-ban-o)`, nên đổi biến trong phạm vi là đủ — không sửa một component nào.
+ * Chép component sang `components/pha/` là hai bản của cùng một phiếu, lệch nhau ở lượt sửa đầu. */
+@layer components {
+  .tren-giay {
+    --color-ban-nen: var(--background);
+    --color-ban-o: var(--card);
+    --color-ban-vien: var(--border);
+  }
+}
+
 /* ── Nút phóng/thu của React Flow — CỐ Ý NẰM NGOÀI MỌI `@layer` ────────────────────────────
  * `@xyflow/react/dist/style.css` không có một `@layer` nào. CSS không phân lớp THẮNG CSS phân
  * lớp bất kể độ đặc hiệu, mà Tailwind v4 phát toàn bộ utilities vào `@layer utilities` — nên

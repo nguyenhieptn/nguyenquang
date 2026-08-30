@@ -562,6 +562,7 @@ export function CayClient({
           aria-label="Thêm người vào phả"
         >
           <BieuMauThemNguoi
+            beMat="B"
             khoa={them.mocId ?? '__roi__'}
             tenMoc={mocHoTen}
             huong={them.huong}
@@ -626,6 +627,7 @@ export function CayClient({
             </section>
           ) : null}
           <CotKhangDinh
+            beMat="B"
             hoSo={hoSoHienHanh}
             dangTai={dangTai}
             onNangTang={async (id) => sauKhiGhi(await nangTang(id))}

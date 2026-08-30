@@ -106,7 +106,7 @@ app/(pha)/…                 bề mặt A: ThanhDieuHuong đáy (mobile) / đ�
                             ⚠ CHƯA có layout.tsx — mỗi trang tự import ThanhDieuHuong, đúng
                             cái nếp mà story 5-1 đã dẹp ở bề mặt B. Nợ, không phải thiết kế.
 app/(pha)/page.tsx          2-1 trang chủ  (promote từ uiworkshop/trang-chu)
-app/(pha)/gia-pha/page.tsx  2-6 tầng 2 — chi của mình (điểm vào; guest → chi đầu)
+app/(pha)/gia-pha/page.tsx  6-10 Phả quanh mình (đã gắn chỗ) · 2-6 chi đầu (guest / chưa gắn)
 app/(pha)/gia-pha/ca-toc/page.tsx        2-6 tầng 1
 app/(pha)/gia-pha/chi/[id]/page.tsx      2-6 tầng 2 theo chi
 app/(pha)/gia-pha/duong-cua-toi/page.tsx 2-6 tầng 3
@@ -117,6 +117,8 @@ app/(pha)/loi-ke/…                       2-8 thu lời kể
 app/(pha)/toi/page.tsx                   2-9 trang Tôi (FR-55)
 app/dang-nhap/page.tsx  app/gan-node/…   2-2 (bề mặt A, khung DOC)
 app/admin/layout.tsx + 8 màn            3-1…3-4, 5-1…5-8 (bề mặt B — khung trần, desktop)
+lib/ghi-pha.ts                          ruột chung của mọi lối ghi/đọc hồ sơ — hai `actions.ts`
+                                        (`admin/cay` · `(pha)/gia-pha`) chỉ là vỏ 'use server'
 app/admin/[...khong-co-man]/             bẫy 404 để app/admin/not-found.tsx chạy được
 app/api/auth/[...all]/route.ts           1-4 Better Auth handler
 app/api/media/…                          1-5 upload + stream có token thời hạn

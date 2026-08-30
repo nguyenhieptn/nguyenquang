@@ -22,9 +22,10 @@
  */
 import dynamic from 'next/dynamic';
 import { CAO_KHUNG_NHIN } from './khung-cay';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentProps } from 'react';
 import type { CapCay } from './cay-gia-pha';
 import type { GocTamCay, KhoiChiCay, ManhRoiCay } from './cay-ca-toc';
+import type { KhungCayAdmin as KhungCayAdminKieu } from '@/components/admin/khung-cay-admin';
 
 /** `import type` bị xoá lúc biên dịch nên hai dòng trên KHÔNG kéo theo React Flow. */
 const CayGiaPha = dynamic(() => import('./cay-gia-pha').then((m) => m.CayGiaPha), {
@@ -36,6 +37,18 @@ const CayCaToc = dynamic(() => import('./cay-ca-toc').then((m) => m.CayCaToc), {
   ssr: false,
   loading: () => <KhungCho />,
 });
+
+/**
+ * Canvas "Phả quanh mình" (story 6-10) — CHÍNH canvas của bàn tu phả, mượn nguyên.
+ *
+ * Nó nặng ngang hai cây kia (React Flow), và người trong họ mở `/gia-pha` bằng điện thoại là ca
+ * thường — nên đi qua cùng cổng này, không import thẳng. Dưới 768px nó KHÔNG được tải: bề mặt
+ * điện thoại bày vùng lân cận bằng hàng theo đời (`hang-doi-quanh-minh.tsx`), không có canvas.
+ */
+const KhungCayAdmin = dynamic(
+  () => import('@/components/admin/khung-cay-admin').then((m) => m.KhungCayAdmin),
+  { ssr: false, loading: () => <KhungCho chieuCao="h-full" /> },
+);
 
 const NGUONG_MAN_RONG = '(min-width: 768px)';
 
@@ -55,7 +68,7 @@ function KhungCho({ chieuCao = CAO_KHUNG_NHIN }: { chieuCao?: string }) {
  * `null` = chưa biết bề rộng (lần dựng đầu ở client). Ba trạng thái chứ không phải hai: đoán bừa
  * `false` thì máy rộng nháy một nhịp rỗng, đoán bừa `true` thì điện thoại tải mất rồi.
  */
-function useManRong(): boolean | null {
+export function useManRong(): boolean | null {
   const [manRong, setManRong] = useState<boolean | null>(null);
   useEffect(() => {
     const mq = window.matchMedia(NGUONG_MAN_RONG);
@@ -93,4 +106,11 @@ export function CayCaTocTaiDong(props: {
   if (manRong === false) return null;
   if (manRong === null) return <KhungCho chieuCao={props.chieuCao} />;
   return <CayCaToc {...props} />;
+}
+
+export function CanvasQuanhMinhTaiDong(props: ComponentProps<typeof KhungCayAdminKieu>) {
+  const manRong = useManRong();
+  if (manRong === false) return null;
+  if (manRong === null) return <KhungCho chieuCao="h-full" />;
+  return <KhungCayAdmin {...props} />;
 }

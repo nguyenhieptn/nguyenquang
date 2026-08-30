@@ -169,8 +169,35 @@ export const DANG_KY: Man[] = [
     ...NGUOI_A,
     khoa: 'gia-pha',
     duong: '/gia-pha',
-    pheDo: DO_CHUNG,
-    bay: 'Tầng 2 — chi của mình',
+    /**
+     * Đo ở CẢ HAI khung — màn A đầu tiên có 1280px (story 6-10, trả một mục nợ của review 6-6).
+     * Trên máy nó là canvas + cột phải; trên điện thoại là hàng theo đời + tấm phiếu. Hai bộ mặt,
+     * hai phép đo, một đường.
+     */
+    rong: [KHUNG.dienThoai, KHUNG.may],
+    pheDo: [...DO_CHUNG, 'cot-phai'],
+    bay: 'Phả quanh mình — canvas + phiếu (máy) · hàng theo đời + tấm phiếu (điện thoại)',
+    chonChong: 'aside [data-chong]',
+    buoc: async (p) => {
+      // Trên máy: chọn thẻ đầu tiên để cột phải có nội dung, mở hết `<details>`. Trên điện thoại
+      // không có thẻ canvas nào — chạm thẻ đầu trong hàng để tấm phiếu trượt lên. Cả hai là điều
+      // hướng tại chỗ, không ghi.
+      const the = p.locator('.react-flow__node').first();
+      if (await the.count()) {
+        await the.click();
+      } else {
+        const hang = p.locator('main ol button').first();
+        if (await hang.count()) await hang.click();
+      }
+      await p.waitForTimeout(1500);
+      await p.evaluate(() => {
+        for (const d of document.querySelectorAll('aside details, [role="dialog"] details'))
+          (d as HTMLDetailsElement).open = true;
+      });
+      await p.waitForTimeout(400);
+    },
+    ghiChu: 'Tài khoản đo là quản trị đã gắn chỗ ⇒ bộ mặt "quanh mình". Bộ mặt chưa gắn (chi đầu + mời tìm chỗ) chưa đo — cần tài khoản chưa gắn.',
+    no: ['6-7 mục 4 (chuyển từ bề mặt B): người ngoài bán kính — quan hệ hiện mà chồng không, có đọc ra nghĩa không — cần mắt, và cần một thành viên thường (dòng họ thử)'],
   },
   {
     ...NGUOI_A,

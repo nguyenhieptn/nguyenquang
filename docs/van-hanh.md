@@ -28,6 +28,7 @@
 | Xem các tài khoản trong dòng họ (vai, tên đăng nhập) | `npx tsx scripts/reset-admin-password.ts --list` |
 | **Đặt lại mật khẩu** (quên mật khẩu quản trị) | `npx tsx scripts/reset-admin-password.ts <email hoặc tên đăng nhập>` |
 | **Bộ đo giao diện** (cổng thứ năm — xem § dưới) | `npm run soi` |
+| **Dòng họ thử** — dựng để mở trình duyệt xem như thành viên, bấm thử nút ghi (xem § dưới) | `npm run dong-ho-thu` · dọn: `npm run dong-ho-thu -- --go` |
 
 Log web: `var/log/giapha.log`. PID: `var/run/giapha.pid`.
 
@@ -132,6 +133,26 @@ Ba hàng rào:
    vào một điều khiển ghi (*Duyệt*, *Trả lại*, *Ghi … vào phả*, *Loại quan hệ này*, …).
 3. **Đếm `revision`.** Mỗi lượt chạy đếm số hàng `revision` trước và sau. Hai số khác nhau nghĩa là
    lượt ĐO đã GHI — lỗi nặng nhất bộ đo có thể mắc, và cổng đỏ vì nó.
+
+### Dòng họ thử — chỗ duy nhất bấm được nút ghi
+
+Phả thật có đúng một gắn kết (quản trị), và mọi nút ghi trên nó là vĩnh viễn (AD-4). Nên muốn
+**xem bề mặt của một thành viên thường** (`/gia-pha` — "Phả quanh mình", story 6-10) hay **bấm
+thử một nút ghi**, dựng một dòng họ thử:
+
+```bash
+npm run dong-ho-thu            # in ba tài khoản (quản trị · thành viên · chưa gắn) + lệnh chạy
+GIAPHA_CLAN_ID=<id in ra> BETTER_AUTH_URL=http://$(tailscale ip -4):3200 \
+  npx next start -H "$(tailscale ip -4)" -p 3200
+npm run dong-ho-thu -- --go    # dọn sạch khi xong
+```
+
+Database khi ấy có HAI dòng họ. Bản thật ở `:3000` không ghim gì nên vẫn phục vụ dòng họ đầu
+tiên (phả thật) — và ghi một dòng cảnh báo vào log ở mỗi request, cho tới khi dọn. Đừng để dòng
+họ thử sống qua đêm.
+
+Cùng bộ dựng với bài test adapter (`core/gates/dong-ho-thu.ts`), nên cây thử có đủ ca: ba đời,
+một cặp vợ chồng, hai anh em, một mảnh rời, một người chưa có cha.
 
 ### Khi thêm một màn mới
 

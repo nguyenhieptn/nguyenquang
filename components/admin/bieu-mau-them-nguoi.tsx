@@ -45,6 +45,8 @@ const HUONG: { ma: HuongThem; nhan: (moc: string) => string }[] = [
 ];
 
 type Props = {
+  /** Bề mặt đang bày — đổi hai câu trỏ vào "Mảnh chưa nối" và "chồng khẳng định" của bàn tu phả. */
+  beMat: 'A' | 'B';
   /**
    * Danh tính của MỐC — người mới sẽ nối vào ai. Bắt buộc, và chính nó là `key`.
    *
@@ -87,6 +89,7 @@ export function BieuMauThemNguoi({ khoa, ...rest }: Props) {
 }
 
 function Than({
+  beMat,
   tenMoc,
   huong,
   onDoiHuong,
@@ -223,8 +226,9 @@ function Than({
         /* "Chưa biết" là lựa chọn HỢP LỆ, không phải đường cùng — FR-63 gọi người ấy là "cụ xa
            nhất hiện biết" của mảnh, không phải một lời khai Thuỷ tổ. */
         <p className="mt-2 max-w-[42ch] text-[15px] text-muted-foreground">
-          Người này sẽ đứng thành gốc tạm của một mảnh riêng. Nối vào cây chung được sau, ở màn
-          Mảnh chưa nối.
+          {beMat === 'B'
+            ? 'Người này sẽ đứng thành gốc tạm của một mảnh riêng. Nối vào cây chung được sau, ở màn Mảnh chưa nối.'
+            : 'Người này sẽ đứng thành gốc tạm của một nhánh riêng. Ban tu phả nối vào cây chung sau.'}
         </p>
       ) : null}
 
@@ -323,8 +327,9 @@ function Than({
       </div>
 
       <p className="mt-3 max-w-[42ch] text-[15px] text-muted-foreground">
-        Mọi thứ ghi ở đây vào Tầng tồn nghi và hiện ngay trên cây. Nâng lên chính thức là việc
-        riêng, làm ở chồng khẳng định.
+        {beMat === 'B'
+          ? 'Mọi thứ ghi ở đây vào Tầng tồn nghi và hiện ngay trên cây. Nâng lên chính thức là việc riêng, làm ở chồng khẳng định.'
+          : 'Mọi thứ ghi ở đây vào Tầng tồn nghi và hiện ngay trên cây. Duyệt lên chính thức là việc của ban tu phả.'}
       </p>
 
       {loi ? (

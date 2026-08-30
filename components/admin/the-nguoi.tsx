@@ -67,10 +67,24 @@ const HINH_TIN_CAY: Record<MucTinCay, string> = {
   'theo-loi-ke': '◐',
   'ton-nghi': '○',
 };
+/**
+ * Màu của chấm — và vì sao "tồn nghi" KHÔNG dùng `--color-tin-ton-nghi` (sửa 29/08, story 6-10).
+ *
+ * Chấm là một ký tự chữ, nên nó chịu sàn tương phản 4.5:1 như mọi chữ khác (`EXPERIENCE.md:394`
+ * gọi đích danh: *"kể cả node tồn nghi"*). `#b09a72` đạt 2.72:1 trên nền bàn và **2.31:1** trên
+ * giấy dó — bộ đo 6-6 đo được cả hai, và mục đầu ghi nợ ở `deferred-work.md § 6-6` với câu *"hai
+ * ràng buộc do cùng một người đặt ra"*: sàn 4.5 và lệnh cấm làm mờ tồn nghi.
+ *
+ * Hai ràng buộc ấy KHÔNG mâu thuẫn, vì `DESIGN.md § Ba mức tin cậy` đã xếp thứ bậc: *"mã hoá
+ * chính là chất liệu và nét viền; màu là lớp phụ trợ"*. Ba chấm phân biệt nhau bằng HÌNH — đặc ·
+ * nửa · rỗng — nên chấm rỗng vẽ bằng mực vẫn đọc ra "chưa chắc" (ít mực hơn), mà không nhạt đi.
+ * Màu tồn nghi vẫn còn ở nơi nó là chất liệu chứ không phải chữ: viền nét đứt của thẻ và của giá
+ * trị trong phiếu.
+ */
 const MAU_TIN_CAY: Record<MucTinCay, string> = {
   'chac-chan': 'var(--color-tin-chac-chan)',
   'theo-loi-ke': 'var(--color-tin-loi-ke)',
-  'ton-nghi': 'var(--color-tin-ton-nghi)',
+  'ton-nghi': 'var(--color-foreground)',
 };
 
 function ChamTinCay({ muc }: { muc: MucTinCay }) {

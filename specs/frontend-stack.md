@@ -110,6 +110,14 @@ nhau: `pha/` mặc giấy dó cho người trong họ, `admin/` là khung trần
 Ràng buộc y hệt `components/pha/`: không import `@/core/*` (build-contract § Phân tầng), token có
 tên, không hardcode hex.
 
+> **Sửa 29/08/2026 (story 6-10) — bề mặt A MƯỢN được phần "dữ liệu phả" của `components/admin/`.**
+> Thẻ người (`the-nguoi.tsx`), canvas (`khung-cay-admin.tsx`), phiếu (`cot-khang-dinh.tsx`), ba
+> biểu mẫu ghi và bộ chọn người là **dữ liệu phả**, không phải khung — `DESIGN.md § Bề mặt B`
+> nói chúng vẽ y hệt ở hai bề mặt. Cái khác là ba token `ban-*`; bề mặt A bọc chúng trong lớp
+> `.tren-giay` (`app/globals.css`) trỏ ba token ấy về giấy dó. KHÔNG chép component sang `pha/`:
+> hai bản của cùng một phiếu lệch nhau ở lượt sửa đầu. Component nào mọc nút duyệt hay câu chữ
+> của bàn tu phả thì nhận `beMat: 'A' | 'B'` — prop BẮT BUỘC.
+
 ### Component của cây (`components/pha/`)
 
 | File | Việc |

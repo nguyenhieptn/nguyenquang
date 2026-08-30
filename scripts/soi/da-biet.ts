@@ -13,6 +13,10 @@
  *  2. Bản kê in SỐ LƯỢNG từng mục. Một mục đã biết mà đếm tăng lên là một hồi quy MỚI đang nấp
  *     sau một miễn trừ cũ — và nó nhìn thấy được.
  *  3. Khớp theo `loai` **và** một chuỗi trong mô tả. Miễn trừ cả một `loai` là tắt luôn phép đo.
+ *
+ * Mục đã GỠ vì đã vá (không chỉ vì hết đếm): chấm tin cậy "tồn nghi" 2.72:1 — story 6-10 cho chấm
+ * mang màu mực và phân biệt bằng hình (`the-nguoi.tsx § MAU_TIN_CAY`). Một mục vá xong mà còn
+ * nằm đây là một miễn trừ chờ hồi quy chui vào.
  */
 import type { ViPham } from './luat';
 
@@ -52,20 +56,9 @@ export const DA_BIET: readonly MucDaBiet[] = [
   },
   {
     loai: 'tuong-phan-thap',
-    khop: '2.72:1',
-    toiDa: 10,
-    moTa: 'chấm tin cậy "tồn nghi" (`--color-tin-ton-nghi`) trên nền bàn',
-    viSao:
-      'Cùng lớp quyết định thiết kế, nhưng nặng hơn: `EXPERIENCE.md:394` gọi đích danh ca này ' +
-      '("≥ 4.5:1, KỂ CẢ node tồn nghi"), và `app/globals.css:191-195` cấm làm mờ tầng tồn nghi ' +
-      'vì "làm mờ đóng góp của người vừa khai là giết đúng cảm xúc sản phẩm tồn tại để tạo ra". ' +
-      'Hai ràng buộc ấy phải được hoà giải bởi người đặt ra chúng.',
-    theoDoi: 'deferred-work.md § 6-6',
-  },
-  {
-    loai: 'tuong-phan-thap',
     khop: 'React Flow',
-    toiDa: 2,
+    // 3 = hai lượt `/admin/cay` (cay · cay-them) + `/gia-pha` ở 1280 (story 6-10 thêm canvas thứ ba).
+    toiDa: 3,
     moTa: 'nhãn ghi công của thư viện React Flow — 2.85:1',
     viSao: 'Đánh dấu của thư viện, không phải mã của dự án. Gỡ nó là một quyết định về giấy phép.',
     theoDoi: 'deferred-work.md § 6-6',
@@ -73,7 +66,8 @@ export const DA_BIET: readonly MucDaBiet[] = [
   {
     loai: 'cham-duoi-san',
     khop: 'React Flow',
-    toiDa: 2,
+    // 3 = hai lượt `/admin/cay` (cay · cay-them) + `/gia-pha` ở 1280 (story 6-10 thêm canvas thứ ba).
+    toiDa: 3,
     moTa: 'nhãn ghi công React Flow — đích chạm 13×60px',
     viSao:
       'Cùng phần tử của thư viện, cùng quyết định giấy phép. Ghi riêng chứ không gộp vào mục trên: ' +
@@ -84,7 +78,8 @@ export const DA_BIET: readonly MucDaBiet[] = [
   {
     loai: 'chu-duoi-san',
     khop: 'React Flow',
-    toiDa: 2,
+    // 3 = hai lượt `/admin/cay` (cay · cay-them) + `/gia-pha` ở 1280 (story 6-10 thêm canvas thứ ba).
+    toiDa: 3,
     moTa: 'nhãn ghi công React Flow — chữ 10px, dưới sàn tuyệt đối 15px',
     viSao:
       'Vi phạm NẶNG nhất trong ba mục React Flow — 10px hụt sàn tuyệt đối 5px, mà sàn ấy ' +

@@ -173,6 +173,12 @@ development_status:
   # đường ấy trên trình duyệt sau khi vá: thẻ sáng và biểu mẫu nay nói cùng một người.
   # AC 9/10 (dòng chỉ dẫn <kbd>) KHÔNG đạt theo chữ — chủ dự án chốt bỏ; ghi rõ cái giá ở story.
   6-9-nhap-nhanh-tren-canvas: done
+  # Thêm 29/08 từ yêu cầu chủ dự án: người trong họ đăng nhập cũng cần cây + phiếu như bàn tu phả,
+  # chỉ thấy vùng quanh mình, thêm/sửa được, KHÔNG duyệt được. Tới 6-9 đường SỬA chỉ có ở /admin —
+  # "con cháu đề xuất, trưởng họ duyệt" mà con cháu chưa có chỗ đề xuất. Mượn nguyên thẻ, phiếu,
+  # biểu mẫu của components/admin qua một lớp đổi token; ruột ghi chung ở lib/ghi-pha.ts.
+  # Dựng 29/08, đo trên DÒNG HỌ THỬ (scripts/dong-ho-thu.ts) ở cả 390 và 1280. Chờ code review.
+  6-10-pha-quanh-minh: review
   epic-6-retrospective: optional
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──

@@ -48,6 +48,7 @@ const VAI: { ma: VaiNoi; nhan: string }[] = [
 ];
 
 export function BieuMauGhiThem({
+  beMat,
   loaiCoDinh,
   nguoiNayId,
   tenNguoiNay,
@@ -59,6 +60,8 @@ export function BieuMauGhiThem({
   onTimNguoi,
   onDong,
 }: {
+  /** Bề mặt đang bày — đổi câu hướng dẫn (bề mặt A không có "nút Loại", không có "thanh việc"). */
+  beMat: 'A' | 'B';
   /** Mở từ dưới một chồng ⇒ loại đã biết, không cho đổi. `null` ⇒ cho chọn (lối cuối panel). */
   loaiCoDinh: LoaiGhiThem | null;
   /** Người đang mở hồ sơ — story 6-1 cần biết để loại khỏi bộ chọn và để dựng câu sẽ ghi. */
@@ -216,6 +219,7 @@ export function BieuMauGhiThem({
         ) : kieu === 'nguoi' ? (
           <div className="mt-0.5">
             <ChonNguoi
+              beMat={beMat}
               daChon={nguoiKia}
               nguoiNayId={nguoiNayId}
               onChon={setNguoiKia}
@@ -344,15 +348,28 @@ export function BieuMauGhiThem({
            * dạy người vận hành rằng ghi nhầm chiều thì cứ ghi lại cho đúng rồi chồng sẽ hỏi —
            * mà thật ra cả hai cạnh cùng sống, cha con đảo ngược đứng cạnh nhau.
            */
+          beMat === 'B' ? (
+            <>
+              Quan hệ này <strong>cộng thêm</strong>, không thay quan hệ nào đang có — cha và mẹ là
+              hai khẳng định cùng đúng. Ghi nhầm thì gỡ bằng nút <em>Loại</em> ngay trên dòng ấy;
+              chồng khẳng định sẽ <strong>không</strong> hỏi chọn một.
+            </>
+          ) : (
+            <>
+              Quan hệ này <strong>cộng thêm</strong>, không thay quan hệ nào đang có — cha và mẹ là
+              hai điều cùng đúng. Ghi nhầm thì nhờ ban tu phả gỡ: ở đây không có nút xoá, và đó là
+              cố ý — phả không bao giờ mất một lời khai.
+            </>
+          )
+        ) : beMat === 'B' ? (
           <>
-            Quan hệ này <strong>cộng thêm</strong>, không thay quan hệ nào đang có — cha và mẹ là
-            hai khẳng định cùng đúng. Ghi nhầm thì gỡ bằng nút <em>Loại</em> ngay trên dòng ấy;
-            chồng khẳng định sẽ <strong>không</strong> hỏi chọn một.
+            Giá trị này <strong>không thay</strong> giá trị cũ — nó vào Tầng tồn nghi và đứng cạnh,
+            để so được. Nếu hai thứ không thể cùng đúng, chồng khẳng định sẽ hỏi chọn một.
           </>
         ) : (
           <>
             Giá trị này <strong>không thay</strong> giá trị cũ — nó vào Tầng tồn nghi và đứng cạnh,
-            để so được. Nếu hai thứ không thể cùng đúng, chồng khẳng định sẽ hỏi chọn một.
+            để so được. Nếu hai thứ không thể cùng đúng, ban tu phả sẽ chọn một.
           </>
         )}
       </p>

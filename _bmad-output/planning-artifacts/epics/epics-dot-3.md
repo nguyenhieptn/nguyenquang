@@ -40,6 +40,7 @@ này rồi để trống chủ; Đợt 3 nhận.
 
 | 6-7 | `6-7-ho-so-day-du-o-cot-phai` — cột phải bày **tiểu sử cơ bản** (năm sinh–mất · đời · chi · tầng · ai ghi) và **quan hệ** (cha mẹ · con · vợ chồng), mỗi mục sửa được tại chỗ. `getPerson` đã trả `card` và `relations`; `xemHoSo` đang vứt cả hai | FR-1, FR-2, FR-37 | AD-13, AD-21 |
 | 6-8 | `6-8-duyet-theo-nguoi` — hàng chờ gom theo **NGƯỜI**, duyệt trọn một người bằng một cú bấm. `duyetHangLoat` đã có; thiếu phép gom và một lối chọn cả nhóm. Đơn vị HÀNH ĐỘNG vẫn là khẳng định (AD-9), đơn vị CHÚ Ý là con người | FR-3, FR-1 | AD-9, AD-22 |
+| 6-10 | `6-10-pha-quanh-minh` — **đường SỬA cho người trong họ**: `/gia-pha` của người đã gắn chỗ thành canvas vùng lân cận quanh mình + phiếu bên cạnh (máy) / hàng theo đời + tấm phiếu (điện thoại); ghi thêm · nối người · thêm người tại chỗ; **không duyệt** — duyệt là việc ở `/admin`. Mượn nguyên thẻ, phiếu, biểu mẫu của `components/admin/` qua một lớp đổi token `.tren-giay`; ruột ghi chung ở `lib/ghi-pha.ts` | FR-15, FR-3, FR-11, FR-37 | AD-9, AD-13, AD-21, AD-24 |
 
 **Thứ tự phụ thuộc:** 6-1 trước (nó dựng bộ chọn người mà 6-5 dùng lại). 6-2 · 6-3 · 6-4 chạy
 song song từ đầu — không cái nào phụ thuộc cái nào. 6-5 sau 6-1. 6-6 sau khi có màn để đo. **6-7 và 6-8 chen lên trước 6-4/6-5** — xem ghi chú dưới.
@@ -63,6 +64,21 @@ song song từ đầu — không cái nào phụ thuộc cái nào. 6-5 sau 6-1.
 > khai: *"hành trình gốc của việc duyệt (UJ-3) đã mất; màn dựng từ § IA, không từ một hành trình
 > có thật."* Màn ấy dựng từ sơ đồ thông tin, và lượt bấm đầu tiên của một người thật cho thấy sơ
 > đồ không thay được hành trình. 6-8 là chỗ trả món nợ ấy, không chỉ là một lượt gom dòng.
+
+> ### Yêu cầu 29/08/2026 — đường sửa cho người trong họ (6-10)
+>
+> > *"với user login — frontend view cây gia phả cũng sẽ cần cấu trúc như cây gia phả + sidebar
+> > như trong bàn làm việc, khác là thành viên login này chỉ nhìn được gia phả các node liên quan
+> > tới họ. họ cũng có thể thêm node, sửa thông tin, tuy nhiên không duyệt được. quản lý của gia
+> > phả mới có thể duyệt."*
+>
+> Đợt 3 cắt theo động từ SỬA, và tới 6-9 đường sửa chỉ có ở `/admin` — người trong họ có đúng
+> luồng tự khai bốn bước (thêm người MỚI) và một nút *"Sửa thông tin về mình"* dẫn tới một trang
+> không có ô nào để sửa. Mô hình sản phẩm là *"con cháu đề xuất, trưởng họ duyệt"*
+> (`docs/project.md`), mà con cháu chưa có chỗ để đề xuất. 6-10 là chỗ ấy: **cùng canvas, cùng
+> phiếu, cùng biểu mẫu** với bàn tu phả (dữ liệu phả vẽ y hệt hai bề mặt — `DESIGN.md § Bề mặt
+> B`), chỉ khác quyền duyệt và cái khung. Xếp sau 6-8, trước 6-4/6-5: nó là thứ dòng họ dùng
+> hằng ngày, còn 6-4/6-5 là việc của ban tu phả.
 
 > ### Vì sao 6-3 xếp cao dù nghe như việc vặt
 >

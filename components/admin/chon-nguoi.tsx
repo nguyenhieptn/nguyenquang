@@ -22,11 +22,14 @@ import { trangThaiTim, type KetQuaTimNguoi, type UngVienNguoi } from './tim-nguo
 export type { UngVienNguoi };
 
 export function ChonNguoi({
+  beMat,
   daChon,
   nguoiNayId,
   onChon,
   onTim,
 }: {
+  /** Câu "chưa có ai tên ấy" chỉ đường tới nút thêm người — nút ấy ở hai chỗ khác nhau trên hai bề mặt. */
+  beMat: 'A' | 'B';
   daChon: UngVienNguoi | null;
   /** Người đang mở hồ sơ — bị loại khỏi danh sách, vì không ai là cha của chính mình. */
   nguoiNayId: string | null;
@@ -245,8 +248,16 @@ export function ChonNguoi({
             /* Không tìm thấy ai là chuyện BÌNH THƯỜNG — người này chưa vào phả. Đường đúng là
                thêm người mới, và câu này chỉ đường tới đó thay vì bày một lỗi. */
             <li role="option" aria-disabled aria-selected={false} className="text-[15px] text-muted-foreground">
-              Chưa có ai tên ấy trong phả — thêm người mới ở nút <em>Thêm người vào phả</em> trên
-              thanh việc.
+              {beMat === 'B' ? (
+                <>
+                  Chưa có ai tên ấy trong phả — thêm người mới ở nút <em>Thêm người vào phả</em> trên
+                  thanh việc.
+                </>
+              ) : (
+                <>
+                  Chưa có ai tên ấy trong phả — thêm người mới bằng nút <em>Thêm người quanh đây</em>.
+                </>
+              )}
             </li>
           )}
           </>

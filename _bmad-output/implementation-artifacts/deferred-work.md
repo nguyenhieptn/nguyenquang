@@ -336,7 +336,13 @@ từng mục**. Đếm tăng lên = một hồi quy mới đang nấp sau một 
   Vá là đổi token ⇒ đổi cả `DESIGN.md` (`specs/frontend-stack.md § 7`), và đổi diện mạo mọi màn
   quản trị. Việc của người đặt ra bảng màu.
 
-- **Chấm tin cậy "tồn nghi" (`--color-tin-ton-nghi`) trên nền bàn = 2.72:1 — 10 chỗ.**
+- ~~**Chấm tin cậy "tồn nghi" (`--color-tin-ton-nghi`) trên nền bàn = 2.72:1 — 10 chỗ.**~~
+  **ĐÃ GIẢI QUYẾT 29/08 (story 6-10)** — trên giấy dó cùng chấm ấy còn 2.31:1, và bề mặt thành
+  viên bày nó cho cả họ. Hai ràng buộc không mâu thuẫn: `DESIGN.md § Ba mức tin cậy` xếp *chất
+  liệu và nét viền* là mã hoá chính, *màu* là phụ trợ — nên chấm tồn nghi nay vẽ bằng mực, phân
+  biệt bằng HÌNH (● ◐ ○), không nhạt đi. Màu tồn nghi vẫn ở nơi nó là chất liệu (viền nét đứt).
+  Chủ dự án đảo lại được bằng một dòng ở `components/admin/the-nguoi.tsx § MAU_TIN_CAY`.
+  Nguyên văn mục cũ:
   Nặng hơn mục trên, vì `EXPERIENCE.md:394` gọi **đích danh** ca này: *"≥ 4.5:1, kể cả node tồn
   nghi"*. Nhưng `app/globals.css:191-195` lại cấm làm mờ tầng tồn nghi — *"làm mờ đóng góp của
   người vừa khai là giết đúng cảm xúc sản phẩm tồn tại để tạo ra"*. Hai ràng buộc do cùng một người

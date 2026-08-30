@@ -69,6 +69,24 @@ FR-15 tự viết ra cơ chế: *"Zoom theo **chi**, collapse theo **đời**."*
 trước, rồi đi ngược lên"* — nên mở ra là chi của mình, đời của mình đã bung sẵn. Mở thẳng vào
 tầng 1 là bắt người dùng tự mò xuống tìm mình, đúng cái PRD gạch đi.
 
+> **Sửa 29/08/2026 (story 6-10) — điểm vào cho người ĐÃ gắn chỗ là "Phả quanh mình".** FR-15
+> thành nghĩa đen: mình ở GIỮA, cha mẹ trên, vợ chồng chung thẻ, con dưới — đúng vùng lân cận
+> của canvas bàn tu phả (5-2), đi theo cạnh máu + hôn nhân, mỗi thẻ đã qua bán kính riêng tư.
+> Chạm một người là **phiếu** của họ mở ngay bên cạnh (máy: cột phải; điện thoại: tấm phiếu trượt
+> từ đáy), và ghi thêm được tại chỗ — ghi thêm khẳng định, nối người đã có, thêm người quanh đây.
+> **Không duyệt ở đây**, kể cả khi người xem là quản trị: duyệt là việc của bàn tu phả. Không
+> phím tắt (§ Interaction Primitives).
+>
+> Ba tầng cũ giữ nguyên làm lối KHÁM PHÁ: *← Xem cả tộc* (tầng 1) · cả tộc → một chi (tầng 2) ·
+> *Đường về cụ* (tầng 3). Khách và tài khoản chưa gắn chỗ vẫn thấy chi đầu + lời mời tìm chỗ —
+> không có "quanh mình" khi chưa có mình.
+>
+> Lý do đổi: Đợt 3 cắt theo động từ SỬA, mà tới 6-9 đường sửa chỉ có ở `/admin`. Mô hình sản phẩm
+> là *con cháu đề xuất, trưởng họ duyệt* — con cháu phải có chỗ để đề xuất, và chỗ ấy phải là nơi
+> họ đang đứng trong phả. Thẻ, phiếu, biểu mẫu là **dữ liệu phả**, nên bề mặt A dùng ĐÚNG những
+> component ấy của bề mặt B (`DESIGN.md § Bề mặt B`: *"pixel nào biểu diễn một khẳng định về
+> người thật thì theo luật bề mặt A"*); chỉ cái khung đổi sang giấy dó.
+
 #### Vì sao tầng 1 không vẽ người
 
 Không phải khẩu vị — là số học. Q1 chốt dưới 300 người, 5–7 đời → đời rộng nhất khoảng **120
@@ -424,6 +442,7 @@ hơn mức đọc thoải mái.
 | Màn chủ | hai ô xếp chồng | hai ô **cạnh nhau** |
 | Cả tộc (tầng 1) | khối chi xếp chồng | **khung nhìn cây**, zoom/pan được |
 | Một chi (tầng 2) | đời là **hàng gập được** | **khung nhìn cây**, zoom/pan được |
+| Phả quanh mình (điểm vào, đã gắn chỗ — 6-10) | **hàng theo đời** + tấm phiếu trượt từ đáy | **canvas vùng lân cận** + cột phải 360px |
 | Không tìm thấy | một cột | **vẫn một cột hẹp** |
 | Cây gia tộc (tầng 3) | một cột | **khung nhìn cây**, zoom/pan được |
 

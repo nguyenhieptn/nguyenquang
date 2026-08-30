@@ -153,7 +153,21 @@ const LE_PHAI = 'pr-11';
 const CHIP =
   'inline-flex min-h-11 items-center rounded-md border border-ban-vien px-2 font-pha text-[17px] hover:bg-ban-nen';
 
+/**
+ * Bề mặt đang bày phiếu này — story 6-10.
+ *
+ * `'B'` là bàn tu phả: có Nâng lên chính thức, có Loại, câu chữ được dùng từ của người vận hành.
+ * `'A'` là người trong họ: KHÔNG có hai nút duyệt (kể cả khi người xem tình cờ là quản trị —
+ * duyệt là việc ở `/admin`, một bề mặt không bày thứ nó không cho làm thì không dạy sai mô hình),
+ * và mọi câu trỏ vào "thanh việc", "Mảnh chưa nối", "nút Loại" đổi sang lời của bề mặt A.
+ *
+ * BẮT BUỘC, không `?:` — quên ở một nơi gọi là bày nút duyệt cho người không có quyền, và `tsc`
+ * là chỗ duy nhất bắt được.
+ */
+export type BeMat = 'A' | 'B';
+
 type Props = {
+  beMat: BeMat;
   hoSo: HoSoPanel | null;
   dangTai: boolean;
   onNangTang: (assertionId: string) => Promise<string | null>;
@@ -196,6 +210,7 @@ export function CotKhangDinh(props: Props) {
 }
 
 function Than({
+  beMat,
   hoSo,
   dangTai,
   onNangTang,
@@ -267,7 +282,11 @@ function Than({
     <section className="px-0" aria-label="Khẳng định về người đang chọn">
       {!hoSo ? (
         <p className="px-5 py-6 text-[17px] text-muted-foreground">
-          {dangTai ? 'Đang mở hồ sơ…' : 'Chọn một người trên cây để xem hệ này biết gì về họ.'}
+          {dangTai
+            ? 'Đang mở hồ sơ…'
+            : beMat === 'B'
+              ? 'Chọn một người trên cây để xem hệ này biết gì về họ.'
+              : 'Chạm một người trên cây để xem phả ghi gì về họ.'}
         </p>
       ) : (
         <div className="px-5 py-5">
@@ -290,7 +309,9 @@ function Than({
                    gì — hai chuyện ấy khác nhau, và người vận hành cần phân biệt được. Nói xong
                    thì VẪN bày những quan hệ xem được ở dưới. */
                 <p className="mt-4 max-w-[46ch] text-[17px] text-muted-foreground">
-                  Người này nằm ngoài phần phả xem được, nên không mở chồng khẳng định ra ở đây.
+                  {beMat === 'B'
+                    ? 'Người này nằm ngoài phần phả xem được, nên không mở chồng khẳng định ra ở đây.'
+                    : 'Người này còn sống và ở ngoài vòng ruột thịt, nên phần ghi chi tiết không hiện ở đây — chỉ người gần trong họ thấy.'}
                 </p>
               ) : coHang ? null : (
                 /* Rỗng THẬT: đọc được, mà không chồng nào và cũng không quan hệ nào. Chỉ
@@ -344,6 +365,7 @@ function Than({
                     ) : (
                       <MotChong
                         key={khoa}
+                        beMat={beMat}
                         chong={theoKhoa.get(khoa)!}
                         onNangTang={onNangTang}
                         onLoai={onLoai}
@@ -376,6 +398,7 @@ function Than({
             <div className="mt-4">
               {moGhi === null ? (
                 <BieuMauGhiThem
+                  beMat={beMat}
                   loaiCoDinh={null}
                   onGui={onGhiThem}
                   onGuiNoi={onGhiNoi}
@@ -511,6 +534,7 @@ function GiaTri({ khoa, dong }: { khoa: string; dong: DongKhangDinh }) {
 }
 
 function MotChong({
+  beMat,
   chong,
   onNangTang,
   onLoai,
@@ -528,6 +552,7 @@ function MotChong({
   onMoNguoi,
   onTaoNoi,
 }: {
+  beMat: BeMat;
   chong: ChongKhangDinh;
   onNangTang: (assertionId: string) => Promise<string | null>;
   onLoai: (assertionId: string, ghiChu: string) => Promise<string | null>;
@@ -611,8 +636,12 @@ function MotChong({
         )
       }
       dangGiu={mauThuan && d.chinhThuc}
-      nangDuoc={!mauThuan || !coChinhThuc}
-      loaiDuoc={mauThuan || loaiDuocDuNoiTiep(chong.khoa)}
+      /**
+       * Hai nút DUYỆT chỉ mọc ở bề mặt B (story 6-10). Không phải hàng rào — core gác bằng
+       * `gateApprover` — mà là mô hình: người trong họ ghi thêm, ban tu phả chọn.
+       */
+      nangDuoc={beMat === 'B' && (!mauThuan || !coChinhThuc)}
+      loaiDuoc={beMat === 'B' && (mauThuan || loaiDuocDuNoiTiep(chong.khoa))}
       onNangTang={onNangTang}
     />
   ));
@@ -628,6 +657,7 @@ function MotChong({
   const khoiGhiThem = loaiGhi ? (
     moGhi ? (
       <BieuMauGhiThem
+        beMat={beMat}
         loaiCoDinh={moGhi}
         onGui={onGhiThem}
         onGuiNoi={onGhiNoi}
@@ -674,13 +704,15 @@ function MotChong({
         </h3>
         <div className="min-w-0 flex-1 py-1">
           <p className="border-l-4 border-destructive bg-canh-bao-nen px-2.5 py-1.5 text-[15px]">
-            Hai giá trị không thể cùng đúng — chọn một. Giá trị bị loại rời khỏi phả nhưng vẫn nằm
-            trong nhật ký.
+            {beMat === 'B'
+              ? 'Hai giá trị không thể cùng đúng — chọn một. Giá trị bị loại rời khỏi phả nhưng vẫn nằm trong nhật ký.'
+              : 'Hai giá trị không thể cùng đúng — ban tu phả sẽ chọn một. Cả hai vẫn hiện ở đây cho tới lúc ấy.'}
           </p>
           <ul className="mt-2 flex flex-col divide-y divide-ban-vien">{danhSachDong}</ul>
           {/* Khi chồng mâu thuẫn ĐÃ có một dòng chính thức, đổi ý là việc hai bước — nói ra, vì
-              không nói thì người vận hành đứng nhìn một dòng không có nút nào và tưởng màn hỏng. */}
-          {coChinhThuc ? (
+              không nói thì người vận hành đứng nhìn một dòng không có nút nào và tưởng màn hỏng.
+              Chỉ ở bề mặt B: bề mặt A không có bước nào trong hai bước ấy. */}
+          {coChinhThuc && beMat === 'B' ? (
             <p className="mt-2 text-[15px] text-muted-foreground">
               Muốn đổi sang giá trị khác: <strong>loại giá trị đang giữ</strong> trước, rồi nâng
               giá trị kia lên. Giá trị bị loại vẫn nằm trong nhật ký.
