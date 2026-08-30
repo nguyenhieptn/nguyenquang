@@ -34,7 +34,8 @@ import { createAdmin } from '@/core/identity/bootstrap';
 import { approveAttachmentOp, requestAttachmentOp } from '@/core/identity/ops';
 import type { SessionContext } from '@/core/identity/session';
 import { createPersonOp } from '@/core/person/ops';
-import { addPlaceOps } from '@/core/place/ops';
+import { addPlaceOps, listPlacesOps } from '@/core/place/ops';
+import { addAssertionOp } from '@/core/assertion/ops';
 
 /** Thứ tự xoá theo khoá ngoại — bảng con trước. Cùng danh sách `rls.gate.test.ts § PARTITIONED_TABLES`. */
 const BANG_PHAN_VUNG = [
@@ -171,6 +172,25 @@ export async function dungDongHoThu(o: { tienTo?: string; ghim?: boolean } = {})
     ] as const) {
       const r = await addPlaceOps(tx, adminCtx, { name, parentUnit });
       if (!r.ok) throw new Error(`dong-ho-thu: nơi — ${r.error.message}`);
+    }
+  });
+
+  // Ba mâu thuẫn, mỗi lớp một (story 6-5): Chú có hai năm sinh; một người con có HAI cha ruột
+  // (Cha và Chú, cùng giới); Em có hai quê quán khác nơi. Không đụng vào Mình / Mồ Côi — bài test
+  // adapter của 6-1 dựng ca của nó trên hai người ấy.
+  await withClanContext(clanId, async (tx) => {
+    const ghi = async (personId: string, spec: Parameters<typeof addAssertionOp>[2]['spec']) => {
+      const r = await addAssertionOp(tx, adminCtx, { personId, spec, source: nguon });
+      if (!r.ok) throw new Error(`dong-ho-thu: mâu thuẫn — ${r.error.message}`);
+    };
+    await ghi(nguoi.chu, { kind: 'birth', value: { date: '1956-01-01', precision: 'year' } });
+    const haiCha = await createPersonOp(tx, adminCtx, { fullName: ten('Nguyễn Thử Hai Cha'), gender: 'male', birth: nam(1985), parentId: nguoi.cha, source: nguon });
+    if (!haiCha.ok) throw new Error(haiCha.error.message);
+    await ghi(haiCha.value.personId, { kind: 'parent-child', parentId: nguoi.chu });
+    const noi = await listPlacesOps(tx);
+    if (noi.ok && noi.value.length >= 2) {
+      const que = noi.value.filter((n) => n.name === ten('Quang Trung'));
+      for (const q of que) await ghi(nguoi.em, { kind: 'place', placeId: q.placeId, role: 'que-quan' });
     }
   });
 

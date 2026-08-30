@@ -14,7 +14,7 @@ import type { Visibility } from '@/core/identity/privacy';
 import { resolveViewer } from '@/core/identity/session';
 import { withClanContext } from '@/db';
 import { lookupAccountNames } from '@/core/assertion/ops';
-import { getPersonOps, type RawPersonAssertion } from './read-ops';
+import { getPersonOps, listConflictsOps, type RawPersonAssertion } from './read-ops';
 import { xepChong, type AssertionStack } from './chong';
 
 export type { AssertionStack, StackKind } from './chong';
@@ -59,6 +59,16 @@ export type PersonAssertion = {
    * Dòng phải tự nói ra nó nói về ai.
    */
   doiTuongId?: string;
+  /**
+   * KHOÁ PHỤ cho phép xếp chồng (story 6-5) — rút từ `value` ở `read-ops`, vì `xepChong` thuần và
+   * chỉ thấy `kind`:
+   *   · `place`        → vai: `que-quan` · `tru-quan` · `an-tang`
+   *   · `parent-child` → `${giới của cha/mẹ}|${relation}`, giới `?` khi chưa rõ
+   * Hai `que-quan` khác nơi, hay hai cha cùng giới cùng `relation`, là MÂU THUẪN mà 5-3 để lọt.
+   */
+  nhomPhu?: string;
+  /** `place`: id nơi ĐÃ GIẢI chuỗi gộp (AD-3) — hai lời khai về cùng một nơi không phải mâu thuẫn. */
+  noiId?: string;
   createdByName: string;
   createdAt: string; // ISO
 };
@@ -136,4 +146,36 @@ function finishCard(raw: RawPersonCard, names: Map<string, string>): PersonCard 
 function finishAssertion(raw: RawPersonAssertion, names: Map<string, string>): PersonAssertion {
   const { createdByAccountId, ...rest } = raw;
   return { ...rest, createdByName: names.get(createdByAccountId) ?? createdByAccountId };
+}
+
+// ── Mâu thuẫn trên cả dòng họ (story 6-5) ──────────────────────────────────────────────────
+
+export type NguoiCoMauThuan = {
+  personId: string;
+  personName: string;
+  /** CHỈ các chồng `mau-thuan` của người ấy — cùng phép `xepChong` với phiếu ở cột phải. */
+  chong: AssertionStack[];
+};
+
+/**
+ * Mọi người trong phả đang có ít nhất một chồng mâu thuẫn. Quyền duyệt (như hàng chờ) — một
+ * mâu thuẫn là hai lời khai chưa được đối chiếu, tức thông tin của bàn tu phả.
+ */
+export async function listConflicts(): Promise<Result<NguoiCoMauThuan[]>> {
+  const viewer = await resolveViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  const raw = await withClanContext(viewer.clanId, (tx) => listConflictsOps(tx, viewer));
+  if (!raw.ok) return raw;
+  const names = await lookupAccountNames(
+    raw.value.flatMap((n) => n.assertions.map((a) => a.createdByAccountId)),
+  );
+  return ok(
+    raw.value.map((n) => ({
+      personId: n.personId,
+      personName: n.personName,
+      chong: xepChong(n.assertions.map((a) => finishAssertion(a, names))).filter(
+        (c) => c.stackKind === 'mau-thuan',
+      ),
+    })),
+  );
 }

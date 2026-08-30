@@ -32,6 +32,7 @@ import {
   type TreeData,
 } from '@/core/tree/ops';
 import type { PersonAssertion, SourceKind } from './index';
+import { xepChong } from './chong';
 
 // ── Raw shapes: attribution / authorship carry account ids; index.ts swaps in names ──
 // (the "user" table is identity data outside the clan partition — read AFTER the clan tx).
@@ -168,6 +169,219 @@ const RELATION_VN = { blood: 'con ruột', adopted: 'con nuôi', heir: 'con th�
 /** Ba vai của FR-65 §5b. Ba lần táng (nguyên/cải/di) chưa phân loại ở Đợt 2. */
 const VAI_NOI = { 'que-quan': 'quê quán', 'tru-quan': 'trú quán', 'an-tang': 'nơi an táng' } as const;
 
+
+// ── Dựng dòng khẳng định — dùng chung cho hồ sơ một người và phép quét cả họ (story 6-5) ────
+
+type DongKhangDinhTho = {
+  assertionId: string;
+  subjectPersonId: string;
+  kind: string;
+  value: unknown;
+  objectPersonId: string | null;
+  unionId: string | null;
+  placeId: string | null;
+  confidence: string;
+  tier: string;
+  status: string;
+  sourceKind: string;
+  sourceDescription: string;
+  toldByPersonId: string | null;
+  createdByAccountId: string;
+  createdAt: Date;
+};
+
+/** Mọi khẳng định SỐNG của một tập người, kèm nguồn. Rỗng `pids` ⇒ cả dòng họ. */
+async function docKhangDinhSong(tx: Tx, pids: string[]): Promise<DongKhangDinhTho[]> {
+  const dieuKien = [eq(assertion.status, 'live')];
+  if (pids.length > 0) dieuKien.push(inArray(assertion.subjectPersonId, pids));
+  return tx
+    .select({
+      assertionId: assertion.id,
+      subjectPersonId: assertion.subjectPersonId,
+      kind: assertion.kind,
+      value: assertion.value,
+      objectPersonId: assertion.objectPersonId,
+      unionId: assertion.unionId,
+      placeId: assertion.placeId,
+      confidence: assertion.confidence,
+      tier: assertion.tier,
+      status: assertion.status,
+      sourceKind: source.kind,
+      sourceDescription: source.description,
+      toldByPersonId: source.toldByPersonId,
+      createdByAccountId: assertion.createdByAccountId,
+      createdAt: assertion.createdAt,
+    })
+    .from(assertion)
+    .innerJoin(source, eq(assertion.sourceId, source.id))
+    .where(and(...dieuKien))
+    .orderBy(asc(assertion.createdAt), asc(assertion.id));
+}
+
+type NguCanhDong = {
+  displayName: (id: string | null | undefined) => string | undefined;
+  /** placeId → nhãn nơi (ĐÃ giải chuỗi gộp, AD-3). */
+  tenNoi: Map<string, string>;
+  /** placeId → id nơi thắng — khoá để hai lời khai về cùng một nơi không thành mâu thuẫn. */
+  noiThang: Map<string, string>;
+  /** unionId → thành viên (đã redirect), trừ chính chủ khi dựng câu. */
+  unionMembers: Map<string, string[]>;
+  /** Giới ĐÃ CHIẾU của một người (AD-19) — cho khoá phụ của `parent-child`. */
+  gioiCua: (id: string | null) => 'male' | 'female' | 'other' | null;
+};
+
+/** Tra một lượt mọi thứ mà `dungDongKhangDinh` cần: tên nơi, thành viên union, giới của cha mẹ. */
+async function nguCanhDungDong(
+  tx: Tx,
+  data: TreeData,
+  rows: DongKhangDinhTho[],
+  displayName: NguCanhDong['displayName'],
+): Promise<NguCanhDong> {
+  /**
+   * Tên nơi cho `kind: 'place'` — một truy vấn cho mọi nơi được nhắc tới, LUÔN kèm đơn vị cha:
+   * "Quang Trung" một mình không nói được là Định Hoá hay Vũng Tàu, đúng cái hỏng FR-65 chặn.
+   * Qua `giaiNoi` chứ không đọc thẳng (sửa 25/08 sau code review): AD-3 nói một nơi đã gộp phải
+   * đọc ra NƠI THẮNG, y như `person.redirect`.
+   */
+  const placeIds = [...new Set(rows.flatMap((r) => (r.placeId ? [r.placeId] : [])))];
+  const tenNoi = new Map<string, string>();
+  const noiThang = new Map<string, string>();
+  if (placeIds.length > 0) {
+    const daGiai = await giaiNoi(tx, placeIds);
+    for (const [id, n] of daGiai) {
+      tenNoi.set(id, n.nhan);
+      noiThang.set(id, n.placeId);
+    }
+  }
+
+  // Union memberships for 'vợ/chồng với <tên>' — one query for every union referenced.
+  const unionIds = [...new Set(rows.flatMap((r) => (r.unionId ? [r.unionId] : [])))];
+  const unionMembers = new Map<string, string[]>();
+  if (unionIds.length > 0) {
+    const members = await tx
+      .select({ unionId: assertion.unionId, subjectPersonId: assertion.subjectPersonId })
+      .from(assertion)
+      .where(
+        and(
+          eq(assertion.kind, 'union-partner'),
+          eq(assertion.status, 'live'),
+          inArray(assertion.unionId, unionIds),
+        ),
+      );
+    for (const m of members) {
+      if (!m.unionId) continue;
+      const rid = data.redirect(m.subjectPersonId);
+      if (!rid) continue;
+      const arr = unionMembers.get(m.unionId);
+      if (arr) {
+        if (!arr.includes(rid)) arr.push(rid);
+      } else unionMembers.set(m.unionId, [rid]);
+    }
+  }
+
+  const gioiCua = (id: string | null) => {
+    const rid = id ? data.redirect(id) : null;
+    return rid ? (data.persons.get(rid)?.gender ?? null) : null;
+  };
+  return { displayName, tenNoi, noiThang, unionMembers, gioiCua };
+}
+
+/**
+ * Dòng khẳng định như bề mặt A đọc — câu tiếng Việt, người ở đầu kia, và KHOÁ PHỤ cho phép xếp
+ * chồng (story 6-5). MỘT hàm cho cả hồ sơ một người lẫn phép quét cả họ: hai bản dựng câu là hai
+ * câu lệch nhau ở lượt sửa đầu.
+ */
+function dungDongKhangDinh(
+  rows: DongKhangDinhTho[],
+  pid: string,
+  tenChinhChu: string,
+  ngu: NguCanhDong,
+): RawPersonAssertion[] {
+  const { displayName, tenNoi, noiThang, unionMembers, gioiCua } = ngu;
+  const valueText = (r: DongKhangDinhTho): string => {
+    const v = (r.value ?? {}) as Record<string, unknown>;
+    switch (r.kind) {
+      case 'name':
+        return `tên ${typeof v.fullName === 'string' ? v.fullName : tenChinhChu}`;
+      case 'gender': {
+        const g = typeof v.gender === 'string' ? v.gender : '';
+        return `giới tính ${GENDER_VN[g as keyof typeof GENDER_VN] ?? 'chưa rõ'}`;
+      }
+      case 'birth':
+        return eventText('birth', v as { date?: string; precision?: string });
+      case 'death':
+        return eventText('death', v as { date?: string; precision?: string });
+      case 'parent-child': {
+        const rel =
+          RELATION_VN[(typeof v.relation === 'string' ? v.relation : '') as keyof typeof RELATION_VN] ??
+          'con';
+        const parent = displayName(r.objectPersonId) ?? 'một người trong họ';
+        return `là ${rel} của ${parent}`;
+      }
+      case 'union-partner': {
+        const names = (r.unionId ? (unionMembers.get(r.unionId) ?? []) : [])
+          .filter((id) => id !== pid)
+          .map((id) => displayName(id))
+          .filter((n): n is string => n !== undefined);
+        return names.length > 0 ? `vợ/chồng với ${names.join(', ')}` : 'vợ/chồng (chưa rõ với ai)';
+      }
+      case 'note':
+        return `ghi chú: ${typeof v.text === 'string' ? v.text : ''}`;
+      case 'place': {
+        const vai = VAI_NOI[(typeof v.role === 'string' ? v.role : '') as keyof typeof VAI_NOI] ?? 'nơi';
+        const noi = r.placeId ? (tenNoi.get(r.placeId) ?? 'một nơi chưa rõ') : 'một nơi chưa rõ';
+        return `${vai}: ${noi}`;
+      }
+      default:
+        return 'thông tin';
+    }
+  };
+
+  /** Khoá phụ (story 6-5) — xem `PersonAssertion.nhomPhu`. */
+  const nhomPhu = (r: DongKhangDinhTho): string | undefined => {
+    const v = (r.value ?? {}) as Record<string, unknown>;
+    if (r.kind === 'place') return typeof v.role === 'string' ? v.role : undefined;
+    if (r.kind === 'parent-child') {
+      const gioi = gioiCua(r.objectPersonId) ?? '?';
+      const rel = typeof v.relation === 'string' ? v.relation : 'blood';
+      return `${gioi}|${rel}`;
+    }
+    return undefined;
+  };
+
+  return rows.map((r) => {
+    const nhom = nhomPhu(r);
+    const noiId = r.kind === 'place' && r.placeId ? noiThang.get(r.placeId) : undefined;
+    return {
+      assertionId: r.assertionId,
+      kind: r.kind as AssertionKind,
+      valueText: valueText(r),
+      confidence: r.confidence as Confidence,
+      tier: r.tier as Tier,
+      status: r.status as 'live' | 'hidden',
+      sourceKind: r.sourceKind as SourceKind,
+      sourceDescription: r.sourceDescription,
+      ...(r.toldByPersonId ? { toldByName: displayName(r.toldByPersonId) } : {}),
+      /**
+       * `parent-child` trỏ thẳng bằng `objectPersonId`. `union-partner` thì không — thành viên
+       * của một union nối nhau qua `unionId`, nên người ở đầu kia là thành viên CÒN LẠI.
+       */
+      ...(r.kind === 'parent-child' && r.objectPersonId
+        ? { doiTuongId: r.objectPersonId }
+        : r.kind === 'union-partner' && r.unionId
+          ? (() => {
+              const kia = (unionMembers.get(r.unionId) ?? []).find((id) => id !== pid);
+              return kia ? { doiTuongId: kia } : {};
+            })()
+          : {}),
+      ...(nhom !== undefined ? { nhomPhu: nhom } : {}),
+      ...(noiId !== undefined ? { noiId } : {}),
+      createdByAccountId: r.createdByAccountId,
+      createdAt: r.createdAt.toISOString(),
+    };
+  });
+}
+
 // ── The op ──
 
 export async function getPersonOps(
@@ -225,137 +439,9 @@ export async function getPersonOps(
   // ── Assertions: ONLY at full visibility, only LIVE rows about the subject (FR-1/FR-2) ──
   let assertions: RawPersonAssertion[] | undefined;
   if (visibility === 'full') {
-    const rows = await tx
-      .select({
-        assertionId: assertion.id,
-        kind: assertion.kind,
-        value: assertion.value,
-        objectPersonId: assertion.objectPersonId,
-        unionId: assertion.unionId,
-        placeId: assertion.placeId,
-        confidence: assertion.confidence,
-        tier: assertion.tier,
-        status: assertion.status,
-        sourceKind: source.kind,
-        sourceDescription: source.description,
-        toldByPersonId: source.toldByPersonId,
-        createdByAccountId: assertion.createdByAccountId,
-        createdAt: assertion.createdAt,
-      })
-      .from(assertion)
-      .innerJoin(source, eq(assertion.sourceId, source.id))
-      .where(and(eq(assertion.subjectPersonId, pid), eq(assertion.status, 'live')))
-      .orderBy(asc(assertion.createdAt), asc(assertion.id));
-
-    /**
-     * Tên nơi cho `kind: 'place'` — một truy vấn cho mọi nơi được nhắc tới.
-     *
-     * LUÔN dựng kèm đơn vị cha: "Quang Trung" một mình không nói được là Định Hoá hay Vũng Tàu, và
-     * đó đúng là cái hỏng FR-65 sinh ra để chặn.
-     */
-    const placeIds = [...new Set(rows.flatMap((r) => (r.placeId ? [r.placeId] : [])))];
-    const tenNoi = new Map<string, string>();
-    if (placeIds.length > 0) {
-      /**
-       * Qua `giaiNoi` chứ không đọc thẳng (sửa 25/08 sau code review): AD-3 nói một nơi đã gộp
-       * phải đọc ra NƠI THẮNG, y như `person.redirect`. Đọc thẳng `place.id` thì một khẳng định
-       * trỏ vào bên thua sẽ mãi hiện cái tên đã bị gộp đi.
-       */
-      const daGiai = await giaiNoi(tx, placeIds);
-      for (const [id, n] of daGiai) tenNoi.set(id, n.nhan);
-    }
-
-    // Union memberships for 'vợ/chồng với <tên>' — one query for every union referenced.
-    const unionIds = [...new Set(rows.flatMap((r) => (r.unionId ? [r.unionId] : [])))];
-    const unionMembers = new Map<string, string[]>();
-    if (unionIds.length > 0) {
-      const members = await tx
-        .select({ unionId: assertion.unionId, subjectPersonId: assertion.subjectPersonId })
-        .from(assertion)
-        .where(
-          and(
-            eq(assertion.kind, 'union-partner'),
-            eq(assertion.status, 'live'),
-            inArray(assertion.unionId, unionIds),
-          ),
-        );
-      for (const m of members) {
-        if (!m.unionId) continue;
-        const rid = data.redirect(m.subjectPersonId);
-        if (!rid || rid === pid) continue;
-        const arr = unionMembers.get(m.unionId);
-        if (arr) {
-          if (!arr.includes(rid)) arr.push(rid);
-        } else unionMembers.set(m.unionId, [rid]);
-      }
-    }
-
-    const valueText = (r: (typeof rows)[number]): string => {
-      const v = r.value as Record<string, unknown>;
-      switch (r.kind) {
-        case 'name':
-          return `tên ${typeof v.fullName === 'string' ? v.fullName : row.fullName}`;
-        case 'gender': {
-          const g = typeof v.gender === 'string' ? v.gender : '';
-          return `giới tính ${GENDER_VN[g as keyof typeof GENDER_VN] ?? 'chưa rõ'}`;
-        }
-        case 'birth':
-          return eventText('birth', v as { date?: string; precision?: string });
-        case 'death':
-          return eventText('death', v as { date?: string; precision?: string });
-        case 'parent-child': {
-          const rel =
-            RELATION_VN[(typeof v.relation === 'string' ? v.relation : '') as keyof typeof RELATION_VN] ??
-            'con';
-          const parent = displayName(r.objectPersonId) ?? 'một người trong họ';
-          return `là ${rel} của ${parent}`;
-        }
-        case 'union-partner': {
-          const names = (r.unionId ? (unionMembers.get(r.unionId) ?? []) : [])
-            .map((id) => displayName(id))
-            .filter((n): n is string => n !== undefined);
-          return names.length > 0
-            ? `vợ/chồng với ${names.join(', ')}`
-            : 'vợ/chồng (chưa rõ với ai)';
-        }
-        case 'note':
-          return `ghi chú: ${typeof v.text === 'string' ? v.text : ''}`;
-        case 'place': {
-          // LUÔN kèm đơn vị cha. Thiếu nó thì dòng này vô nghĩa đúng theo lý do FR-65 tồn tại:
-          // "Quang Trung" một mình không nói được là Định Hoá hay Vũng Tàu.
-          const vai =
-            VAI_NOI[(typeof v.role === 'string' ? v.role : '') as keyof typeof VAI_NOI] ?? 'nơi';
-          const noi = r.placeId ? (tenNoi.get(r.placeId) ?? 'một nơi chưa rõ') : 'một nơi chưa rõ';
-          return `${vai}: ${noi}`;
-        }
-      }
-    };
-
-    assertions = rows.map((r) => ({
-      assertionId: r.assertionId,
-      kind: r.kind as AssertionKind,
-      valueText: valueText(r),
-      confidence: r.confidence as Confidence,
-      tier: r.tier as Tier,
-      status: r.status as 'live' | 'hidden',
-      sourceKind: r.sourceKind as SourceKind,
-      sourceDescription: r.sourceDescription,
-      ...(r.toldByPersonId ? { toldByName: displayName(r.toldByPersonId) } : {}),
-      /**
-       * `parent-child` trỏ thẳng bằng `objectPersonId`. `union-partner` thì không — thành viên
-       * của một union nối nhau qua `unionId`, nên người ở đầu kia là thành viên CÒN LẠI.
-       */
-      ...(r.kind === 'parent-child' && r.objectPersonId
-        ? { doiTuongId: r.objectPersonId }
-        : r.kind === 'union-partner' && r.unionId
-          ? (() => {
-              const kia = (unionMembers.get(r.unionId) ?? []).find((id) => id !== pid);
-              return kia ? { doiTuongId: kia } : {};
-            })()
-          : {}),
-      createdByAccountId: r.createdByAccountId,
-      createdAt: r.createdAt.toISOString(),
-    }));
+    const rows = await docKhangDinhSong(tx, [pid]);
+    const ngu = await nguCanhDungDong(tx, data, rows, displayName);
+    assertions = dungDongKhangDinh(rows, pid, row.fullName, ngu);
   }
 
   return ok({
@@ -369,4 +455,66 @@ export async function getPersonOps(
     ...(assertions !== undefined ? { assertions } : {}),
     ...(pid !== personId ? { redirectedFrom: personId } : {}),
   });
+}
+
+// ── Mâu thuẫn trên cả dòng họ (story 6-5) ──────────────────────────────────────────────────
+
+export type RawNguoiCoMauThuan = {
+  personId: string;
+  personName: string;
+  /** MỌI khẳng định sống của người ấy — `index.ts` xếp chồng rồi giữ chồng mâu thuẫn. */
+  assertions: RawPersonAssertion[];
+};
+
+/**
+ * Quét cả dòng họ, trả những người có ít nhất một chồng mâu thuẫn — CÙNG phép `xepChong` với phiếu.
+ *
+ * Quyền duyệt, như hàng chờ: một mâu thuẫn là hai lời khai chưa được đối chiếu. Người đã gộp (bia
+ * mộ) không có trong `data.persons` nên tự rơi. Ở đây chỉ dựng dòng; xếp chồng và lọc nằm ở
+ * `index.ts` sau khi tra tên tài khoản — cùng thứ tự với `getPerson`.
+ */
+export async function listConflictsOps(tx: Tx, ctx: ViewerContext): Promise<Result<RawNguoiCoMauThuan[]>> {
+  if (ctx.accountId === null || ctx.role === 'guest') return err('unauthenticated', 'Cần đăng nhập.');
+  if (ctx.personId === null) return err('unattached', 'Chưa gắn vào một người trong phả.');
+  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
+    return err('forbidden', 'Chỉ quản trị và đầu mối chi xem được danh sách mâu thuẫn.');
+  }
+
+  const data = await loadTreeData(tx);
+  const today = new Date();
+  const lens = viewerLens(data, ctx);
+  const displayName = (id: string | null | undefined): string | undefined => {
+    if (!id) return undefined;
+    const rid = data.redirect(id);
+    const r = rid ? data.persons.get(rid) : undefined;
+    if (!r) return undefined;
+    return visibilityOf(lens, r, today) === 'anonymous' ? ANONYMOUS_LABEL : r.fullName;
+  };
+
+  const rows = await docKhangDinhSong(tx, []);
+  const ngu = await nguCanhDungDong(tx, data, rows, displayName);
+  const theoNguoi = new Map<string, DongKhangDinhTho[]>();
+  for (const r of rows) {
+    const pid = data.redirect(r.subjectPersonId);
+    if (!pid) continue;
+    theoNguoi.set(pid, [...(theoNguoi.get(pid) ?? []), r]);
+  }
+
+  const ra: RawNguoiCoMauThuan[] = [];
+  for (const [pid, ds] of theoNguoi) {
+    const nguoi = data.persons.get(pid);
+    if (!nguoi) continue;
+    const dong = dungDongKhangDinh(ds, pid, nguoi.fullName, ngu);
+    /**
+     * Sàng SƠ ở đây bằng chính `xepChong` để không mang cả họ ra khỏi core: chỉ người có ít nhất
+     * một chồng mâu thuẫn mới đi tiếp. `index.ts` xếp lại sau khi tra tên — hai lượt xếp cùng một
+     * hàm, cùng dữ liệu, cùng kết quả.
+     */
+    const coMauThuan = xepChong(dong.map((a) => ({ ...a, createdByName: '' }))).some(
+      (c) => c.stackKind === 'mau-thuan',
+    );
+    if (coMauThuan) ra.push({ personId: pid, personName: nguoi.fullName, assertions: dong });
+  }
+  ra.sort((a, b) => a.personName.localeCompare(b.personName, 'vi'));
+  return ok(ra);
 }

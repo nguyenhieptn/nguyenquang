@@ -55,6 +55,8 @@ type PersonRow = {
   deathDate: string | null;
   isLiving: boolean;
   hiddenFromPublic: boolean;
+  /** Giới đã chiếu (AD-19). Story 6-5 đọc nó để biết hai người cha có cùng giới không. */
+  gender: 'male' | 'female' | 'other' | null;
 };
 
 type Edge = {
@@ -113,6 +115,7 @@ export async function loadTreeData(tx: Tx): Promise<TreeData> {
       deathDate: person.deathDate,
       isLiving: person.isLiving,
       hiddenFromPublic: person.hiddenFromPublic,
+      gender: person.gender,
     })
     .from(person);
 

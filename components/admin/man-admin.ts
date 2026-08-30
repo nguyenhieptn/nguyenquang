@@ -33,6 +33,7 @@ export type KhoaMan =
   | 'nha'
   | 'cay'
   | 'hang-cho'
+  | 'mau-thuan'
   | 'duyet-vao-pha'
   | 'hop-nhat'
   | 'noi-chon'
@@ -105,6 +106,18 @@ export const MAN: ManAdmin[] = [
     duong: '/admin/hang-cho',
     nhan: 'Hàng chờ khẳng định',
     tieuDe: 'Hàng chờ duyệt',
+    nhom: 'doi-chieu',
+    coSo: true,
+  },
+  {
+    /**
+     * Story 6-5 — mục 5-3 (AC 23) hẹn: nhóm 'doi-chieu', CÓ số, icon TriangleAlert. Số là số
+     * NGƯỜI có mâu thuẫn (đơn vị chú ý là con người — 6-8), không phải số dòng.
+     */
+    khoa: 'mau-thuan',
+    duong: '/admin/mau-thuan',
+    nhan: 'Mâu thuẫn',
+    tieuDe: 'Mâu thuẫn trong phả',
     nhom: 'doi-chieu',
     coSo: true,
   },

@@ -79,6 +79,11 @@ export type ChongKhangDinh = {
   nhan: string;
   kieu: KieuChong;
   dong: DongKhangDinh[];
+  /**
+   * Story 6-5 — id các dòng ĐỤNG NHAU khi một chồng đa trị hoá mâu thuẫn (hai cha cùng giới, hai
+   * quê quán khác nơi). Vắng ⇒ chồng đơn trị: mọi dòng đụng nhau.
+   */
+  dongMauThuan?: string[];
 };
 
 export type ChipQuanHe = { personId: string; hoTen: string };
@@ -596,11 +601,18 @@ function MotChong({
 }) {
   const mauThuan = chong.kieu === 'mau-thuan';
   /**
+   * Dòng nào ĐỤNG NHAU (story 6-5): chồng đơn trị thì tất cả; chồng đa trị hoá mâu thuẫn thì
+   * đúng cụm `dongMauThuan` — mẹ đứng cạnh hai cha không phải chọn gì, và không được mọc nút Loại
+   * chỉ vì hai người cha kia đụng nhau.
+   */
+  const dungNhau = new Set(chong.dongMauThuan ?? chong.dong.map((d) => d.id));
+  /**
    * `promoteAssertion` KHÔNG hạ dòng chính thức đang có (`core/assertion/ops.ts:509`), và trong
    * hệ này không có phép hạ tầng. Nên nâng dòng thua của một chồng mâu thuẫn sinh ra HAI giá trị
    * cùng chính thức về cùng một chuyện, không gì gỡ được. Nút ấy phải biến mất, không phải báo lỗi.
+   * Đếm TRONG cụm đụng nhau — một người mẹ chính thức không khoá hai người cha còn đang cãi.
    */
-  const coChinhThuc = chong.dong.some((d) => d.chinhThuc);
+  const coChinhThuc = chong.dong.some((d) => d.chinhThuc && dungNhau.has(d.id));
   /**
    * Chip chỉ thay chữ khi MỌI dòng đều giải được tên người ở đầu kia. Thiếu một dòng thì rơi về
    * chữ cho CẢ hàng — chú thích cũ hứa điều này nhưng chỉ thực hiện khi danh sách rỗng hoàn
@@ -635,13 +647,13 @@ function MotChong({
             : `Gỡ ${NHAN_LOAI_CHONG(chong.khoa)} ghi nhầm ở bàn làm việc`,
         )
       }
-      dangGiu={mauThuan && d.chinhThuc}
+      dangGiu={mauThuan && d.chinhThuc && dungNhau.has(d.id)}
       /**
        * Hai nút DUYỆT chỉ mọc ở bề mặt B (story 6-10). Không phải hàng rào — core gác bằng
        * `gateApprover` — mà là mô hình: người trong họ ghi thêm, ban tu phả chọn.
        */
-      nangDuoc={beMat === 'B' && (!mauThuan || !coChinhThuc)}
-      loaiDuoc={beMat === 'B' && (mauThuan || loaiDuocDuNoiTiep(chong.khoa))}
+      nangDuoc={beMat === 'B' && (!mauThuan || !dungNhau.has(d.id) || !coChinhThuc)}
+      loaiDuoc={beMat === 'B' && ((mauThuan && dungNhau.has(d.id)) || loaiDuocDuNoiTiep(chong.khoa))}
       onNangTang={onNangTang}
     />
   ));
@@ -704,9 +716,15 @@ function MotChong({
         </h3>
         <div className="min-w-0 flex-1 py-1">
           <p className="border-l-4 border-destructive bg-canh-bao-nen px-2.5 py-1.5 text-[15px]">
+            {/* Câu nói đúng LOẠI (story 6-5): hai cha ruột và hai quê quán không phải "hai giá trị". */}
+            {chong.khoa === 'parent-child'
+              ? 'Hai lời khai cùng chỉ một người cha (hay mẹ) ruột — không thể cùng đúng. '
+              : chong.khoa === 'place'
+                ? 'Hai quê quán khác nhau — một người có một quê. '
+                : 'Hai giá trị không thể cùng đúng — '}
             {beMat === 'B'
-              ? 'Hai giá trị không thể cùng đúng — chọn một. Giá trị bị loại rời khỏi phả nhưng vẫn nằm trong nhật ký.'
-              : 'Hai giá trị không thể cùng đúng — ban tu phả sẽ chọn một. Cả hai vẫn hiện ở đây cho tới lúc ấy.'}
+              ? 'Chọn một; giá trị bị loại rời khỏi phả nhưng vẫn nằm trong nhật ký.'
+              : 'Ban tu phả sẽ chọn một. Cả hai vẫn hiện ở đây cho tới lúc ấy.'}
           </p>
           <ul className="mt-2 flex flex-col divide-y divide-ban-vien">{danhSachDong}</ul>
           {/* Khi chồng mâu thuẫn ĐÃ có một dòng chính thức, đổi ý là việc hai bước — nói ra, vì

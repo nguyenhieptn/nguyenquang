@@ -123,6 +123,7 @@ export function QuanhMinhClient({
                 khoa: c.kind,
                 nhan: c.nhan,
                 kieu: c.stackKind,
+                ...(c.dongMauThuan ? { dongMauThuan: c.dongMauThuan } : {}),
                 dong: c.rows.map((r) => ({
                   id: r.assertionId,
                   ...(r.doiTuongId ? { doiTuongId: r.doiTuongId } : {}),

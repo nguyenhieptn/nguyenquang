@@ -115,3 +115,47 @@ describe('xếp chồng khẳng định — mâu thuẫn vs nối tiếp', () =>
     expect(xepChong([])).toEqual([]);
   });
 });
+
+describe('story 6-5 — hai lớp mâu thuẫn mà 5-3 để lọt', () => {
+  it('hai cha cùng giới cùng relation ⇒ chồng parent-child thành MÂU THUẪN, kèm đúng hai dòng đụng nhau', () => {
+    const cha1 = kd('parent-child', { nhomPhu: 'male|blood' });
+    const me = kd('parent-child', { nhomPhu: 'female|blood' });
+    const cha2 = kd('parent-child', { nhomPhu: 'male|blood' });
+    const ra = xepChong([cha1, me, cha2]);
+    expect(ra[0].stackKind).toBe('mau-thuan');
+    expect(ra[0].dongMauThuan?.sort()).toEqual([cha1.assertionId, cha2.assertionId].sort());
+    // Mẹ vẫn trong chồng, không phải chọn — và thứ tự vẫn là dòng chảy cũ nhất trước.
+    expect(ra[0].rows).toHaveLength(3);
+  });
+
+  it('cha + mẹ (khác giới) ⇒ vẫn NỐI TIẾP; cha ruột + cha nuôi (khác relation) ⇒ nối tiếp', () => {
+    expect(xepChong([kd('parent-child', { nhomPhu: 'male|blood' }), kd('parent-child', { nhomPhu: 'female|blood' })])[0].stackKind).toBe('noi-tiep');
+    expect(xepChong([kd('parent-child', { nhomPhu: 'male|blood' }), kd('parent-child', { nhomPhu: 'male|adopted' })])[0].stackKind).toBe('noi-tiep');
+  });
+
+  it('hai cha CHƯA RÕ GIỚI thì KHÔNG đụng nhau — có thể là cha + mẹ chưa khai giới, nghiêng về không báo nhầm', () => {
+    const ra = xepChong([kd('parent-child', { nhomPhu: '?|blood' }), kd('parent-child', { nhomPhu: '?|blood' })]);
+    expect(ra[0].stackKind).toBe('noi-tiep');
+    expect(ra[0].dongMauThuan).toBeUndefined();
+  });
+
+  it('hai quê quán KHÁC nơi ⇒ mâu thuẫn; quê quán + trú quán ⇒ nối tiếp', () => {
+    const q1 = kd('place', { nhomPhu: 'que-quan', noiId: 'noi-a' });
+    const q2 = kd('place', { nhomPhu: 'que-quan', noiId: 'noi-b' });
+    const tru = kd('place', { nhomPhu: 'tru-quan', noiId: 'noi-c' });
+    const ra = xepChong([q1, tru, q2]);
+    expect(ra[0].stackKind).toBe('mau-thuan');
+    expect(ra[0].dongMauThuan?.sort()).toEqual([q1.assertionId, q2.assertionId].sort());
+    expect(xepChong([q1, tru])[0].stackKind).toBe('noi-tiep');
+  });
+
+  it('hai quê quán CÙNG một nơi (sau khi giải chuỗi gộp) ⇒ không phải mâu thuẫn — hai lời khai về cùng một điều', () => {
+    const ra = xepChong([kd('place', { nhomPhu: 'que-quan', noiId: 'noi-a' }), kd('place', { nhomPhu: 'que-quan', noiId: 'noi-a' })]);
+    expect(ra[0].stackKind).toBe('noi-tiep');
+  });
+
+  it('dòng ẩn không tham gia đụng độ (AD-17)', () => {
+    const ra = xepChong([kd('parent-child', { nhomPhu: 'male|blood' }), kd('parent-child', { nhomPhu: 'male|blood', status: 'hidden' })]);
+    expect(ra[0].stackKind).toBe('don');
+  });
+});

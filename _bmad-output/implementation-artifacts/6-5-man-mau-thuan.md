@@ -4,7 +4,7 @@ baseline_commit: c438c9c
 
 # Story 6.5: Màn Mâu thuẫn
 
-Status: in-progress
+Status: review
 
 ## Story
 
@@ -80,13 +80,13 @@ phụ rút từ `value` — đổi hình của phép dẫn xuất, đáng làm c
 - Tự động chọn — bot gợi ý, không tự gộp.
 
 ## Tasks / Subtasks
-- [ ] **T1** `nhomPhu` ở `read-ops.ts` + kiểu `PersonAssertion` (AC 1)
-- [ ] **T2** `xepChong` khoá phụ + `dongMauThuan` + test thuần (AC 2, 3, 5)
-- [ ] **T3** `listConflicts` ops + surface + test thật (AC 4)
-- [ ] **T4** `man-admin.ts` · layout đếm · `/admin/mau-thuan/page.tsx` (AC 6–8)
-- [ ] **T5** Panel cột phải: cảnh báo đúng loại, Loại trên dòng đụng nhau (AC 9)
-- [ ] **T6** Bộ đo: `dang-ky.ts` + dòng họ thử dựng ba mâu thuẫn (AC 10–11)
-- [ ] **T7** Bốn cổng · soi · gỡ hai mục nợ ở `deferred-work.md`
+- [x] **T1** `nhomPhu` ở `read-ops.ts` + kiểu `PersonAssertion` (AC 1)
+- [x] **T2** `xepChong` khoá phụ + `dongMauThuan` + test thuần (AC 2, 3, 5)
+- [x] **T3** `listConflicts` ops + surface + test thật (AC 4)
+- [x] **T4** `man-admin.ts` · layout đếm · `/admin/mau-thuan/page.tsx` (AC 6–8)
+- [x] **T5** Panel cột phải: cảnh báo đúng loại, Loại trên dòng đụng nhau (AC 9)
+- [x] **T6** Bộ đo: `dang-ky.ts` + dòng họ thử dựng ba mâu thuẫn (AC 10–11)
+- [x] **T7** Bốn cổng · soi · gỡ hai mục nợ ở `deferred-work.md`
 
 ## Dev Notes
 - `xepChong` là THUẦN — giữ thuần: khoá phụ tính ở `read-ops` (có `value`, có `person.gender` của
@@ -109,5 +109,30 @@ phụ rút từ `value` — đổi hình của phép dẫn xuất, đáng làm c
 ### Agent Model Used
 Claude Opus 5 · 29/08/2026.
 
+### Ghi chép lượt dựng
+- Khoá phụ tính ở `read-ops` (`dungDongKhangDinh`), `xepChong` vẫn thuần: `dongDungNhau` gom
+  `parent-child` theo `nhomPhu` (bỏ `?|…`), gom `place` theo `que-quan` với >1 `noiId` khác nhau.
+  Chồng đa trị hoá mâu thuẫn GIỮ thứ tự dòng chảy (cũ nhất trước) — nó vẫn là cha + mẹ + …
+- `listConflictsOps` dùng CÙNG `dungDongKhangDinh` với phiếu (một chỗ suy, hai chỗ bày); lọc trước
+  bằng `xepChong` ngay trong ops nên surface chỉ chạm tên người có mâu thuẫn.
+- Panel: `dongMauThuan` khoanh cụm — Loại/Nâng/đang giữ chỉ trên dòng đụng nhau; mẹ đứng cạnh hai
+  cha không mọc nút Loại. `coChinhThuc` đếm TRONG cụm.
+- Trang `/admin/mau-thuan`: mức tin cậy nói bằng VỎ (không lặp chữ "tồn nghi · tồn nghi"), giá
+  trị qua `gonGiaTri` như phiếu.
+- Dòng họ thử dựng ba mâu thuẫn (Chú hai năm sinh · "Hai Cha" con của Cha và Chú · Em hai quê quán
+  ở hai Quang Trung); không đụng Mình/Mồ Côi vì adapter test 6-1 dựng trên hai người ấy.
+- Cổng: lint · tsc · vitest 540/540 · build ✓; `npm run soi -- mau-thuan cay` 0 vi phạm mới,
+  revision đứng yên; chụp phiếu "Hai Cha" trên cây — cảnh báo đúng loại.
+
 ### File List
-(ghi khi xong)
+- `core/tree/ops.ts` — `PersonRow.gender`
+- `core/person/index.ts` — `PersonAssertion.nhomPhu/noiId`, `NguoiCoMauThuan`, `listConflicts`
+- `core/person/chong.ts` — `dongDungNhau`, `AssertionStack.dongMauThuan`
+- `core/person/read-ops.ts` — `docKhangDinhSong`, `nguCanhDungDong`, `dungDongKhangDinh`, `listConflictsOps`
+- `core/person/chong.test.ts` (+6) · `core/person/mau-thuan.test.ts` (mới, DB thật)
+- `components/admin/man-admin.ts` · `components/admin/khung-admin.tsx` — mục `mau-thuan`
+- `components/admin/cot-khang-dinh.tsx` — `dongMauThuan`, câu theo loại, nút theo cụm
+- `app/admin/layout.tsx` — đếm số người · `app/admin/mau-thuan/page.tsx` (mới)
+- `app/admin/cay/cay-client.tsx` · `app/(pha)/gia-pha/_quanh-minh/quanh-minh-client.tsx` — truyền `dongMauThuan`
+- `scripts/soi/dang-ky.ts` — màn `mau-thuan` · `core/gates/dong-ho-thu.ts` — ba mâu thuẫn
+- `_bmad-output/implementation-artifacts/deferred-work.md` — đóng § 5-3 (hai cha) và § 5-7 (quê quán)

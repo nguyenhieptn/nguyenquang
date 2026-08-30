@@ -123,7 +123,7 @@ development_status:
   # Dựng 29/08. 5-3 dựng phép phân loại và cố ý không dựng màn ("cần phép đọc quét cả dòng họ").
   # Đây là lượt "làm có chủ ý" mà deferred-work hẹn: xepChong nhìn thêm khoá phụ rút từ value —
   # hai cha cùng giới cùng relation, hai quê quán khác nơi — rồi listConflicts quét cả họ.
-  6-5-man-mau-thuan: in-progress
+  6-5-man-mau-thuan: review
   # Dựng 27–28/08. Gom bốn script `soi-*.mjs` — chúng chép tay bốn lần cùng bốn việc, đo bốn kiểu
   # khác nhau, và `soi-man.mjs` LUÔN thoát 0 (trông như cổng mà không phải). Nay một runner đi
   # theo bản đăng ký 27 màn, luật là hàm THUẦN có test, và một bài test đọc mã nguồn bắt màn thiếu

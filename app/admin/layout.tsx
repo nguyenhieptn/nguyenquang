@@ -19,6 +19,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { listPendingAssertions } from '@/core/assertion';
+import { listConflicts } from '@/core/person';
 import { listPendingAttachments, resolveSession } from '@/core/identity';
 import { getClanOverview } from '@/core/tree';
 import { KhungAdmin } from '@/components/admin/khung-admin';
@@ -62,15 +63,18 @@ export default async function AdminLayout({ children }: { children: ReactNode })
 
   // Số trên thanh việc. Đọc hỏng thì mục vẫn hiện, chỉ VẮNG số — `null` nghĩa là "không đếm
   // được", khác hẳn `0`. Bày `0` giả làm người vận hành tin là đã sạch việc rồi bỏ đi.
-  const [choDuyet, toanCanh, xinVaoPha, nguoiVanHanh] = await Promise.all([
+  const [choDuyet, toanCanh, xinVaoPha, nguoiVanHanh, mauThuan] = await Promise.all([
     listPendingAssertions(),
     getClanOverview(),
     listPendingAttachments(),
     nhanNguoiVanHanh(),
+    listConflicts(),
   ]);
 
   const so: SoViec = {
     'hang-cho': choDuyet.ok ? choDuyet.value.length : null,
+    // Số NGƯỜI có mâu thuẫn (story 6-5) — không phải số chồng, không phải số dòng.
+    'mau-thuan': mauThuan.ok ? mauThuan.value.length : null,
     'duyet-vao-pha': xinVaoPha.ok ? xinVaoPha.value.length : null,
     'hop-nhat': toanCanh.ok ? toanCanh.value.unconnectedFragments.length : null,
   };

@@ -57,7 +57,7 @@ gốc để lần sau không phải điều tra lại.
 
 ## Deferred from: 5-3-panel-khang-dinh (2026-08-25)
 
-- **Phát hiện "hai người cùng khai là cha".** Phép xếp chồng hiện phân loại theo `kind`, nên
+- ~~**Phát hiện "hai người cùng khai là cha".**~~ **ĐÃ LÀM — story 6-5 (29/08/2026)**: khoá phụ `nhomPhu = giới|relation` tính ở `read-ops` (giới CHIẾU qua AD-19), `xepChong` hoá chồng thành `mau-thuan` kèm `dongMauThuan`; hai cha chưa rõ giới cố ý KHÔNG báo. Nguyên văn: Phép xếp chồng hiện phân loại theo `kind`, nên
   `parent-child` luôn là chồng NỐI TIẾP — đúng cho ca thường gặp (cha và mẹ là hai khẳng định), sai
   cho ca đáng lo: hai khẳng định cùng trỏ vào hai người **cùng giới**, cùng `relation: 'blood'`.
   Đó là mâu thuẫn thật, và là đúng lớp lỗi mà bộ nạp khung sinh ra nhiều nhất.
@@ -85,7 +85,7 @@ gốc để lần sau không phải điều tra lại.
   Nhét vào 5-7 là làm hỏng cả hai. `giaiNoi()` trong `core/place/ops.ts` đã đọc được chuỗi
   `merged_into` nên phần ĐỌC không phải làm lại khi tới lượt.
 
-- **Hai khẳng định cùng vai `que-quan` mà khác nơi là MÂU THUẪN.** Phép xếp chồng
+- ~~**Hai khẳng định cùng vai `que-quan` mà khác nơi là MÂU THUẪN.**~~ **ĐÃ LÀM — story 6-5 (29/08/2026)**: khoá phụ `nhomPhu = vai` + `noiId` đã giải chuỗi gộp (hai lời khai về cùng một nơi KHÔNG phải mâu thuẫn). Nguyên văn: Phép xếp chồng
   (`core/person/chong.ts`) phân loại theo `kind`, nên `place` luôn là chồng NỐI TIẾP — đúng cho ca
   thường gặp (quê quán + trú quán + an táng là ba vai cùng đúng), sai cho ca này. Giới hạn y hệt
   `parent-child`: `vai` nằm trong `value`, mà phép xếp chồng chỉ thấy `kind`. Sửa được bằng cách

@@ -285,6 +285,14 @@ export const DANG_KY: Man[] = [
   },
   {
     ...BAN_B,
+    khoa: 'mau-thuan',
+    duong: '/admin/mau-thuan',
+    pheDo: DO_B,
+    bay: 'Mâu thuẫn trong phả — hộp thư, mỗi người một khối (story 6-5)',
+    ghiChu: 'Dòng họ thử dựng sẵn ba mâu thuẫn (hai năm sinh · hai cha · hai quê). Phả thật thì tuỳ dữ liệu — rỗng là một câu.',
+  },
+  {
+    ...BAN_B,
     khoa: 'duyet-vao-pha',
     duong: '/admin/duyet-vao-pha',
     pheDo: DO_B,

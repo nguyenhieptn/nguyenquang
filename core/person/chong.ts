@@ -28,6 +28,12 @@ export type AssertionStack = {
   nhan: string;
   stackKind: StackKind;
   rows: PersonAssertion[];
+  /**
+   * Story 6-5 — id các dòng ĐỤNG NHAU trong một chồng ĐA TRỊ hoá mâu thuẫn: hai cha cùng giới cùng
+   * `relation`, hai quê quán khác nơi. Các dòng còn lại của chồng (mẹ, trú quán…) vẫn ở đó và
+   * không phải chọn gì. Vắng ở chồng đơn trị: mọi dòng đều đụng nhau, panel hiểu là "tất cả".
+   */
+  dongMauThuan?: string[];
 };
 
 /**
@@ -95,6 +101,35 @@ function moiNhatTruoc(a: PersonAssertion, b: PersonAssertion): number {
   return b.createdAt.localeCompare(a.createdAt);
 }
 
+/**
+ * MÂU THUẪN TRONG CHỒNG ĐA TRỊ — hai lớp mà 5-3 để lọt, làm có chủ ý ở story 6-5.
+ *
+ *   · `parent-child`: hai dòng cùng `nhomPhu` (`giới|relation`) là hai người cha ruột — không thể
+ *     cùng đúng. Giới `?` KHÔNG đụng với `?`: hai cha chưa rõ giới có thể là cha + mẹ chưa khai
+ *     giới, và mặc định phải nghiêng về KHÔNG báo nhầm.
+ *   · `place`: hai dòng vai `que-quan` mà `noiId` khác nhau. Cùng một nơi (sau khi giải chuỗi gộp)
+ *     thì không phải mâu thuẫn — chỉ là hai lời khai về cùng một điều.
+ *
+ * Trả id các dòng đụng nhau; rỗng = chồng vẫn nối tiếp.
+ */
+export function dongDungNhau(kind: AssertionKind, rows: readonly PersonAssertion[]): string[] {
+  if (kind === 'parent-child') {
+    const theoNhom = new Map<string, PersonAssertion[]>();
+    for (const r of rows) {
+      const k = r.nhomPhu ?? '';
+      if (!k || k.startsWith('?|')) continue;
+      theoNhom.set(k, [...(theoNhom.get(k) ?? []), r]);
+    }
+    return [...theoNhom.values()].filter((g) => g.length > 1).flat().map((r) => r.assertionId);
+  }
+  if (kind === 'place') {
+    const que = rows.filter((r) => r.nhomPhu === 'que-quan');
+    const noi = new Set(que.map((r) => r.noiId ?? r.assertionId));
+    return noi.size > 1 ? que.map((r) => r.assertionId) : [];
+  }
+  return [];
+}
+
 export function xepChong(assertions: PersonAssertion[]): AssertionStack[] {
   const theoLoai = new Map<AssertionKind, PersonAssertion[]>();
   for (const a of assertions) {
@@ -122,11 +157,15 @@ export function xepChong(assertions: PersonAssertion[]): AssertionStack[] {
     const rows = theoLoai.get(kind);
     if (!rows || rows.length === 0) continue;
 
+    const dungNhau = rows.length > 1 && !DON_TRI[kind] ? dongDungNhau(kind, rows) : [];
     const stackKind: StackKind =
-      rows.length === 1 ? 'don' : DON_TRI[kind] ? 'mau-thuan' : 'noi-tiep';
+      rows.length === 1 ? 'don' : DON_TRI[kind] || dungNhau.length > 0 ? 'mau-thuan' : 'noi-tiep';
 
     const xep = [...rows];
-    if (stackKind === 'noi-tiep') {
+    if (stackKind === 'noi-tiep' || dungNhau.length > 0) {
+      // Chồng đa trị — kể cả khi có cụm đụng nhau — vẫn là một dòng chảy: cũ nhất trước. Cụm đụng
+      // nhau được ĐÁNH DẤU (`dongMauThuan`), không được xếp lại, kẻo mẹ và cha đổi chỗ chỉ vì
+      // một lời khai thứ ba.
       // Một dòng chảy, không phải một cuộc thi: cũ nhất trước.
       xep.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
     } else {
@@ -143,7 +182,13 @@ export function xepChong(assertions: PersonAssertion[]): AssertionStack[] {
       });
     }
 
-    ra.push({ kind, nhan: NHAN[kind] ?? kind, stackKind, rows: xep });
+    ra.push({
+      kind,
+      nhan: NHAN[kind] ?? kind,
+      stackKind,
+      rows: xep,
+      ...(dungNhau.length > 0 ? { dongMauThuan: dungNhau } : {}),
+    });
   }
   return ra;
 }
