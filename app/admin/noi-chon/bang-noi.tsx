@@ -62,13 +62,20 @@ const O = 'min-h-11 w-full rounded-md border border-ban-vien bg-ban-o px-3 text-
 function MotNoi({
   noi,
   khac,
-  trungTen,
+  trungTenVoi,
+  onXong,
 }: {
   noi: HangNoi;
   /** Mọi nơi sống KHÁC — ứng viên nơi thắng. */
   khac: HangNoi[];
-  /** Nơi này có tên trùng với nơi khác (khác đơn vị cha) — chỉ là một dấu, không phải một lệnh. */
-  trungTen: boolean;
+  /** Nhãn những nơi trùng tên với nơi này (khác đơn vị cha) — chỉ là một dấu, không phải một lệnh. */
+  trungTenVoi: string[];
+  /**
+   * Câu xác nhận của một lượt GỘP đi lên bảng, không ở lại hàng: lượt gộp thành công gỡ chính
+   * hàng này khỏi danh sách, và một câu đặt trong hàng sắp biến mất thì không ai kịp đọc — trong
+   * khi con số khẳng định trong câu ấy là thứ duy nhất đo hậu quả (code review 6-4, 29/08).
+   */
+  onXong: (cau: string) => void;
 }) {
   const router = useRouter();
   /** `undefined` = đóng; `'sua'` | `'gop'` = bảng đang mở. Hai bảng loại trừ nhau — một hàng một việc. */
@@ -80,10 +87,14 @@ function MotNoi({
   const [tb, setTb] = useState<ThongBao | null>(null);
   const [dangChay, batDau] = useTransition();
 
+  /** Thôi là THÔI: chữ gõ dở không được nằm lại để lượt "Ghi lại" sau ghi nhầm. */
   const dong = () => {
     setBang(undefined);
     setTb(null);
     setDaDocKy(false);
+    setTen(noi.name);
+    setCha(noi.parentUnit);
+    setThangId('');
   };
 
   const ghiLai = () =>
@@ -117,10 +128,9 @@ function MotNoi({
         return;
       }
       if (r.ok) {
-        setTb({
-          loai: 'xong',
-          cau: `Đã gộp vào ${r.value.nhanThang} — ${r.value.soKhangDinh} khẳng định đang trỏ vào nơi này nay đọc ra nơi ấy. Tách lại được ở khu "Đã gộp".`,
-        });
+        onXong(
+          `Đã gộp ${noi.nhan} vào ${r.value.nhanThang} — ${r.value.soKhangDinh} khẳng định đang trỏ vào nơi này nay đọc ra nơi ấy. Tách lại được ở khu "Đã gộp".`,
+        );
         setBang(undefined);
         router.refresh();
       } else {
@@ -139,10 +149,10 @@ function MotNoi({
             /* Trống là hợp lệ (FR-65) — nhưng nói ra để người vận hành biết chỗ này còn mờ. */
             <span className="ml-2 text-[15px] text-muted-foreground">chưa ghi đơn vị cha</span>
           )}
-          {trungTen ? (
-            /* Dấu, không phải lệnh: cùng tên khác đơn vị cha có thể là hai nơi thật. */
+          {trungTenVoi.length > 0 ? (
+            /* Dấu, không phải lệnh: cùng tên khác đơn vị cha có thể là hai nơi thật. Nói RÕ nơi nào. */
             <span className="ml-2 border-l-2 border-destructive pl-1.5 text-[15px] text-muted-foreground">
-              trùng tên với nơi khác — có thể là hai nơi thật
+              trùng tên với {trungTenVoi.join(' · ')} — có thể là hai nơi thật
             </span>
           ) : null}
         </p>
@@ -217,7 +227,7 @@ function MotNoi({
               <option value="">— chọn nơi thắng —</option>
               {khac.map((k) => (
                 <option key={k.placeId} value={k.placeId}>
-                  {k.nhan}
+                  {k.parentUnit ? k.nhan : `${k.nhan} — chưa ghi đơn vị cha`}
                 </option>
               ))}
             </select>
@@ -255,7 +265,7 @@ function MotNoi({
   );
 }
 
-function MotNoiDaGop({ noi }: { noi: HangDaGop }) {
+function MotNoiDaGop({ noi, onXong }: { noi: HangDaGop; onXong: (cau: string) => void }) {
   const router = useRouter();
   const [tb, setTb] = useState<ThongBao | null>(null);
   const [dangChay, batDau] = useTransition();
@@ -269,7 +279,8 @@ function MotNoiDaGop({ noi }: { noi: HangDaGop }) {
         return;
       }
       if (r.ok) {
-        setTb({ loai: 'xong', cau: `Đã tách lại: ${r.value.nhan} đứng riêng như trước.` });
+        // Hàng này rời khu "Đã gộp" ngay sau refresh — câu đi lên bảng (xem `MotNoi.onXong`).
+        onXong(`Đã tách lại: ${r.value.nhan} đứng riêng như trước.`);
         router.refresh();
       } else {
         setTb({ loai: 'loi', cau: loiRaCau(r.error) });
@@ -298,16 +309,22 @@ function MotNoiDaGop({ noi }: { noi: HangDaGop }) {
 export function BangNoi({
   noi,
   daGop,
-  trungTenIds,
+  trungTenVoi,
 }: {
   noi: HangNoi[];
   daGop: HangDaGop[];
-  /** Id của mọi nơi có tên trùng với nơi khác (tính ở trang, bằng phép gấp dấu của core). */
-  trungTenIds: string[];
+  /** placeId → nhãn những nơi trùng tên với nó (tính ở trang, bằng phép gấp dấu của core). */
+  trungTenVoi: Record<string, string[]>;
 }) {
-  const trung = new Set(trungTenIds);
+  /** Câu xác nhận của lượt gộp / tách vừa xong — sống qua `router.refresh()`, vì bảng không unmount. */
+  const [xong, setXong] = useState<string | null>(null);
   return (
     <>
+      {xong ? (
+        <p aria-live="polite" className="mt-6 max-w-[70ch] border-l-4 border-ban-vien bg-ban-o px-3 py-2 text-[17px]">
+          {xong}
+        </p>
+      ) : null}
       {noi.length === 0 ? (
         <p className="mt-6 max-w-[70ch] text-[17px] text-muted-foreground">
           Danh mục còn trống. Đó là một trạng thái đúng, không phải một việc còn thiếu.
@@ -315,11 +332,14 @@ export function BangNoi({
       ) : (
         <ul className="mt-6 flex flex-col gap-2">
           {noi.map((n) => (
+            /* Khoá mang cả NHÃN: người khác đổi tên rồi trang refresh thì hàng dựng lại với chữ mới,
+               không giữ chữ cũ trong ô Sửa rồi ghi đè lại lượt sửa của họ. */
             <MotNoi
-              key={n.placeId}
+              key={`${n.placeId}:${n.nhan}`}
               noi={n}
               khac={noi.filter((k) => k.placeId !== n.placeId)}
-              trungTen={trung.has(n.placeId)}
+              trungTenVoi={trungTenVoi[n.placeId] ?? []}
+              onXong={setXong}
             />
           ))}
         </ul>
@@ -334,7 +354,7 @@ export function BangNoi({
           </p>
           <ul className="mt-3 flex flex-col gap-2">
             {daGop.map((n) => (
-              <MotNoiDaGop key={n.placeId} noi={n} />
+              <MotNoiDaGop key={n.placeId} noi={n} onXong={setXong} />
             ))}
           </ul>
         </section>

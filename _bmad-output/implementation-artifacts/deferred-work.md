@@ -454,3 +454,41 @@ chưa ai nghĩ tới.
 - **Off-host cho sao lưu (AD-25).** Chốt bỏ — miễn trừ đã ghi vào chính AD-25 và `docs/van-hanh.md`.
 
 - **Đổi mật khẩu quản trị tạm.** Chốt không đổi.
+
+## Deferred from: code review of story 6-4-sua-va-gop-noi (2026-08-29)
+
+Ba lớp (Blind Hunter · Edge Case · Acceptance Auditor): 28 phát hiện thô → 17 sau gộp trùng → **13
+patch · 2 defer · 2 dismiss**. Patch lớn nhất: gộp ĐI một nơi đang là nơi thắng dựng được chuỗi A→B→C
+dù chú thích nói chặn; `FOR UPDATE` cho hai lượt gộp cùng lúc; `addPlaceOps` trả id bia mộ khi tên
+trùng tên cũ; câu xác nhận nằm trong hàng bị gỡ ngay lúc gộp. Có thêm tầng test adapter
+`app/admin/noi-chon/actions.test.ts`.
+
+- **Nhật ký nơi chốn chưa có người đọc.** Màn hứa *"Tên cũ nằm trong nhật ký"* — đúng ở tầng dữ liệu
+  (`revision` ghi `entity: 'place'`, action `update/merge/unmerge`), nhưng `core/audit` chưa đọc
+  `entity='place'`, nên lời hứa chưa có màn nào trả. Việc riêng: một khu "Lịch sử" ở màn Nơi chốn,
+  hoặc một bộ lọc ở sổ nhật ký chung khi nó ra đời.
+- **Trang đọc hai danh sách trong hai transaction.** `listPlaces()` và `listMergedPlaces()` mỗi hàm
+  mở một `withClanContext`; giữa hai lượt có thể chen một lượt gộp, và một nơi xuất hiện ở cả hai
+  khu trong một lần dựng. Hiếm, tự sửa ở lần tải sau; gom thành một surface `listPlaceCatalog()` khi
+  màn có thêm khu thứ ba.
+
+## Deferred from: code review of story 6-5-man-mau-thuan (2026-08-29)
+
+Ba lớp: 29 phát hiện thô → 20 sau gộp trùng → **16 patch · 3 defer · 1 dismiss**. Patch lớn nhất:
+`listConflictsOps` chép lại cổng và lặp đúng lỗi thứ tự `unauthenticated`/`unattached` mà
+`gateWriter` được sửa cùng ngày (nay `gateApprover`); cùng một người cha ghi hai lần bị báo là "hai
+cha" (khoá so nay là `doiTuongId`); cụm đụng nhau thành `string[][]` để hai cha và hai mẹ là hai câu
+hỏi; câu cảnh báo cha-mẹ đọc ngược nghĩa; `giaiNoi` từ N+1 thành theo bậc.
+
+- **Số trên thanh việc là một phép quét cả họ ở MỌI request `/admin/*`.** Nay là `demMauThuan()`
+  (không tra tên tài khoản, không mang dòng ra khỏi core) nhưng vẫn đọc mọi khẳng định sống + cây.
+  Hàng chờ cũng quét, nên cùng bậc chi phí; khi phả lớn (nghìn người) thì cả hai số nên đọc từ một
+  bộ đếm nhớ theo `revision` thay vì tính lại. Chưa đo được ngưỡng — đo trước, sửa sau.
+- **`nhomPhu` / `noiId` đi vào payload RSC tới trình duyệt.** Hai adapter (`cay-client`,
+  `quanh-minh-client`) bỏ chúng khi dựng `DongKhangDinh`, nhưng chúng vẫn nằm trong `PersonAssertion`
+  đi qua ranh giới server→client — id nơi và giới đã chiếu của cha, không ai đọc. Không phải rò bán
+  kính (chỉ có ở `visibility: 'full'`), là dữ liệu rời máy chủ vô ích. Tách kiểu "dòng cho bề mặt"
+  khỏi "dòng cho phép xếp chồng" khi có lượt dọn `core/person/index.ts`.
+- **Cụm có hai dòng cùng giá trị (X, X, Y): một X chính thức khoá nút nâng của X còn lại.** Đúng theo
+  luật "không hai dòng chính thức trong một cụm", và dòng X thứ hai chỉ là lời khai lặp — chấp nhận.
+  Ghi lại vì người vận hành có thể hỏi "sao không nâng được"; câu chỉ dẫn hai bước ở phiếu đã trả lời.

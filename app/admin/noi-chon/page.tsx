@@ -31,13 +31,21 @@ export default async function NoiChonPage() {
     );
   }
 
-  // Nhóm trùng tên bằng CHÍNH phép gấp dấu của core (AD-16) — không tự so chuỗi ở màn.
-  const theoTen = new Map<string, string[]>();
+  // Nhóm trùng tên bằng CHÍNH phép gấp dấu của core (AD-16) — không tự so chuỗi ở màn. Mỗi nơi
+  // trong nhóm biết TÊN của những nơi kia: "trùng tên với nơi khác" mà không nói nơi nào thì
+  // người vận hành phải tự dò cả bảng (code review 6-4, 29/08).
+  const theoTen = new Map<string, typeof ds.value>();
   for (const n of ds.value) {
     const k = chuanHoa(n.name);
-    theoTen.set(k, [...(theoTen.get(k) ?? []), n.placeId]);
+    const g = theoTen.get(k);
+    if (g) g.push(n);
+    else theoTen.set(k, [n]);
   }
-  const trungTenIds = [...theoTen.values()].filter((ids) => ids.length > 1).flat();
+  const trungTenVoi: Record<string, string[]> = {};
+  for (const g of theoTen.values()) {
+    if (g.length < 2) continue;
+    for (const n of g) trungTenVoi[n.placeId] = g.filter((k) => k.placeId !== n.placeId).map((k) => k.nhan);
+  }
 
   return (
     <>
@@ -51,7 +59,14 @@ export default async function NoiChonPage() {
         của cùng một nơi, và tách lại khi gộp nhầm — không có nút xoá: một nơi đã ghi ở lại nhật ký.
       </p>
 
-      <BangNoi noi={ds.value} daGop={daGop.ok ? daGop.value : []} trungTenIds={trungTenIds} />
+      {/* Khu "Đã gộp" đọc hỏng thì NÓI — im lặng là "chưa gộp gì", và không còn đường tách. */}
+      {!daGop.ok ? (
+        <p className="mt-6 max-w-[70ch] border-l-4 border-destructive bg-canh-bao-nen px-3 py-2 text-[17px]">
+          Không đọc được khu &quot;Đã gộp&quot;: {daGop.error.message}
+        </p>
+      ) : null}
+
+      <BangNoi noi={ds.value} daGop={daGop.ok ? daGop.value : []} trungTenVoi={trungTenVoi} />
 
       <Link
         href="/admin/cay"

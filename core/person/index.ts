@@ -158,6 +158,21 @@ export type NguoiCoMauThuan = {
 };
 
 /**
+ * Chỉ ĐẾM số người có mâu thuẫn — cho số trên thanh việc (sửa 29/08 sau code review 6-5).
+ *
+ * Thanh việc dựng ở mọi request `/admin/*`, và bản đầu gọi `listConflicts()` rồi `.length`: tra
+ * tên tài khoản cho mọi dòng của mọi người rồi vứt đi, xếp chồng hai lượt, mang cả dòng ra khỏi
+ * core để đếm. Phép quét là cái giá thật của một con số sống (hàng chờ cũng quét); phần thừa
+ * quanh nó thì không.
+ */
+export async function demMauThuan(): Promise<Result<number>> {
+  const viewer = await resolveViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  const raw = await withClanContext(viewer.clanId, (tx) => listConflictsOps(tx, viewer));
+  return raw.ok ? ok(raw.value.length) : raw;
+}
+
+/**
  * Mọi người trong phả đang có ít nhất một chồng mâu thuẫn. Quyền duyệt (như hàng chờ) — một
  * mâu thuẫn là hai lời khai chưa được đối chiếu, tức thông tin của bàn tu phả.
  */

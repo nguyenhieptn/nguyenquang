@@ -209,7 +209,7 @@ export function CayClient({
                 khoa: c.kind,
                 nhan: c.nhan,
                 kieu: c.stackKind,
-                ...(c.dongMauThuan ? { dongMauThuan: c.dongMauThuan } : {}),
+                ...(c.cumMauThuan ? { cumMauThuan: c.cumMauThuan } : {}),
                 dong: c.rows.map((r) => ({
                   id: r.assertionId,
                   ...(r.doiTuongId ? { doiTuongId: r.doiTuongId } : {}),

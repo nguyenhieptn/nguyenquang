@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import type { ReactNode } from 'react';
 import { listPendingAssertions } from '@/core/assertion';
-import { listConflicts } from '@/core/person';
+import { demMauThuan } from '@/core/person';
 import { listPendingAttachments, resolveSession } from '@/core/identity';
 import { getClanOverview } from '@/core/tree';
 import { KhungAdmin } from '@/components/admin/khung-admin';
@@ -68,13 +68,13 @@ export default async function AdminLayout({ children }: { children: ReactNode })
     getClanOverview(),
     listPendingAttachments(),
     nhanNguoiVanHanh(),
-    listConflicts(),
+    demMauThuan(),
   ]);
 
   const so: SoViec = {
     'hang-cho': choDuyet.ok ? choDuyet.value.length : null,
     // Số NGƯỜI có mâu thuẫn (story 6-5) — không phải số chồng, không phải số dòng.
-    'mau-thuan': mauThuan.ok ? mauThuan.value.length : null,
+    'mau-thuan': mauThuan.ok ? mauThuan.value : null,
     'duyet-vao-pha': xinVaoPha.ok ? xinVaoPha.value.length : null,
     'hop-nhat': toanCanh.ok ? toanCanh.value.unconnectedFragments.length : null,
   };

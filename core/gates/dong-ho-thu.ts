@@ -187,11 +187,12 @@ export async function dungDongHoThu(o: { tienTo?: string; ghim?: boolean } = {})
     const haiCha = await createPersonOp(tx, adminCtx, { fullName: ten('Nguyễn Thử Hai Cha'), gender: 'male', birth: nam(1985), parentId: nguoi.cha, source: nguon });
     if (!haiCha.ok) throw new Error(haiCha.error.message);
     await ghi(haiCha.value.personId, { kind: 'parent-child', parentId: nguoi.chu });
+    // Hỏng thì NÉM như hai mâu thuẫn kia — bộ đo hứa ba mâu thuẫn, im lặng là hứa suông.
     const noi = await listPlacesOps(tx);
-    if (noi.ok && noi.value.length >= 2) {
-      const que = noi.value.filter((n) => n.name === ten('Quang Trung'));
-      for (const q of que) await ghi(nguoi.em, { kind: 'place', placeId: q.placeId, role: 'que-quan' });
-    }
+    if (!noi.ok) throw new Error(`dong-ho-thu: nơi — ${noi.error.message}`);
+    const que = noi.value.filter((n) => n.name === ten('Quang Trung'));
+    if (que.length !== 2) throw new Error(`dong-ho-thu: cần đúng hai "Quang Trung", thấy ${que.length}`);
+    for (const q of que) await ghi(nguoi.em, { kind: 'place', placeId: q.placeId, role: 'que-quan' });
   });
 
   // Thành viên: tài khoản thật, xin nhận chỗ "Mình", quản trị duyệt — đúng đường FR-64/AD-8.

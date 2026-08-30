@@ -385,6 +385,41 @@ describe('story 6-4 — sửa · gộp · tách nơi', () => {
     if (!sua.ok) expect(sua.error.code).toBe('conflict');
   });
 
+  it('KHÔNG CHUỖI chiều kia: gộp đi một nơi đang là nơi thắng ⇒ conflict (code review 6-4, 29/08)', async () => {
+    const a = await tao('S64 Chuỗi A', 'Z');
+    const b = await tao('S64 Chuỗi B', 'Z');
+    const c = await tao('S64 Chuỗi C', 'Z');
+    expect((await run((tx) => mergePlaceOps(tx, ctx, { loserId: a, winnerId: b }))).ok).toBe(true);
+    // B đang thắng A. Gộp B vào C là dựng A→B→C — bản trước cho qua dù chú thích nói chặn.
+    const chuoi = await run((tx) => mergePlaceOps(tx, ctx, { loserId: b, winnerId: c }));
+    expect(chuoi.ok).toBe(false);
+    if (!chuoi.ok) {
+      expect(chuoi.error.code).toBe('conflict');
+      expect(chuoi.error.message).toContain('tách những nơi ấy trước');
+    }
+    // Tách A ra rồi thì B gộp được, và A gộp thẳng vào C được — không bao giờ có bậc thứ hai.
+    expect((await run((tx) => unmergePlaceOps(tx, ctx, { placeId: a }))).ok).toBe(true);
+    expect((await run((tx) => mergePlaceOps(tx, ctx, { loserId: b, winnerId: c }))).ok).toBe(true);
+    expect((await run((tx) => mergePlaceOps(tx, ctx, { loserId: a, winnerId: c }))).ok).toBe(true);
+    await run(async (tx) => {
+      const giai = await giaiNoi(tx, [a, b, c]);
+      expect([a, b, c].map((id) => giai.get(id)?.placeId)).toEqual([c, c, c]);
+    });
+  });
+
+  it('tạo lại đúng tên của một bia mộ ⇒ conflict trỏ vào NƠI THẮNG, không phải vào bia mộ (code review 6-4)', async () => {
+    const thua = await tao('S64 Tên Cũ', 'Q');
+    const thang = await tao('S64 Tên Mới', 'Q');
+    expect((await run((tx) => mergePlaceOps(tx, ctx, { loserId: thua, winnerId: thang }))).ok).toBe(true);
+    const lai = await run((tx) => addPlaceOps(tx, ctx, { name: 'S64 Tên Cũ', parentUnit: 'Q' }));
+    expect(lai.ok).toBe(false);
+    if (lai.ok) return;
+    expect(lai.error.code).toBe('conflict');
+    // Bản trước trả id bia mộ: `addAssertionOp` từ chối ghi vào đó, chip trên màn thành vô dụng.
+    expect(lai.error.detail?.placeId).toBe(thang);
+    expect(lai.error.message).toContain('tên cũ của một nơi đã gộp');
+  });
+
   it('thành viên thường ⇒ forbidden ở cả ba; chưa gắn node ⇒ unattached', async () => {
     const a = await tao('S64 Quyền A', 'Y');
     const b = await tao('S64 Quyền B', 'Y');

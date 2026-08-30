@@ -4,7 +4,7 @@ baseline_commit: c438c9c
 
 # Story 6.5: Màn Mâu thuẫn
 
-Status: review
+Status: done
 
 ## Story
 
@@ -136,3 +136,35 @@ Claude Opus 5 · 29/08/2026.
 - `app/admin/cay/cay-client.tsx` · `app/(pha)/gia-pha/_quanh-minh/quanh-minh-client.tsx` — truyền `dongMauThuan`
 - `scripts/soi/dang-ky.ts` — màn `mau-thuan` · `core/gates/dong-ho-thu.ts` — ba mâu thuẫn
 - `_bmad-output/implementation-artifacts/deferred-work.md` — đóng § 5-3 (hai cha) và § 5-7 (quê quán)
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 12 · Edge Case 9 · Acceptance Auditor 8 → 20 sau gộp trùng → **16 patch · 3 defer · 1 dismiss**.
+
+Patch (đã áp, cổng xanh, có test):
+1. **`listConflictsOps` dùng `gateApprover`** — bản đầu chép lại cổng và lặp đúng lỗi thứ tự
+   `unauthenticated`/`unattached` mà `gateWriter` được sửa cùng ngày; nhánh "gắn vào node" của màn
+   là mã chết. Test nay dựng ngữ cảnh `role: 'guest'` như phiên thật.
+2. **Cùng một người cha ghi hai lần KHÔNG phải hai cha** — khoá so trong nhóm là `doiTuongId`
+   (`core/merge` repoint hai cạnh về một người là hình này). Test thuần + test thật.
+3. **Cụm đụng nhau là `cumMauThuan: string[][]`** — hai cha và hai mẹ là hai câu hỏi; `coChinhThuc`
+   đếm trong cụm của dòng; màn Mâu thuẫn mỗi cụm một khối.
+4. Quê quán không giải được `noiId` đứng ngoài (không tự sinh mâu thuẫn với mọi quê khác); giới
+   `other` đọc như `?`.
+5. **Câu cảnh báo cha-mẹ viết lại** ("về những người cha (hay mẹ) khác nhau ở cùng một chỗ"), không
+   nói "ruột", đúng số khi ≥3 dòng — `phieu-ly-lich.ts § cauMauThuan`, dùng chung phiếu + màn.
+6. Dòng ngoài cụm (mẹ cạnh hai cha) là dòng thường: chữ nút, ghi chú nhật ký (AD-4), nút — theo dòng.
+7. Chồng cha-mẹ hoá mâu thuẫn vẫn có chip quan hệ bấm được.
+8. `VO_TIN_CAY` về `phieu-ly-lich.ts`, dùng chung (màn không chép bảng thành `Record<string,…>`).
+9. Câu cảnh báo trên màn 17px; trạng thái rỗng không in đoạn "chọn một là việc…"; tên rỗng ⇒ "Chưa rõ tên".
+10. **Thanh việc gọi `demMauThuan()`** — không tra tên tài khoản, không mang dòng ra khỏi core.
+11. **`giaiNoi` giải theo bậc** — từ N+1 (một truy vấn mỗi nơi đã gộp) thành một truy vấn mỗi bậc.
+12. `docKhangDinhSong(tx, 'ca-ho')` — quét cả họ phải nói ra, mảng rỗng trả rỗng.
+13. `valueText` giữ phép kiểm đủ `AssertionKind` (`never` ở `default`).
+14. Dòng họ thử: mâu thuẫn quê quán hỏng thì ném như hai mâu thuẫn kia.
+15. Gom nhóm bằng `push` thay vì sao mảng mỗi dòng (hai chỗ).
+16. Chú thích `AssertionStack` / panel viết lại theo cụm.
+
+Defer (→ `deferred-work.md § code review 6-5`): phép quét ở mọi request `/admin/*` (đo trước khi
+nhớ theo revision); `nhomPhu`/`noiId` đi vào payload RSC; cụm (X, X, Y) khoá nâng dòng X thứ hai.
+Dismiss: "chồng mâu thuẫn mất khối Ghi thêm" — khối ấy vẫn được dựng ở nhánh mâu thuẫn.

@@ -4,7 +4,7 @@ baseline_commit: c438c9c
 
 # Story 6.4: Sửa và gộp nơi
 
-Status: review
+Status: done
 
 ## Story
 
@@ -179,3 +179,38 @@ Claude Opus 5 · 29/08/2026.
 - `scripts/soi/cam-bam.ts` (nhãn *Ghi lại*) · `scripts/soi/dang-ky.ts` (`noi-chon` mở hai bảng)
 - `_bmad-output/implementation-artifacts/deferred-work.md` (§ 5-7 — gộp/tách đã làm) ·
   `sprint-status.yaml`
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 10 · Edge Case 13 · Acceptance Auditor 8 → 17 sau gộp trùng → **13 patch · 2 defer · 2 dismiss**.
+
+Patch (đã áp, cổng xanh, có test):
+1. **Chuỗi A→B→C chiều thứ hai** — gộp đi một nơi đang là nơi thắng nay `conflict` ("tách những nơi
+   ấy trước"); `place.test.ts` thêm ca ba nơi. Hệ quả: hai phát hiện "tách giữa chuỗi" và "đếm thiếu
+   khẳng định trong chuỗi" không còn đường tới.
+2. **`FOR UPDATE`** trên hai hàng khi gộp, trên hàng khi sửa — hai người gộp A→B và B→A cùng lúc
+   không còn tạo vòng; sửa không còn đổi tên một bia mộ vừa sinh.
+3. **`addPlaceOps` gặp 23505 vì tên trùng BIA MỘ** — trả nơi thắng (qua `giaiNoi`) thay vì id bia mộ
+   mà `addAssertionOp` từ chối; câu nói đúng ("tên cũ của một nơi đã gộp"). Test mới.
+4. **`updatePlaceOps` gặp 23505 vì hàng SỐNG vừa thêm** — câu "gộp hai nơi", không phải "tách lại".
+5. **Câu xác nhận gộp/tách đi lên bảng** (`BangNoi.xong`), không nằm trong hàng bị gỡ ngay lúc ấy —
+   con số khẳng định nay có người đọc.
+6. **Thôi là thôi** — `dong()` trả `ten/cha/thangId` về giá trị gốc; `key` hàng mang cả nhãn để lượt
+   đổi tên của người khác không bị ghi đè.
+7. **Dấu trùng tên nói RÕ trùng với nơi nào** (`trungTenVoi`), thay cho một dấu câm — AC 11 được
+   trả bằng dấu-kèm-tên tại hàng, không dựng khu riêng (xem quyết định dưới).
+8. Ứng viên nơi thắng thiếu đơn vị cha bày kèm "— chưa ghi đơn vị cha".
+9. Khu "Đã gộp" đọc hỏng thì nói, không im thành "chưa gộp gì".
+10. Server action: kiểm `typeof` trước `.trim()`; hết phiên thì `redirect('/dang-nhap')` như hop-nhat.
+11. Đếm `soKhangDinh` cả dòng đã ẩn (hiện lại thì cũng đọc ra nơi thắng).
+12. **Tầng test adapter** `app/admin/noi-chon/actions.test.ts` (5 ca, phiên thật, dòng họ thử).
+13. Chú thích ở `mergePlaceOps` viết lại cho đúng hàng rào thật.
+
+Quyết định: **AC 11 "khu Trùng tên"** trả bằng dấu tại hàng có tên các nơi trùng — một khu riêng là
+lặp lại bảng với ít thông tin hơn, và FR-65 nói trùng tên thường là hai nơi THẬT, không phải một hàng
+chờ. **AC 15 "cấm `Gộp vào`"** là AC viết sai: `Gộp vào…` chỉ mở bảng, nút ghi thật là `Gộp — …` đã
+nằm trong `cam-bam.ts` từ trước; `dang-ky.ts` cố ý bấm `Gộp vào…` để đo bảng mở.
+
+Defer (→ `deferred-work.md § code review 6-4`): nhật ký nơi chốn chưa có người đọc; trang đọc hai danh
+sách trong hai transaction. Dismiss: `giaiNoi` quá 20 bậc (chuỗi nay tối đa một bậc); fallback
+`listMergedPlacesOps` không bao giờ chạy (cùng lý do).

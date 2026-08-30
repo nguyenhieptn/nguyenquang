@@ -13,6 +13,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Tx } from '@/db';
 import { assertion, revision, source } from '@/db/schema';
 import { giaiNoi } from '@/core/place/ops';
+import { gateApprover } from '@/core/assertion/ops';
 import type { AssertionKind, Confidence, Tier } from '@/db/schema';
 import {
   ANONYMOUS_LABEL,
@@ -175,7 +176,7 @@ const VAI_NOI = { 'que-quan': 'quê quán', 'tru-quan': 'trú quán', 'an-tang':
 type DongKhangDinhTho = {
   assertionId: string;
   subjectPersonId: string;
-  kind: string;
+  kind: AssertionKind;
   value: unknown;
   objectPersonId: string | null;
   unionId: string | null;
@@ -190,10 +191,17 @@ type DongKhangDinhTho = {
   createdAt: Date;
 };
 
-/** Mọi khẳng định SỐNG của một tập người, kèm nguồn. Rỗng `pids` ⇒ cả dòng họ. */
-async function docKhangDinhSong(tx: Tx, pids: string[]): Promise<DongKhangDinhTho[]> {
+/**
+ * Mọi khẳng định SỐNG của một tập người, kèm nguồn.
+ *
+ * Quét cả họ phải NÓI RA (`'ca-ho'`), không phải "mảng rỗng nghĩa là tất cả" (sửa 29/08 sau code
+ * review 6-5): một nơi gọi tương lai dẫn ra danh sách id mà ra rỗng thì phải nhận RỖNG, không
+ * phải mọi khẳng định trong họ ở tầm nhìn đầy đủ — đúng thứ AD-21 gác.
+ */
+async function docKhangDinhSong(tx: Tx, pids: string[] | 'ca-ho'): Promise<DongKhangDinhTho[]> {
+  if (pids !== 'ca-ho' && pids.length === 0) return [];
   const dieuKien = [eq(assertion.status, 'live')];
-  if (pids.length > 0) dieuKien.push(inArray(assertion.subjectPersonId, pids));
+  if (pids !== 'ca-ho') dieuKien.push(inArray(assertion.subjectPersonId, pids));
   return tx
     .select({
       assertionId: assertion.id,
@@ -332,8 +340,12 @@ function dungDongKhangDinh(
         const noi = r.placeId ? (tenNoi.get(r.placeId) ?? 'một nơi chưa rõ') : 'một nơi chưa rõ';
         return `${vai}: ${noi}`;
       }
-      default:
-        return 'thông tin';
+      default: {
+        // Đủ loại: thêm một `AssertionKind` mà quên câu ở đây là lỗi biên dịch, không phải một
+        // chữ "thông tin" im lặng. Nhánh vẫn có mặt vì cột `kind` là `text` — `$type` chỉ là TS.
+        const _du: never = r.kind;
+        return `thông tin (${String(_du)})`;
+      }
     }
   };
 
@@ -342,7 +354,9 @@ function dungDongKhangDinh(
     const v = (r.value ?? {}) as Record<string, unknown>;
     if (r.kind === 'place') return typeof v.role === 'string' ? v.role : undefined;
     if (r.kind === 'parent-child') {
-      const gioi = gioiCua(r.objectPersonId) ?? '?';
+      // 'other' nói ít như chưa rõ: hai cha mẹ cùng khai "khác" không phải hai người cha.
+      const g = gioiCua(r.objectPersonId);
+      const gioi = g === null || g === 'other' ? '?' : g;
       const rel = typeof v.relation === 'string' ? v.relation : 'blood';
       return `${gioi}|${rel}`;
     }
@@ -474,11 +488,14 @@ export type RawNguoiCoMauThuan = {
  * `index.ts` sau khi tra tên tài khoản — cùng thứ tự với `getPerson`.
  */
 export async function listConflictsOps(tx: Tx, ctx: ViewerContext): Promise<Result<RawNguoiCoMauThuan[]>> {
-  if (ctx.accountId === null || ctx.role === 'guest') return err('unauthenticated', 'Cần đăng nhập.');
-  if (ctx.personId === null) return err('unattached', 'Chưa gắn vào một người trong phả.');
-  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
-    return err('forbidden', 'Chỉ quản trị và đầu mối chi xem được danh sách mâu thuẫn.');
-  }
+  /**
+   * `gateApprover`, KHÔNG chép lại cổng (sửa 29/08 sau code review 6-5). Bản đầu tự viết ba dòng
+   * kiểm và lặp đúng lỗi thứ tự mà `gateWriter` vừa được sửa cùng ngày: tài khoản đã đăng nhập
+   * nhưng chưa gắn mang `role: 'guest'` (`core/identity/auth.ts`), nên "chưa gắn" bị đọc thành
+   * "chưa đăng nhập" và màn đẩy một người đang đăng nhập về `/dang-nhap`. Một cổng, một chỗ.
+   */
+  const gate = gateApprover(ctx);
+  if (!gate.ok) return gate;
 
   const data = await loadTreeData(tx);
   const today = new Date();
@@ -491,13 +508,15 @@ export async function listConflictsOps(tx: Tx, ctx: ViewerContext): Promise<Resu
     return visibilityOf(lens, r, today) === 'anonymous' ? ANONYMOUS_LABEL : r.fullName;
   };
 
-  const rows = await docKhangDinhSong(tx, []);
+  const rows = await docKhangDinhSong(tx, 'ca-ho');
   const ngu = await nguCanhDungDong(tx, data, rows, displayName);
   const theoNguoi = new Map<string, DongKhangDinhTho[]>();
   for (const r of rows) {
     const pid = data.redirect(r.subjectPersonId);
     if (!pid) continue;
-    theoNguoi.set(pid, [...(theoNguoi.get(pid) ?? []), r]);
+    const ds = theoNguoi.get(pid);
+    if (ds) ds.push(r);
+    else theoNguoi.set(pid, [r]);
   }
 
   const ra: RawNguoiCoMauThuan[] = [];
@@ -513,7 +532,9 @@ export async function listConflictsOps(tx: Tx, ctx: ViewerContext): Promise<Resu
     const coMauThuan = xepChong(dong.map((a) => ({ ...a, createdByName: '' }))).some(
       (c) => c.stackKind === 'mau-thuan',
     );
-    if (coMauThuan) ra.push({ personId: pid, personName: nguoi.fullName, assertions: dong });
+    // Tên chiếu có thể RỖNG khi khẳng định tên duy nhất bị ẩn theo báo cáo — một khối không tên
+    // không bấm được, không đọc được; nói ra là chưa rõ.
+    if (coMauThuan) ra.push({ personId: pid, personName: nguoi.fullName.trim() || 'Chưa rõ tên', assertions: dong });
   }
   ra.sort((a, b) => a.personName.localeCompare(b.personName, 'vi'));
   return ok(ra);

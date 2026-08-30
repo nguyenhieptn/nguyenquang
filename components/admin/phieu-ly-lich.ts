@@ -63,6 +63,37 @@ export function chenHangCon(khoaChong: readonly string[], coCon: boolean): strin
  * Nhãn tiếng Việt của ba mức tin cậy (FR-2). Giữ nguyên từ phả học —
  * `EXPERIENCE.md § Voice and Tone`.
  */
+/**
+ * Vỏ theo MỨC TIN CẬY — `DESIGN.md § Confidence`, ba hàng, cột đầu là **Mức**. MỘT bảng cho phiếu
+ * (`cot-khang-dinh.tsx`) và màn Mâu thuẫn (`app/admin/mau-thuan`): chép sang màn là mất phép gác
+ * của `tsc` khi thêm một mức, và là hai vỏ lệch nhau ở lượt sửa đầu (code review 6-5, 29/08).
+ */
+export const VO_TIN_CAY: Record<MucTinCay, string> = {
+  'chac-chan': 'rounded-sm border border-tin-chac-chan px-1.5',
+  'theo-loi-ke': 'rounded-sm border border-tin-loi-ke px-1.5',
+  'ton-nghi': 'van-ton-nghi rounded-sm border border-dashed border-tin-ton-nghi px-1.5',
+};
+
+/**
+ * Câu cảnh báo của một chồng mâu thuẫn — đúng LOẠI và đúng SỐ (story 6-5, sửa sau code review).
+ *
+ * "Hai lời khai cùng chỉ một người cha" đọc ngược nghĩa (nghe như hai lời khai ĐỒNG Ý về một
+ * người); mâu thuẫn là hai NGƯỜI KHÁC NHAU cùng được khai vào một chỗ. Không nói "ruột": cụm có
+ * thể là hai cha nuôi. Ba dòng trở lên thì không được nói "hai".
+ */
+export function cauMauThuan(khoaChong: string, soDong: number): string {
+  const so = soDong > 2 ? `${soDong} lời khai` : 'Hai lời khai';
+  if (khoaChong === 'parent-child') {
+    return `${so} về những người cha (hay mẹ) khác nhau ở cùng một chỗ — không thể cùng đúng.`;
+  }
+  if (khoaChong === 'place') {
+    return soDong > 2
+      ? `${so} về quê quán, không cùng một nơi — một người có một quê.`
+      : 'Hai quê quán khác nhau — một người có một quê.';
+  }
+  return soDong > 2 ? `${so}, không thể cùng đúng.` : 'Hai giá trị không thể cùng đúng.';
+}
+
 export const NHAN_TIN_CAY: Record<MucTinCay, string> = {
   'chac-chan': 'chắc chắn',
   'theo-loi-ke': 'theo lời kể',

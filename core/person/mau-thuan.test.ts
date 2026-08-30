@@ -25,6 +25,7 @@ const N = {
   haiNamSinh: '',
   haiCha: '',
   chaMe: '',
+  cungCha: '',
   haiQue: '',
   cungQue: '',
   cha1: '',
@@ -50,6 +51,8 @@ beforeAll(async () => {
     N.me = await tao('S65 Mẹ', 'female');
     N.haiCha = await tao('S65 Con Hai Cha', 'male', [N.cha1, N.cha2]);
     N.chaMe = await tao('S65 Con Cha Mẹ', 'male', [N.cha1, N.me]);
+    // Cùng MỘT cha ghi hai lần (hình `core/merge` để lại sau khi gộp hai hồ sơ cha trùng): KHÔNG mâu thuẫn.
+    N.cungCha = await tao('S65 Con Cùng Cha', 'male', [N.cha1, N.cha1]);
     N.haiNamSinh = await tao('S65 Hai Năm Sinh');
     N.haiQue = await tao('S65 Hai Quê');
     N.cungQue = await tao('S65 Cùng Quê');
@@ -85,7 +88,7 @@ afterAll(async () => {
 });
 
 describe('listConflictsOps — quét cả dòng họ', () => {
-  it('ra ĐÚNG ba người: hai năm sinh · hai cha ruột cùng giới · hai quê quán khác nơi', async () => {
+  it('ra ĐÚNG ba người: hai năm sinh · hai cha ruột cùng giới · hai quê quán khác nơi — không có cha+mẹ, cùng cha hai lần, cùng quê hai lần', async () => {
     const r = await run((tx) => listConflictsOps(tx, admin));
     expect(r.ok).toBe(true);
     if (!r.ok) return;
@@ -102,7 +105,8 @@ describe('listConflictsOps — quét cả dòng họ', () => {
     const chong = xepChong(nguoi.assertions.map((a) => ({ ...a, createdByName: '' })));
     const pc = chong.find((c) => c.kind === 'parent-child')!;
     expect(pc.stackKind).toBe('mau-thuan');
-    expect(pc.dongMauThuan).toHaveLength(2);
+    expect(pc.cumMauThuan).toEqual([expect.arrayContaining([expect.any(String), expect.any(String)])]);
+    expect(pc.cumMauThuan![0]).toHaveLength(2);
     // Khoá phụ đọc từ giới ĐÃ CHIẾU của cha (AD-19).
     expect(nguoi.assertions.filter((a) => a.kind === 'parent-child').map((a) => a.nhomPhu)).toEqual(['male|blood', 'male|blood']);
     // Hai quê: `noiId` là hai nơi khác nhau.
@@ -111,11 +115,13 @@ describe('listConflictsOps — quét cả dòng họ', () => {
     expect(noi.size).toBe(2);
   });
 
-  it('thành viên thường ⇒ forbidden; chưa gắn ⇒ unattached', async () => {
+  it('thành viên thường ⇒ forbidden; đã đăng nhập mà chưa gắn (role guest như phiên thật) ⇒ unattached', async () => {
     const r1 = await run((tx) => listConflictsOps(tx, thuong));
     expect(r1.ok).toBe(false);
     if (!r1.ok) expect(r1.error.code).toBe('forbidden');
-    const r2 = await run((tx) => listConflictsOps(tx, { ...admin, personId: null }));
+    // Phiên THẬT của tài khoản chưa gắn là `{accountId, personId: null, role: 'guest'}`
+    // (`core/identity/auth.ts`) — bản đầu test bằng `role: 'admin'` nên không bắt được lỗi thứ tự cổng.
+    const r2 = await run((tx) => listConflictsOps(tx, { ...admin, personId: null, role: 'guest' }));
     expect(r2.ok).toBe(false);
     if (!r2.ok) expect(r2.error.code).toBe('unattached');
   });

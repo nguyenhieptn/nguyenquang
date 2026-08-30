@@ -210,7 +210,14 @@ export async function addPlaceOps(
     });
   } catch (e) {
     if (maTrungKhoa(e)) {
-      // Người kia vừa thắng cuộc đua. Tra id của họ để màn nối thẳng vào, y như nhánh tiền kiểm.
+      /**
+       * Hai lý do cho 23505, và chúng cần hai câu (sửa 29/08 sau code review 6-4):
+       *   · Người kia vừa thắng cuộc đua — hàng SỐNG. Trả id của họ để màn nối thẳng vào.
+       *   · Tên trùng với một BIA MỘ — chỉ mục phủ cả bia mộ, còn tiền kiểm chỉ soi hàng sống.
+       *     6-4 là story đầu tiên sinh ra bia mộ, và bản trước trả `placeId` của chính bia mộ:
+       *     `addAssertionOp` từ chối ghi vào đó, nên người ghi đứng trước một chip không dùng
+       *     được. Nay giải chuỗi (AD-3) và trả NƠI THẮNG.
+       */
       const [thang] = await tx
         .select()
         .from(place)
@@ -221,6 +228,14 @@ export async function addPlaceOps(
             eq(place.parentUnitFolded, chuanHoa(parentUnit)),
           ),
         );
+      if (thang?.mergedInto) {
+        const giai = (await giaiNoi(tx, [thang.id])).get(thang.id);
+        return err(
+          'conflict',
+          `Tên này là tên cũ của một nơi đã gộp${giai ? ` — nay đọc ra ${giai.nhan}` : ''}. Dùng nơi ấy, hoặc tách lại ở danh mục nơi chốn.`,
+          giai ? { placeId: giai.placeId, nhan: giai.nhan } : undefined,
+        );
+      }
       return err(
         'conflict',
         `Nơi này vừa được người khác thêm: ${nhanCua({ name, parentUnit })}`,
@@ -240,24 +255,36 @@ export async function addPlaceOps(
   return ok({ placeId: id, nhan: nhanCua({ name, parentUnit }) });
 }
 
-/** AD-3: `place_id` trỏ vào một nơi đã gộp thì đọc ra nơi thắng. */
+/**
+ * AD-3: `place_id` trỏ vào một nơi đã gộp thì đọc ra nơi thắng.
+ *
+ * Giải theo BẬC, không theo từng nơi (sửa 29/08 sau code review 6-5): story 6-5 đưa hàm này từ
+ * "vài nơi của một người" lên "mọi nơi của cả họ", và bản trước là một truy vấn cho MỖI nơi đã
+ * gộp — N+1 trên đúng đường chạy ở mọi request `/admin/*`. Nay mỗi bậc của chuỗi là MỘT truy vấn;
+ * mà 6-4 gác chuỗi ở tối đa một bậc (không gộp vào bia mộ, không gộp đi một nơi đang thắng), nên
+ * thường là hai truy vấn cho cả họ. Trần 20 bậc chỉ còn là dây an toàn cho dữ liệu hỏng.
+ */
 export async function giaiNoi(tx: Tx, ids: string[]): Promise<Map<string, NoiChon>> {
   const ra = new Map<string, NoiChon>();
   if (ids.length === 0) return ra;
-  const rows = await tx.select().from(place).where(inArray(place.id, ids));
-  for (const r of rows) {
-    let cur = r;
+  type HangNoi = typeof place.$inferSelect;
+  const daTai = new Map<string, HangNoi>();
+  let can = [...new Set(ids)];
+  for (let hop = 0; can.length > 0 && hop <= 20; hop++) {
+    const rows = await tx.select().from(place).where(inArray(place.id, can));
+    for (const r of rows) daTai.set(r.id, r);
+    can = [...new Set(rows.flatMap((r) => (r.mergedInto && !daTai.has(r.mergedInto) ? [r.mergedInto] : [])))];
+  }
+  for (const id of new Set(ids)) {
+    const goc = daTai.get(id);
+    if (!goc) continue;
+    let cur = goc;
     for (let hop = 0; cur.mergedInto && hop < 20; hop++) {
-      const [next] = await tx.select().from(place).where(eq(place.id, cur.mergedInto));
+      const next = daTai.get(cur.mergedInto);
       if (!next) break;
       cur = next;
     }
-    ra.set(r.id, {
-      placeId: cur.id,
-      name: cur.name,
-      parentUnit: cur.parentUnit,
-      nhan: nhanCua(cur),
-    });
+    ra.set(id, { placeId: cur.id, name: cur.name, parentUnit: cur.parentUnit, nhan: nhanCua(cur) });
   }
   return ra;
 }
@@ -285,7 +312,8 @@ export async function updatePlaceOps(
    * Đọc hàng THÔ, không qua `taiNoi()` — hàm ấy lọc bia mộ, nên một nơi đã gộp sẽ thành
    * `not-found` thay vì `conflict`, và người vận hành không biết vì sao nó "biến mất".
    */
-  const [row] = await tx.select().from(place).where(eq(place.id, args.placeId));
+  // `FOR UPDATE`: một lượt gộp chen vào giữa đọc và ghi thì phải CHỜ, kẻo ta đổi tên một bia mộ.
+  const [row] = await tx.select().from(place).where(eq(place.id, args.placeId)).for('update');
   if (!row) return err('not-found', 'Không thấy nơi này trong danh mục.');
   if (row.mergedInto) {
     return err('conflict', 'Nơi này đã gộp vào một nơi khác — tách lại trước nếu muốn sửa.');
@@ -343,6 +371,14 @@ export async function updatePlaceOps(
             eq(place.parentUnitFolded, chuanHoa(parentUnit)),
           ),
         );
+      // Hàng SỐNG vừa được người khác thêm thì không phải "tách lại" gì cả — là hai hàng cho một
+      // nơi, tức việc của nút Gộp (sửa 29/08 sau code review 6-4).
+      if (thang && !thang.mergedInto) {
+        return err('conflict', `Đã có nơi ${nhanCua(thang)} trong danh mục — gộp hai nơi thay vì sửa trùng.`, {
+          placeId: thang.id,
+          nhan: nhanCua(thang),
+        });
+      }
       const giai = thang ? (await giaiNoi(tx, [thang.id])).get(thang.id) : undefined;
       return err(
         'conflict',
@@ -369,7 +405,7 @@ export type KetQuaGopNoi = {
   winnerId: string;
   /** Nhãn nơi thắng — để màn nói "N khẳng định nay đọc ra <nơi thắng>". */
   nhanThang: string;
-  /** Số khẳng định `place` còn sống đang trỏ vào bên thua — từ nay chúng đọc ra bên thắng. */
+  /** Số khẳng định `place` đang trỏ vào bên thua (kể cả đã ẩn) — từ nay chúng đọc ra bên thắng. */
   soKhangDinh: number;
 };
 
@@ -395,25 +431,49 @@ export async function mergePlaceOps(
   }
   if (args.loserId === args.winnerId) return err('invalid', 'Không gộp một nơi vào chính nó.');
 
-  const rows = await tx.select().from(place).where(inArray(place.id, [args.loserId, args.winnerId]));
+  /**
+   * `FOR UPDATE` trên CẢ HAI hàng (sửa 29/08 sau code review 6-4). Phép kiểm dưới đây là
+   * đọc-rồi-ghi, và `db/migrations/0004_place_unique.sql` đã dạy: *phép so trong bộ nhớ KHÔNG
+   * phải một ràng buộc*. Hai người gộp A→B và B→A cùng lúc dưới READ COMMITTED đều thấy bên kia
+   * còn sống, mỗi người UPDATE một hàng khác nhau, và cả hai commit — một vòng A→B→A mà
+   * `giaiNoi` không lần ra đâu. Khoá hàng thì lượt thứ hai chờ lượt thứ nhất commit, đọc lại
+   * hàng mới, và thấy nơi thắng của mình đã là bia mộ.
+   */
+  const rows = await tx
+    .select()
+    .from(place)
+    .where(inArray(place.id, [args.loserId, args.winnerId]))
+    .for('update');
   const thua = rows.find((r) => r.id === args.loserId);
   const thang = rows.find((r) => r.id === args.winnerId);
   if (!thua || !thang) return err('not-found', 'Không thấy nơi này trong danh mục.');
   if (thua.mergedInto) return err('conflict', `${nhanCua(thua)} đã gộp rồi.`);
   /**
-   * Bên thắng phải CÒN SỐNG. Gộp vào một bia mộ là tạo chuỗi hai bước — `giaiNoi` vẫn lần được,
-   * nhưng "tách lại" bên nào thì bên kia đứt: A→B→C, tách B khỏi C là A vẫn trỏ về B mà B đã
-   * sống lại — đúng, hay sai? Không có câu trả lời đúng cho mọi ca, nên không cho đặt câu hỏi.
-   * Đây cũng là hàng rào chống vòng: A→B rồi B→A bị chặn vì B đã là bia mộ.
+   * KHÔNG CHUỖI — gác cả hai chiều.
+   *
+   * Gộp vào một bia mộ là tạo chuỗi hai bước — `giaiNoi` vẫn lần được, nhưng "tách lại" bên nào
+   * thì bên kia đứt: A→B→C, tách B khỏi C là A vẫn trỏ về B mà B đã sống lại — đúng, hay sai?
+   * Không có câu trả lời đúng cho mọi ca, nên không cho đặt câu hỏi. Đây cũng là hàng rào chống
+   * vòng: A→B rồi B→A bị chặn vì B đã là bia mộ.
+   *
+   * Chiều kia (thêm 29/08 sau code review 6-4): gộp ĐI một nơi đang là nơi thắng của bia mộ khác
+   * cũng tạo đúng chuỗi ấy — A→B rồi B→C — và bản trước không chặn, dù chú thích nói là chặn.
+   * Từ màn là hai cú bấm: sau lượt gộp đầu B vẫn sống, vẫn có nút "Gộp vào…". Chặn, và nói rõ
+   * tách những nơi ấy trước — rồi gộp chúng thẳng vào C nếu muốn.
    */
   if (thang.mergedInto) {
     return err('conflict', `${nhanCua(thang)} đã gộp vào nơi khác — chọn nơi còn sống làm nơi thắng.`);
   }
+  const [dangThang] = await tx.select({ n: count() }).from(place).where(eq(place.mergedInto, thua.id));
+  if (Number(dangThang?.n ?? 0) > 0) {
+    return err(
+      'conflict',
+      `${nhanCua(thua)} đang là nơi thắng của ${Number(dangThang!.n)} nơi đã gộp — tách những nơi ấy trước, rồi gộp thẳng vào nơi mới.`,
+    );
+  }
 
-  const [dem] = await tx
-    .select({ n: count() })
-    .from(assertion)
-    .where(and(eq(assertion.placeId, thua.id), eq(assertion.status, 'live')));
+  // Đếm MỌI khẳng định trỏ vào bên thua, kể cả đã ẩn: dòng ẩn hiện lại thì cũng đọc ra nơi thắng.
+  const [dem] = await tx.select({ n: count() }).from(assertion).where(eq(assertion.placeId, thua.id));
 
   await tx.update(place).set({ mergedInto: thang.id }).where(eq(place.id, thua.id));
   await writeRevision(tx, {
