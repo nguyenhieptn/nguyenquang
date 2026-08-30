@@ -59,9 +59,12 @@ export function BieuMauGhiThem({
   onGuiQuanHe,
   onTimNguoi,
   onDong,
+  giaTriBanDau,
 }: {
   /** Bề mặt đang bày — đổi câu hướng dẫn (bề mặt A không có "nút Loại", không có "thanh việc"). */
   beMat: 'A' | 'B';
+  /** Story 7-5 — gợi ý điền sẵn (ngày giỗ từ ngày mất). Vẫn phải chọn nguồn và bấm ghi. */
+  giaTriBanDau?: string;
   /** Mở từ dưới một chồng ⇒ loại đã biết, không cho đổi. `null` ⇒ cho chọn (lối cuối panel). */
   loaiCoDinh: LoaiGhiThem | null;
   /** Người đang mở hồ sơ — story 6-1 cần biết để loại khỏi bộ chọn và để dựng câu sẽ ghi. */
@@ -90,7 +93,7 @@ export function BieuMauGhiThem({
   onDong: () => void;
 }) {
   const [loai, setLoai] = useState<LoaiGhiThem>(loaiCoDinh ?? 'birth');
-  const [giaTri, setGiaTri] = useState('');
+  const [giaTri, setGiaTri] = useState(giaTriBanDau ?? '');
   const [xuatXu, setXuatXu] = useState('');
   const [loi, setLoi] = useState<string | null>(null);
   const [dangGui, setDangGui] = useState(false);
@@ -317,8 +320,9 @@ export function BieuMauGhiThem({
             value={giaTri}
             onChange={(e) => setGiaTri(e.target.value)}
             {...(kieu === 'nam' ? { inputMode: 'numeric' as const } : {})}
+            {...(kieu === 'gio' ? { placeholder: 'ngày/tháng âm lịch — 15/8, 30/12, 1/6 nhuận' } : {})}
             className={`mt-0.5 min-h-11 w-full rounded-md border border-ban-vien bg-ban-o px-3 text-[17px] ${
-              kieu === 'nam' ? 'tabular-nums' : 'font-pha'
+              kieu === 'nam' || kieu === 'gio' ? 'tabular-nums placeholder:text-muted-foreground' : 'font-pha'
             }`}
           />
         )}

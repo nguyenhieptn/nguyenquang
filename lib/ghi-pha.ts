@@ -31,7 +31,8 @@ import {
   type LoaiQuanHe,
   type QuanHeMau,
 } from '@/components/admin/quan-he-ghi-them';
-import { getPerson, type AssertionStack, type PersonProfile } from '@/core/person';
+import { getPerson, type AssertionStack, type GoiYGio, type PersonProfile } from '@/core/person';
+import { docGio } from '@/core/lich';
 import { addPlace, searchPlaces, type UngVienNoiChon } from '@/core/place';
 import { getAncestryPath, searchPersons } from '@/core/tree';
 import { err, type Result } from '@/core/types';
@@ -53,6 +54,8 @@ export type HoSoNguoi = {
   quanHe: { chaMe: ChipQuanHe[]; banDoi: ChipQuanHe[]; con: ChipQuanHe[] };
   /** Vắng khi người xem không có tầm nhìn đầy đủ với người này (AD-13/AD-21) — KHÔNG phải lỗi. */
   chong?: AssertionStack[];
+  /** FR-41 (7-5) — gợi ý ngày giỗ từ ngày mất chính xác khi chưa có giỗ. */
+  goiYGio?: GoiYGio;
   visibility: PersonProfile['visibility'];
 };
 
@@ -77,6 +80,7 @@ export async function docHoSo(personId: string): Promise<Result<HoSoNguoi>> {
         con: v.relations.children.map((c) => ({ personId: c.personId, hoTen: c.fullName })),
       },
       ...(v.stacks !== undefined ? { chong: v.stacks } : {}),
+      ...(v.goiYGio !== undefined ? { goiYGio: v.goiYGio } : {}),
       visibility: v.visibility,
     },
   };
@@ -225,6 +229,12 @@ export async function ghiKhangDinh(
     case 'death': {
       if (!/^\d{4}$/.test(v)) return err('invalid', 'Năm phải là bốn chữ số.');
       spec = { kind: loai, value: { date: `${v}-01-01`, precision: 'year' } };
+      break;
+    }
+    case 'gio': {
+      const g = docGio(v);
+      if (!g) return err('invalid', 'Ngày giỗ ghi dạng ngày/tháng âm lịch, ví dụ 15/8 hay 1/6 nhuận.');
+      spec = { kind: 'gio', thang: g.thang, ngay: g.ngay, nhuan: g.nhuan };
       break;
     }
     case 'note':

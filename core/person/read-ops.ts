@@ -13,6 +13,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Tx } from '@/db';
 import { assertion, revision, source } from '@/db/schema';
 import { giaiNoi } from '@/core/place/ops';
+import { chuoiAm, chuoiDuong, duongSangAm, gioKeTiep, homNayVN } from '@/core/lich/am-lich';
 import { gateApprover } from '@/core/assertion/ops';
 import type { AssertionKind, Confidence, Tier } from '@/db/schema';
 import {
@@ -50,7 +51,15 @@ export type RawPersonProfile = {
   assertions?: RawPersonAssertion[];
   /** Set when the requested id was a tombstone and the winner is returned instead (AD-3). */
   redirectedFrom?: string;
+  /**
+   * FR-41 (story 7-5) — GỢI Ý ngày giỗ từ ngày mất, chỉ khi: ngày mất chính xác tới ngày, chưa có
+   * khẳng định giỗ sống, và người xem thấy trọn. Là gợi ý để BÀY, không phải một khẳng định: nhà
+   * dùng ngày khác thì gõ ngày khác, hệ không cãi (`review-culture.md:677`).
+   */
+  goiYGio?: GoiYGio;
 };
+
+export type GoiYGio = { ngay: number; thang: number; nhuan: boolean; tuNgayMat: string; chuoi: string };
 
 // ── Viewer lens + card building (same semantics as core/tree/ops — kept in lockstep) ──
 
@@ -335,6 +344,13 @@ function dungDongKhangDinh(
       }
       case 'note':
         return `ghi chú: ${typeof v.text === 'string' ? v.text : ''}`;
+      case 'gio': {
+        // Luôn hiện CẢ HAI lịch (review-culture:677): ngày âm nhà ghi, và ngày dương kế tiếp.
+        const g = { ngay: Number(v.ngay), thang: Number(v.thang), nhuan: v.nhuan === true };
+        if (!(g.ngay >= 1 && g.ngay <= 30 && g.thang >= 1 && g.thang <= 12)) return 'giỗ (ngày chưa rõ)';
+        const ke = gioKeTiep(g, homNayVN());
+        return `giỗ ${chuoiAm(g)} — sắp tới: ${chuoiDuong(ke.duong)}`;
+      }
       case 'place': {
         const vai = VAI_NOI[(typeof v.role === 'string' ? v.role : '') as keyof typeof VAI_NOI] ?? 'nơi';
         const noi = r.placeId ? (tenNoi.get(r.placeId) ?? 'một nơi chưa rõ') : 'một nơi chưa rõ';
@@ -452,10 +468,24 @@ export async function getPersonOps(
 
   // ── Assertions: ONLY at full visibility, only LIVE rows about the subject (FR-1/FR-2) ──
   let assertions: RawPersonAssertion[] | undefined;
+  let goiYGio: GoiYGio | undefined;
   if (visibility === 'full') {
     const rows = await docKhangDinhSong(tx, [pid]);
     const ngu = await nguCanhDungDong(tx, data, rows, displayName);
     assertions = dungDongKhangDinh(rows, pid, row.fullName, ngu);
+    if (row.deathDate && row.deathPrecision === 'exact' && !rows.some((r) => r.kind === 'gio')) {
+      const [y, m, d] = row.deathDate.split('-').map(Number);
+      if (y && m && d) {
+        const am = duongSangAm({ ngay: d, thang: m, nam: y });
+        goiYGio = {
+          ngay: am.ngay,
+          thang: am.thang,
+          nhuan: am.nhuan,
+          tuNgayMat: `${String(d).padStart(2, '0')}/${String(m).padStart(2, '0')}/${y}`,
+          chuoi: `${am.ngay}/${am.thang}${am.nhuan ? ' nhuận' : ''}`,
+        };
+      }
+    }
   }
 
   return ok({
@@ -467,6 +497,7 @@ export async function getPersonOps(
     },
     visibility,
     ...(assertions !== undefined ? { assertions } : {}),
+    ...(goiYGio !== undefined ? { goiYGio } : {}),
     ...(pid !== personId ? { redirectedFrom: personId } : {}),
   });
 }

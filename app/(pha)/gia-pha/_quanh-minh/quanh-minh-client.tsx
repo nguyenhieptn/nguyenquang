@@ -115,6 +115,7 @@ export function QuanhMinhClient({
         personId: v.personId,
         hoTen: v.hoTen,
         tieuSu: v.tieuSu,
+        ...(v.goiYGio ? { goiYGio: v.goiYGio } : {}),
         quanHe: v.quanHe,
         // `chong` vắng = NGOÀI BÁN KÍNH RIÊNG TƯ, không phải "chưa có gì" — hai câu khác nhau.
         chong:

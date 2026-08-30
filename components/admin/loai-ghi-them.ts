@@ -17,6 +17,7 @@ export const LOAI_GHI_THEM = [
   'gender',
   'birth',
   'death',
+  'gio',
   'place',
   'note',
   'parent-child',
@@ -29,6 +30,7 @@ export const NHAN_LOAI: Record<LoaiGhiThem, string> = {
   gender: 'Giới tính',
   birth: 'Năm sinh',
   death: 'Năm mất',
+  gio: 'Ngày giỗ',
   place: 'Nơi chốn',
   note: 'Ghi chú',
   // Đúng nhãn `core/person/chong.ts:65-66` đã dùng cho hai chồng ấy. Đặt nhãn thứ hai cho cùng
@@ -38,11 +40,13 @@ export const NHAN_LOAI: Record<LoaiGhiThem, string> = {
 };
 
 /** Hình dạng ô nhập của từng loại — quyết định biểu mẫu vẽ gì. */
-export const KIEU_O: Record<LoaiGhiThem, 'chu' | 'nam' | 'gioi' | 'nhieu-dong' | 'noi' | 'nguoi'> = {
+export const KIEU_O: Record<LoaiGhiThem, 'chu' | 'nam' | 'gioi' | 'nhieu-dong' | 'noi' | 'nguoi' | 'gio'> = {
   name: 'chu',
   gender: 'gioi',
   birth: 'nam',
   death: 'nam',
+  /** Ngày giỗ ÂM LỊCH gõ như người ta nói: `15/8`, `15/8 nhuận` — một ô, kiểm bằng `docGio`. */
+  gio: 'gio',
   /** Nơi không phải một ô nhập — nó là một bộ chọn có tìm kiếm và có lối tạo mới (FR-65). */
   place: 'noi',
   note: 'nhieu-dong',
@@ -77,6 +81,14 @@ export function kiemGiaTri(loai: LoaiGhiThem, raw: string): LoiGiaTri {
   if (v === '') return { loi: 'chưa có gì' };
   if (loai === 'birth' || loai === 'death') {
     if (!/^\d{4}$/.test(v)) return { loi: 'bốn chữ số' };
+  }
+  if (loai === 'gio') {
+    // Cùng luật với `core/lich/am-lich.ts § docGio` — chép lại ở đây vì `components/` không import
+    // core (build-contract § Phân tầng); core kiểm lần nữa khi ghi.
+    const m = v.toLowerCase().match(/^(\d{1,2})\s*[\/\-]\s*(\d{1,2})(\s*(nhuận|nhuan))?$/);
+    if (!m || Number(m[1]) < 1 || Number(m[1]) > 30 || Number(m[2]) < 1 || Number(m[2]) > 12) {
+      return { loi: 'ngày/tháng âm lịch, ví dụ 15/8' };
+    }
   }
   if (loai === 'gender' && !['male', 'female', 'other'].includes(v)) {
     return { loi: 'chưa chọn' };

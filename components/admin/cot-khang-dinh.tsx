@@ -111,6 +111,8 @@ export type HoSoPanel = {
   quanHe?: { chaMe: ChipQuanHe[]; banDoi: ChipQuanHe[]; con: ChipQuanHe[] };
   /** `null` = ngoài bán kính riêng tư của người xem (AD-13/AD-21). KHÔNG phải lỗi. */
   chong: ChongKhangDinh[] | null;
+  /** FR-41 (7-5) — gợi ý ngày giỗ từ ngày mất; vắng khi đã có giỗ hay ngày mất không chính xác. */
+  goiYGio?: { chuoi: string; tuNgayMat: string; ngay: number; thang: number; nhuan: boolean };
   /**
    * Lượt đọc HỎNG — khác cả hai nghĩa trên.
    *
@@ -412,6 +414,45 @@ function Than({
               ) : null}
             </>
           )}
+
+          {/* ── GIỖ — gợi ý từ ngày mất (FR-41, story 7-5) ──────────────────────────────────
+              Chỉ khi chưa có khẳng định giỗ và ngày mất chính xác tới ngày. Một GỢI Ý, không phải
+              một khẳng định: bấm "Ghi ngày giỗ này" mở biểu mẫu đã điền sẵn, vẫn phải nói nguồn và
+              bấm ghi; nhà cúng ngày khác thì sửa ô ấy — hệ không cãi (`review-culture.md:677`). */}
+          {chong !== null && hoSo.goiYGio && !theoKhoa.has('gio') ? (
+            <section className={`mt-2 ${HANG}`}>
+              <h3 className={`${NHAN} text-muted-foreground`}>Giỗ</h3>
+              <div className="min-w-0 flex-1 py-1">
+                <p className="text-[17px]">
+                  Chưa ghi ngày giỗ. Theo ngày mất {hoSo.goiYGio.tuNgayMat} thì là{' '}
+                  <strong>ngày {hoSo.goiYGio.ngay} tháng {hoSo.goiYGio.thang}{hoSo.goiYGio.nhuan ? ' nhuận' : ''} âm lịch</strong>
+                  {' '}— nhà cúng ngày khác thì ghi ngày nhà cúng.
+                </p>
+                {moGhi === 'gio' ? (
+                  <div className="mt-2">
+                    <BieuMauGhiThem
+                      beMat={beMat}
+                      loaiCoDinh="gio"
+                      giaTriBanDau={hoSo.goiYGio.chuoi}
+                      onGui={onGhiThem}
+                      onGuiNoi={onGhiNoi}
+                      onTimNoi={onTimNoi}
+                      onGuiQuanHe={onGhiQuanHe}
+                      onTimNguoi={onTimNguoi}
+                      nguoiNayId={hoSo.personId}
+                      tenNguoiNay={hoSo.hoTen}
+                      onTaoNoi={onTaoNoi}
+                      onDong={() => setMoGhi(undefined)}
+                    />
+                  </div>
+                ) : (
+                  <Button type="button" variant="outline" onClick={() => setMoGhi('gio')} className="mt-2 h-11 text-[17px]">
+                    Ghi ngày giỗ này
+                  </Button>
+                )}
+              </div>
+            </section>
+          ) : null}
 
           {chong !== null ? (
             <div className="mt-4">

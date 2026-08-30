@@ -40,6 +40,7 @@ import type { AssertionSpec, GenealogicalDate, SourceSpec } from './index';
 // ── Context gates — sống ở `core/identity/gates.ts` (story 7-1), re-export cho nơi gọi cũ ──
 import { gateApprover, gateWriter, type AttachedContext } from '@/core/identity/gates';
 import { coQuyenDuyet } from '@/core/identity/privacy';
+import { chuoiAm } from '@/core/lich/am-lich';
 export { gateWriter, gateApprover, type AttachedContext };
 
 // ── Validation helpers ───────────────────────────────────────────────────────
@@ -320,6 +321,10 @@ export async function addAssertionOp(
       if (!['male', 'female', 'other'].includes(spec.gender))
         return err('invalid', `unknown gender '${spec.gender}'`);
       break;
+    case 'gio':
+      if (!Number.isInteger(spec.thang) || spec.thang < 1 || spec.thang > 12) return err('invalid', 'Tháng âm lịch phải từ 1 đến 12.');
+      if (!Number.isInteger(spec.ngay) || spec.ngay < 1 || spec.ngay > 30) return err('invalid', 'Ngày âm lịch phải từ 1 đến 30.');
+      break;
     case 'birth':
     case 'death': {
       const problem = invalidGenealogicalDate(spec.value);
@@ -399,6 +404,17 @@ export async function addAssertionOp(
           subjectPersonId: args.personId,
           kind: spec.kind,
           value: spec.value,
+          sourceId,
+          confidence,
+        }),
+      );
+      break;
+    case 'gio':
+      created.push(
+        await insertAssertionRow(tx, ctx, {
+          subjectPersonId: args.personId,
+          kind: 'gio',
+          value: { thang: spec.thang, ngay: spec.ngay, nhuan: spec.nhuan === true },
           sourceId,
           confidence,
         }),
@@ -970,6 +986,8 @@ export function describeAssertionValue(kind: AssertionKind, value: unknown): str
       const t = typeof v.text === 'string' ? v.text : '';
       return t ? `ghi chú "${t}"` : 'ghi chú';
     }
+    case 'gio':
+      return `giỗ ${chuoiAm({ ngay: Number(v.ngay), thang: Number(v.thang), nhuan: v.nhuan === true })}`;
     case 'place': {
       const vai = typeof v.role === 'string' ? v.role : '';
       return vai === 'que-quan'

@@ -122,6 +122,8 @@ function describeAssertion(image: Img | null): string {
       return 'quan hệ vợ chồng';
     case 'note':
       return 'ghi chú';
+    case 'gio':
+      return `ngày giỗ ${Number(value?.ngay)}/${Number(value?.thang)}${value?.nhuan === true ? ' nhuận' : ''} âm lịch`;
     case 'place': {
       const vai = str(value?.role);
       return vai === 'que-quan'

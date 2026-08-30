@@ -14,7 +14,7 @@
 import { and, asc, eq, inArray, isNull, like, or, sql } from 'drizzle-orm';
 import { dbGlobal, type Tx } from '@/db';
 import { assertion, authUser, person, revision } from '@/db/schema';
-import type { Confidence, Tier } from '@/db/schema';
+import type { Confidence, DatePrecision, Tier } from '@/db/schema';
 import { chuanHoa } from '@/core/so-khop';
 import {
   ANONYMOUS_LABEL,
@@ -53,6 +53,8 @@ type PersonRow = {
   nameConfidence: Confidence | null;
   birthDate: string | null;
   deathDate: string | null;
+  /** FR-41 (7-5): gợi ý giỗ chỉ khi ngày mất chính xác tới ngày. */
+  deathPrecision: DatePrecision | null;
   isLiving: boolean;
   hiddenFromPublic: boolean;
   /** Giới đã chiếu (AD-19). Story 6-5 đọc nó để biết hai người cha có cùng giới không. */
@@ -113,6 +115,7 @@ export async function loadTreeData(tx: Tx): Promise<TreeData> {
       nameConfidence: person.nameConfidence,
       birthDate: person.birthDate,
       deathDate: person.deathDate,
+      deathPrecision: person.deathPrecision,
       isLiving: person.isLiving,
       hiddenFromPublic: person.hiddenFromPublic,
       gender: person.gender,

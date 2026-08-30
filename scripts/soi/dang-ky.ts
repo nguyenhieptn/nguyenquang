@@ -143,6 +143,14 @@ export const DANG_KY: Man[] = [
   },
   {
     ...KHACH_A,
+    khoa: 'gio',
+    duong: '/gio',
+    pheDo: DO_CHUNG,
+    bay: 'Lịch giỗ cả năm — ngày dương sắp tới · tên · ngày âm nhà ghi (story 7-5, FR-41)',
+    ghiChu: 'Dòng họ thử ghi sẵn một giỗ; phả thật chưa ghi thì một câu mời ghi.',
+  },
+  {
+    ...KHACH_A,
     khoa: 'tim',
     duong: '/tim',
     pheDo: DO_CHUNG,

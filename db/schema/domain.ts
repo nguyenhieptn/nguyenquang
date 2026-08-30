@@ -53,6 +53,9 @@ export const ASSERTION_KINDS = [
   'note', // value: { text }
   // FR-65 (story 5-7): placeId trỏ vào `place`. value: { role: 'que-quan'|'tru-quan'|'an-tang' }
   'place',
+  // FR-41 (story 7-5): ngày giỗ ÂM LỊCH nhà đang dùng. value: { thang: 1..12, ngay: 1..30, nhuan: boolean }.
+  // Không phải cột chiếu — không ai lọc cây theo giỗ; lịch giỗ đọc thẳng khẳng định sống.
+  'gio',
 ] as const;
 export type AssertionKind = (typeof ASSERTION_KINDS)[number];
 

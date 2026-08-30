@@ -33,7 +33,8 @@ function kd(
 
 describe('xếp chồng khẳng định — mâu thuẫn vs nối tiếp', () => {
   it('bốn loại ĐƠN TRỊ chồng nhau là MÂU THUẪN — phải chọn một', () => {
-    for (const kind of ['name', 'gender', 'birth', 'death'] as const) {
+    // `gio` (7-5) là loại đơn trị thứ năm: một người một ngày giỗ.
+    for (const kind of ['name', 'gender', 'birth', 'death', 'gio'] as const) {
       const ra = xepChong([kd(kind), kd(kind)]);
       expect(ra, kind).toHaveLength(1);
       expect(ra[0].stackKind, kind).toBe('mau-thuan');

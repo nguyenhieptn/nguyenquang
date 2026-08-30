@@ -49,6 +49,8 @@ export const DON_TRI: Record<AssertionKind, boolean> = {
   gender: true,
   birth: true,
   death: true,
+  /** FR-41 (7-5): một người một ngày giỗ — hai ngày khác nhau là mâu thuẫn, ban tu phả chọn. */
+  gio: true,
   // Cha và mẹ là HAI khẳng định cha-con — nhiều dòng ở đây là bình thường, không phải mâu thuẫn.
   'parent-child': false,
   // Nhiều đời vợ/chồng là chuyện phả cổ chép thật.
@@ -70,6 +72,7 @@ export const NHAN: Record<AssertionKind, string> = {
   gender: 'Giới tính',
   birth: 'Sinh',
   death: 'Mất',
+  gio: 'Giỗ',
   'parent-child': 'Cha mẹ',
   'union-partner': 'Vợ chồng',
   note: 'Ghi chú',
@@ -92,10 +95,11 @@ export const HANG: Record<AssertionKind, number> = {
   gender: 1,
   birth: 2,
   death: 3,
-  'parent-child': 4,
-  'union-partner': 5,
-  place: 6,
-  note: 7,
+  gio: 4,
+  'parent-child': 5,
+  'union-partner': 6,
+  place: 7,
+  note: 8,
 };
 
 

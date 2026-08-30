@@ -173,4 +173,29 @@ export const KICH_BAN: readonly KichBan[] = [
       return `ghi ${nam} rồi ẩn — phiếu về lại 1980, không chờ duyệt`;
     },
   },
+  {
+    khoa: 'k5-ngay-gio',
+    ten: 'K5 · bề mặt A, thành viên: ghi ngày giỗ cho Tổ từ phiếu ⇒ phiếu bày cả hai lịch',
+    vai: 'thanh-vien',
+    // Đo 29/08: một khẳng định + một nguồn = 2.
+    revisionMongDoi: 2,
+    chay: async (p, goc) => {
+      await p.goto(`${goc}/gia-pha`, { waitUntil: 'networkidle' });
+      // Tổ (đã khuất, cách Mình hai bậc nên có trên canvas) — đã có giỗ 15/8 của dòng họ thử; ghi thêm
+      // một ngày khác là chồng Giỗ hoá mâu thuẫn, ban tu phả chọn. Ghi bằng "Ghi thêm thông tin".
+      // (Lượt đầu chọn Chú: cách Mình BA bậc, ngoài canvas mặc định — thẻ không có để bấm.)
+      await p.locator('.react-flow__node', { hasText: 'Thử Tổ' }).first().click();
+      await p.waitForTimeout(1200);
+      await p.locator('aside').getByRole('button', { name: 'Ghi thêm thông tin' }).first().click();
+      const chonLoai = p.locator('aside select[id$="-loai"]').first();
+      await chonLoai.waitFor({ timeout: 5000 });
+      await chonLoai.selectOption('gio');
+      await p.locator('aside input[id$="-gia-tri"]').first().fill('12/9');
+      await p.locator('aside input[id$="-nguon"]').first().fill('kịch bản ghi 7-5');
+      await p.locator('aside').getByRole('button', { name: 'Ghi vào phả' }).click();
+      const chu = await doiRoiDoc(p, 'aside', 2000);
+      phaiCo(chu, 'ngày 12 tháng 9 âm lịch', 'sắp tới');
+      return 'phiếu bày "giỗ ngày 12 tháng 9 âm lịch — sắp tới: dd/mm/yyyy"';
+    },
+  },
 ];

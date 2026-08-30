@@ -59,7 +59,9 @@ export type AssertionSpec =
    * FR-65 (story 5-7) — nơi chốn. Ba vai của PRD §5b. `placeId` phải là một nơi đã có trong danh
    * mục; tạo nơi mới là `core/place.addPlace`, một việc riêng và có nhật ký riêng.
    */
-  | { kind: 'place'; placeId: string; role: 'que-quan' | 'tru-quan' | 'an-tang' };
+  | { kind: 'place'; placeId: string; role: 'que-quan' | 'tru-quan' | 'an-tang' }
+  /** FR-41 (story 7-5) — ngày giỗ âm lịch, chép lấy ngày nhà đang cúng. `nhuan` = tháng nhuận. */
+  | { kind: 'gio'; thang: number; ngay: number; nhuan?: boolean };
 
 export type AddedPerson = { personId: string; assertionIds: string[] };
 

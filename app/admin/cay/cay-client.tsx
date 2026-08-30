@@ -200,6 +200,7 @@ export function CayClient({
         personId: v.personId,
         hoTen: v.hoTen,
         tieuSu: v.tieuSu,
+        ...(v.goiYGio ? { goiYGio: v.goiYGio } : {}),
         quanHe: v.quanHe,
         // `chong` vắng nghĩa là NGOÀI BÁN KÍNH RIÊNG TƯ, không phải "chưa có gì" — cột phải nói
         // hai chuyện ấy bằng hai câu khác nhau, nên `null` mang đúng nghĩa thứ nhất.

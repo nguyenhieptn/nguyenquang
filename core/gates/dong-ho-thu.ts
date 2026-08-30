@@ -184,6 +184,9 @@ export async function dungDongHoThu(o: { tienTo?: string; ghim?: boolean } = {})
       if (!r.ok) throw new Error(`dong-ho-thu: mâu thuẫn — ${r.error.message}`);
     };
     await ghi(nguoi.chu, { kind: 'birth', value: { date: '1956-01-01', precision: 'year' } });
+    // Story 7-5: Tổ có ngày giỗ 15/8 (lịch giỗ có gì để bày); Xa mất ngày chính xác ⇒ phiếu có gợi ý.
+    await ghi(nguoi.to, { kind: 'gio', thang: 8, ngay: 15 });
+    await ghi(nguoi.xa, { kind: 'death', value: { date: '2000-10-06', precision: 'exact' } });
     const haiCha = await createPersonOp(tx, adminCtx, { fullName: ten('Nguyễn Thử Hai Cha'), gender: 'male', birth: nam(1985), parentId: nguoi.cha, source: nguon });
     if (!haiCha.ok) throw new Error(haiCha.error.message);
     await ghi(haiCha.value.personId, { kind: 'parent-child', parentId: nguoi.chu });

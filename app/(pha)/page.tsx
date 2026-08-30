@@ -54,6 +54,7 @@ import { ThanhDieuHuong, tenPhaTuThongTin } from "@/components/pha/thanh-dieu-hu
 import { coBanLamViec } from "@/lib/vai-quan-tri";
 import { TuaMuc } from "@/components/pha/vach";
 import { getRecentAdditions } from "@/core/audit";
+import { listGioSapToi } from "@/core/gio";
 import { getClanInfo, resolveViewer } from "@/core/identity";
 import { getAncestryPath, getClanOverview, type AncestryPath, type ClanOverview } from "@/core/tree";
 
@@ -91,13 +92,15 @@ export default async function Page() {
   // Không còn cả khách lẫn phả để xem — phả chưa dựng. Chỉ đăng nhập quản trị mới đi tiếp được.
   if (!viewer) redirect("/dang-nhap");
 
-  const [tongQuanKq, vuaVaoKq, duongVeKq, thongTinPha] = await Promise.all([
+  const [tongQuanKq, vuaVaoKq, duongVeKq, thongTinPha, gioKq] = await Promise.all([
     getClanOverview(),
     getRecentAdditions(8),
     viewer.personId !== null ? getAncestryPath(viewer.personId) : Promise.resolve(null),
     // AD-14: tên phả đọc từ `clan.settings` qua core/identity — không còn hằng trong mã.
     getClanInfo(),
+    listGioSapToi(7), // FR-41 (7-5): bảy ngày tới; đọc hỏng thì ô vắng lặng
   ]);
+  const gioSapToi = gioKq.ok ? gioKq.value : [];
   const tenPha = tenPhaTuThongTin(thongTinPha.ok ? thongTinPha.value : null);
 
   // 'forbidden' / 'not-found' ⇒ vắng lặng lẽ, KHÔNG băng rôn lỗi (EXPERIENCE.md § State
@@ -321,6 +324,34 @@ export default async function Page() {
               đường về cụ thì hai thứ đọc ra một cặp. Rail giữ `stretch`: đường viền trái chạy hết
               chiều cao hàng — vạch chia cột của một trang sách, không phải viền của một cái hộp. */}
           <aside className="mt-12 lg:mt-0 lg:border-l lg:border-border lg:pl-8">
+            {/* ── GIỖ SẮP TỚI (FR-41, story 7-5) — bảy ngày, tối đa năm dòng, trên cả "Vừa vào phả":
+                đây là thứ dòng họ mở phả ra xem nhiều nhất. Không có giỗ trong bảy ngày thì ô nói
+                một câu và trỏ sang lịch cả năm — không vẽ dữ liệu giả. */}
+            <TuaMuc>Giỗ sắp tới</TuaMuc>
+            {gioSapToi.length > 0 ? (
+              <ul className="mt-5 space-y-4">
+                {gioSapToi.slice(0, 5).map((g) => (
+                  <li key={`${g.personId}-${g.duong}`} className="px-3.5 py-2">
+                    <p className="font-[family-name:var(--font-pha)] text-[19px] font-semibold leading-snug">
+                      <Link href={`/nguoi/${g.personId}`} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
+                        {g.fullName}
+                      </Link>
+                    </p>
+                    <p className="mt-1 text-[15px] text-muted-foreground">
+                      {g.conNgay === 0 ? 'hôm nay' : `còn ${g.conNgay} ngày`} · {g.chuoiDuong} · {g.chuoiAm}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
+                Bảy ngày tới chưa có giỗ nào được ghi.
+              </p>
+            )}
+            <Link href="/gio" className="mt-3 inline-flex min-h-11 items-center px-3.5 text-[17px] underline underline-offset-4">
+              Lịch giỗ cả năm
+            </Link>
+
             <TuaMuc>Vừa vào phả</TuaMuc>
 
             {vuaVao.length > 0 ? (

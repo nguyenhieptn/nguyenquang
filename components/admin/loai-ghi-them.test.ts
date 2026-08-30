@@ -13,14 +13,15 @@ import {
 } from './loai-ghi-them';
 
 describe('loại khẳng định ghi thêm được từ cột phải', () => {
-  it('đúng tám loại — cả tám loại của schema đều ghi thêm được', () => {
-    // `place` vào từ 5-7 (FR-65), hai loại quan hệ vào từ 6-1. Cả ba là BỘ CHỌN, không phải ô
-    // nhập, nên `KIEU_O` cho chúng kiểu riêng và biểu mẫu xử riêng.
+  it('đúng chín loại — cả chín loại của schema đều ghi thêm được', () => {
+    // `place` vào từ 5-7 (FR-65), hai loại quan hệ vào từ 6-1, `gio` từ 7-5 (FR-41). Ba bộ chọn
+    // (nơi, hai quan hệ) có `KIEU_O` riêng; `gio` là một ô chữ "ngày/tháng".
     expect([...LOAI_GHI_THEM]).toEqual([
       'name',
       'gender',
       'birth',
       'death',
+      'gio',
       'place',
       'note',
       'parent-child',

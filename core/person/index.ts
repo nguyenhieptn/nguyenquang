@@ -14,7 +14,8 @@ import type { Visibility } from '@/core/identity/privacy';
 import { resolveViewer } from '@/core/identity/session';
 import { withClanContext } from '@/db';
 import { lookupAccountNames } from '@/core/assertion/ops';
-import { getPersonOps, listConflictsOps, type RawPersonAssertion } from './read-ops';
+import { getPersonOps, listConflictsOps, type GoiYGio, type RawPersonAssertion } from './read-ops';
+export type { GoiYGio } from './read-ops';
 import { xepChong, type AssertionStack } from './chong';
 
 export type { AssertionStack, StackKind } from './chong';
@@ -96,6 +97,8 @@ export type PersonProfile = {
   stacks?: AssertionStack[];
   /** Set when the requested id was a merged tombstone — the winner is returned (AD-3). */
   redirectedFrom?: string;
+  /** FR-41 (7-5) — gợi ý ngày giỗ từ ngày mất chính xác, khi chưa có giỗ. Xem `read-ops § GoiYGio`. */
+  goiYGio?: GoiYGio;
 };
 
 /** Trang một người (2-7): profile + relations + (at full visibility) the claim panel. */
@@ -134,6 +137,7 @@ export async function getPerson(personId: string): Promise<Result<PersonProfile>
     ...(raw.value.redirectedFrom !== undefined
       ? { redirectedFrom: raw.value.redirectedFrom }
       : {}),
+    ...(raw.value.goiYGio !== undefined ? { goiYGio: raw.value.goiYGio } : {}),
   });
 }
 
