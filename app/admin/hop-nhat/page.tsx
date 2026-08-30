@@ -74,7 +74,8 @@ function TheNguoi({ nguoi, the }: { nguoi: DuplicatePerson; the: PersonCard | un
     >
       <Link
         href={`/nguoi/${nguoi.personId}`}
-        className="font-[family-name:var(--font-pha)] text-[17px] font-semibold underline-offset-4 hover:underline"
+        // Sàn chạm 44px (story 7-2): liên kết chữ trần cao 23px là món nợ 6-6 đo được ở đúng màn này.
+        className="inline-flex min-h-11 items-center font-[family-name:var(--font-pha)] text-[17px] font-semibold underline-offset-4 hover:underline"
       >
         {the?.fullName ?? nguoi.fullName}
       </Link>

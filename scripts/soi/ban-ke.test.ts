@@ -61,8 +61,8 @@ describe('nền đã biết trong bản kê', () => {
           phep: 'tương phản',
           soPhanTu: 9,
           viPham: [
-            { loai: 'tuong-phan-thap', moTa: '4.42:1 < 4.5:1 — p · "x"' },
-            { loai: 'tuong-phan-thap', moTa: '4.42:1 < 4.5:1 — span · "y"' },
+            { loai: 'tuong-phan-thap', moTa: '2.85:1 < 4.5:1 — a · "React Flow"' },
+            { loai: 'tuong-phan-thap', moTa: '2.85:1 < 4.5:1 — a · "React Flow"' },
             { loai: 'tuong-phan-thap', moTa: '3.10:1 < 4.5:1 — p · "z"' },
           ],
         },
@@ -84,7 +84,7 @@ describe('nền đã biết trong bản kê', () => {
     const t = veTongKet(bkNo);
     expect(t).toContain('1 vi phạm MỚI');
     // "đếm / lúc ghi nợ" — con số bên phải là thứ làm "đếm tăng lên" nhìn thấy được.
-    expect(t).toMatch(/2 \/ 185/);
+    expect(t).toMatch(/2 \/ 3/);
     expect(t).toContain('deferred-work.md');
   });
 
@@ -105,13 +105,9 @@ describe('nền đã biết trong bản kê', () => {
     expect(veTongKet(bk)).toContain('TĂNG +1');
   });
 
-  it('nợ theo màn KHÔNG nuốt vi phạm cùng hình ở màn khác', () => {
-    const vp = { loai: 'cham-duoi-san', moTa: '23×120px < 44×44 — a · "Nguyễn"' };
-    const oDungMan: BanKe = { man: [{ ...man([{ phep: 'chạm', soPhanTu: 1, viPham: [vp] }]), khoa: 'hop-nhat' }] };
-    const oManKhac: BanKe = { man: [{ ...man([{ phep: 'chạm', soPhanTu: 1, viPham: [vp] }]), khoa: 'cay' }] };
-    expect(demDo(oDungMan)).toBe(0);
-    expect(demDo(oManKhac)).toBe(1);
-  });
+  // Luật "nợ theo màn không nuốt vi phạm cùng hình ở màn khác" nay kiểm ở `da-biet.test.ts` với một
+  // nền tiêm vào — bảng nợ thật không còn mục theo màn sau story 7-2, nên không dựng ca ở đây được
+  // mà không giả vờ một món nợ đã trả.
 });
 
 describe('vẽ bản kê', () => {

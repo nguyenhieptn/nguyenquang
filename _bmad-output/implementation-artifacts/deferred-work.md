@@ -207,7 +207,7 @@ gốc để lần sau không phải điều tra lại.
 
 ## Deferred from: 6-3-nap-khung-noi-that (2026-08-26)
 
-- **`TableCell` mang `whitespace-nowrap`, nên MỌI văn xuôi đặt trong ô bảng không xuống dòng.**
+- ~~**`TableCell` mang `whitespace-nowrap`, nên MỌI văn xuôi đặt trong ô bảng không xuống dòng.**~~ **ĐÃ LÀM — story 7-2**: bỏ ở `TableCell`, giữ ở `TableHead`. Nguyên văn:
   `components/ui/table.tsx:86`. Story 6-3 đã vá tại chỗ cho khối cảnh báo của màn Nạp khung
   (`whitespace-normal` trên khối), sau khi đo trình duyệt thấy câu *"Nối vào đúng người cha ở màn
   **Mảnh chưa nối**"* chạy quá mép hộp 56px — `max-w-[70ch]` viết từ story 3-2 chưa từng có hiệu
@@ -330,7 +330,7 @@ từng mục**. Đếm tăng lên = một hồi quy mới đang nấp sau một 
 
 ### Tương phản — quyết định THIẾT KẾ, không phải bản vá kỹ thuật
 
-- **`--muted-foreground` #796952 trên nền bàn #edeae4 = 4.42:1, sàn là 4.5:1 — 185 chỗ.**
+- ~~**`--muted-foreground` #796952 trên nền bàn #edeae4 = 4.42:1, sàn là 4.5:1 — 185 chỗ.**~~ **ĐÃ LÀM — story 7-2 (29/08/2026)**: token → `#6f5f47` (bàn 5.14 · ô trắng 6.17 · giấy dó 5.38), DESIGN.md chép ngược, mục nợ xoá khỏi `da-biet.ts`. Nguyên văn:
   Một token, mọi màn của bề mặt B. Trên ô bảng trắng #ffffff cùng token ấy đạt **5.31:1**, nên chỉ
   nền bàn mới hụt. Số học kiểm độc lập, không chỉ tin phép đo.
   Vá là đổi token ⇒ đổi cả `DESIGN.md` (`specs/frontend-stack.md § 7`), và đổi diện mạo mọi màn
@@ -356,11 +356,11 @@ từng mục**. Đếm tăng lên = một hồi quy mới đang nấp sau một 
 
 ### Hai khiếm khuyết THẬT trên màn chưa từng ai đo
 
-- **`/admin/hang-cho`: 10 bộ cuộn bảng tràn 1517px trong hộp 972px** khi mở hết khối *"Trả lại"*.
+- ~~**`/admin/hang-cho`: 10 bộ cuộn bảng tràn 1517px trong hộp 972px**~~ **ĐÃ LÀM — story 7-2**: `TableCell` bỏ `whitespace-nowrap`; soi hàng chờ 0 tràn. Nguyên văn: khi mở hết khối *"Trả lại"*.
   Cùng lớp lỗi code review 6-8 đã vá một lần (1239/972, do `whitespace-nowrap`) — nhưng ca này
   chưa ai đo, vì nó chỉ hiện sau khi mở `<details>`, mà bốn script đời trước không mở.
 
-- **`/admin/hop-nhat`: 8 liên kết tên người cao 23px, dưới sàn chạm 44px.**
+- ~~**`/admin/hop-nhat`: 8 liên kết tên người cao 23px, dưới sàn chạm 44px.**~~ **ĐÃ LÀM — story 7-2**: `inline-flex min-h-11 items-center`. Nguyên văn:
   Màn này chưa script nào từng đo. **Trông như một dòng class** (`min-h-11 inline-flex items-center`)
   và sàn 44px sinh ra cho *"người dùng đích có tay run"* (`DESIGN.md:224`) — đáng làm ngay sau 6-6.
 

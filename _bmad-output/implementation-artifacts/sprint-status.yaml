@@ -201,7 +201,7 @@ development_status:
   # lỗi lọt năm cổng ở cuối Đợt 3. Thứ tự: 7-1 → 7-2 → 7-3 → 7-4 → 7-5 → 7-6.
   epic-7: in-progress
   7-1-hang-rao-tu-retro: review
-  7-2-tra-no-san: backlog
+  7-2-tra-no-san: review
   7-3-an-theo-bao-cao: backlog
   7-4-so-nhat-ky: backlog
   7-5-ngay-gio-am-lich: backlog

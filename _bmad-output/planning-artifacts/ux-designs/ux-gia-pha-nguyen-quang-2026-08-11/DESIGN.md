@@ -17,7 +17,7 @@ colors:
   card: '#FBF6E9'              # ô nổi trên nền giấy
   card-foreground: '#3A2F24'
   border: '#DDD0B2'
-  muted-foreground: '#7D6C55'  # nhãn phụ, siêu dữ liệu
+  muted-foreground: '#6F5F47'  # nhãn phụ, siêu dữ liệu — 29/08/2026 (story 7-2): giấy dó 5.38 · ô nổi ≥5.9 · nền bàn B 5.14 (sàn 4.5)
   primary: '#A8322A'           # SON — khan hiếm, xem § Do's and Don'ts
   primary-foreground: '#F8F2E2'
   ring: '#A8322A'
@@ -114,7 +114,7 @@ mè. Mỗi thứ đó đều kéo sản phẩm về phía "phần mềm" và r�
 | Giấy dó | `#F4ECD8` | Nền toàn màn |
 | Ô nổi | `#FBF6E9` | Thẻ người, ô nội dung |
 | Mực nâu | `#3A2F24` | Mọi chữ thân và tên người |
-| Nhãn phụ | `#7D6C55` | Đời, chi, ngày, siêu dữ liệu |
+| Nhãn phụ | `#6F5F47` | Đời, chi, ngày, siêu dữ liệu — đổi 29/08/2026 (7-2): `#7D6C55` hụt sàn trên giấy dó (4.30), `#796952` hụt trên nền bàn B (4.42); giá trị này qua sàn ở cả ba nền |
 | Viền giấy | `#DDD0B2` | Đường phân, viền ô chính thức |
 | **Son** | `#A8322A` | **Khan hiếm** — xem dưới |
 | Chàm mực | `#2E4B6B` | Cảnh báo, ghi chú của bot — xem dưới |
@@ -214,7 +214,7 @@ NFR-9. Không có ngoại lệ, kể cả đề từ:
 Quang tiền dụ hậu
 ```
 
-Phiên âm ở cỡ caption (15px), màu `#7D6C55`, ngay dưới. Chữ Hán đứng trần là lỗi.
+Phiên âm ở cỡ caption (15px), màu nhãn phụ `#6F5F47`, ngay dưới. Chữ Hán đứng trần là lỗi.
 
 ## Layout & Spacing
 

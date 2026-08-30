@@ -14,7 +14,7 @@ describe('nền đã biết', () => {
   });
 
   it('vi phạm khớp thì vào nhóm đã biết', () => {
-    const { moi, daBiet } = tachDaBiet([{ loai: 'tuong-phan-thap', moTa: '4.42:1 < 4.5:1 — p · "x"' }]);
+    const { moi, daBiet } = tachDaBiet([{ loai: 'tuong-phan-thap', moTa: '2.85:1 < 4.5:1 — a · "React Flow"' }]);
     expect(moi).toEqual([]);
     expect(daBiet).toHaveLength(1);
   });
@@ -25,21 +25,27 @@ describe('nền đã biết', () => {
   });
 
   it('cùng chuỗi mà khác `loai` thì cũng là MỚI', () => {
-    const { moi } = tachDaBiet([{ loai: 'cham-duoi-san', moTa: '4.42:1 gì đó' }]);
+    const { moi } = tachDaBiet([{ loai: 'tran-bo-cuon', moTa: 'React Flow gì đó' }]);
     expect(moi).toHaveLength(1);
   });
 
-  it('nợ khai `man` chỉ khớp trên ĐÚNG màn ấy — `23×` ở màn khác là vi phạm MỚI', () => {
+  it('nợ khai `man` chỉ khớp trên ĐÚNG màn ấy — một mục theo màn ở màn khác là vi phạm MỚI', () => {
+    // Bảng thật không còn mục theo màn (7-2 trả hết) — dựng một mục giả để giữ luật.
+    const muc = { loai: 'cham-duoi-san', khop: '23×', man: 'hop-nhat', toiDa: 8, moTa: 'x', viSao: 'y'.repeat(31), theoDoi: 'z'.repeat(6) };
     const vp = { loai: 'cham-duoi-san', moTa: '23×120px < 44×44 — a · "Nguyễn"' };
-    expect(tachDaBiet([vp], 'hop-nhat').daBiet).toHaveLength(1);
-    expect(tachDaBiet([vp], 'cay').moi).toHaveLength(1);
+    expect(tachDaBiet([vp], 'hop-nhat', [muc]).daBiet).toHaveLength(1);
+    expect(tachDaBiet([vp], 'cay', [muc]).moi).toHaveLength(1);
     // Không biết đang ở màn nào thì nghiêng về ĐỎ, không nghiêng về miễn trừ.
-    expect(tachDaBiet([vp]).moi).toHaveLength(1);
+    expect(tachDaBiet([vp], undefined, [muc]).moi).toHaveLength(1);
   });
 
   it('nợ ở tầng token (không `man`) khớp ở mọi màn', () => {
-    const vp = { loai: 'tuong-phan-thap', moTa: '4.42:1 < 4.5:1 — p · "x"' };
+    const vp = { loai: 'tuong-phan-thap', moTa: '2.85:1 < 4.5:1 — a · "React Flow"' };
     expect(tachDaBiet([vp], 'bat-ky').daBiet).toHaveLength(1);
+  });
+
+  it('sau 7-2 nền chỉ còn mã của thư viện — không mục nào khớp token hay màn của dự án', () => {
+    for (const m of DA_BIET) expect(m.khop, m.moTa).toBe('React Flow');
   });
 
   it('mỗi mục ghi số lúc ghi nợ — không có trần thì "đếm tăng lên" không có gì để so', () => {

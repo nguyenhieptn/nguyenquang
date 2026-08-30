@@ -83,7 +83,9 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "p-2 align-middle whitespace-nowrap [&:has([role=checkbox])]:pr-0",
+        // KHÔNG `whitespace-nowrap` (story 7-2): ô bảng chứa văn xuôi người gõ; nowrap mặc định là
+        // lý do hai story (6-3, 6-8) mỗi story vá một lần và bảng hàng chờ tràn 1517px khi mở "Trả lại".
+        "p-2 align-middle [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

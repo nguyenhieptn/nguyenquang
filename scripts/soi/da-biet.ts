@@ -45,17 +45,6 @@ export type MucDaBiet = {
 export const DA_BIET: readonly MucDaBiet[] = [
   {
     loai: 'tuong-phan-thap',
-    khop: '4.42:1',
-    toiDa: 185,
-    moTa: '`--muted-foreground` #796952 trên nền bàn làm việc #edeae4',
-    viSao:
-      'Đổi một token màu là quyết định THIẾT KẾ, không phải bản vá kỹ thuật: nó đổi diện mạo mọi ' +
-      'màn của bề mặt B, và `specs/frontend-stack.md § 7` buộc đổi token thì đổi cả DESIGN.md. ' +
-      'Trên ô bảng trắng #ffffff cùng token ấy đạt 5.31:1 — chỉ nền bàn mới hụt.',
-    theoDoi: 'deferred-work.md § 6-6',
-  },
-  {
-    loai: 'tuong-phan-thap',
     khop: 'React Flow',
     // 3 = hai lượt `/admin/cay` (cay · cay-them) + `/gia-pha` ở 1280 (story 6-10 thêm canvas thứ ba).
     toiDa: 3,
@@ -87,30 +76,9 @@ export const DA_BIET: readonly MucDaBiet[] = [
       'cho mã của người khác, không phải cho mã của dự án; nếu giữ thì phải giữ có chủ ý.',
     theoDoi: 'deferred-work.md § 6-6',
   },
-  {
-    loai: 'tran-bo-cuon',
-    khop: '1517px trong hộp 972px',
-    man: 'hang-cho',
-    toiDa: 10,
-    moTa: 'hàng chờ: 10 bộ cuộn bảng tràn 1517/972px khi mở hết khối "Trả lại"',
-    viSao:
-      'Cùng LỚP lỗi mà code review 6-8 đã vá một lần (1239/972, do `whitespace-nowrap`), nhưng đây ' +
-      'là ca chưa ai đo: nó chỉ hiện khi mở hết `<details>`, mà bốn script đời trước không mở. Vá ' +
-      'nó là sửa bố cục bảng của story 6-8, nằm ngoài phạm vi "dựng cái cân" của 6-6.',
-    theoDoi: 'deferred-work.md § 6-6',
-  },
-  {
-    loai: 'cham-duoi-san',
-    khop: '23×',
-    man: 'hop-nhat',
-    toiDa: 8,
-    moTa: 'hợp nhất mảnh: liên kết tên người cao 23px, dưới sàn chạm 44px',
-    viSao:
-      'Khiếm khuyết THẬT trên một màn chưa script nào từng đo, và trông như một dòng class ' +
-      '(`min-h-11 inline-flex items-center`). Không vá trong 6-6 vì story này cố ý không sửa giao ' +
-      'diện — nhưng đây là món đáng làm ngay sau, sàn 44px sinh ra cho "người dùng đích có tay run".',
-    theoDoi: 'deferred-work.md § 6-6',
-  },
+  // Ba mục đã TRẢ ở story 7-2 (29/08/2026) và xoá khỏi nền: token `--muted-foreground` 4.42:1
+  // (185 chỗ), hàng chờ tràn 1517px khi mở "Trả lại", hợp nhất liên kết 23px. Nền chỉ còn mã của
+  // thư viện — thứ dự án không sở hữu.
 ];
 
 /**
@@ -121,11 +89,12 @@ export const DA_BIET: readonly MucDaBiet[] = [
 export function tachDaBiet(
   ds: readonly ViPham[],
   khoa?: string,
+  nen: readonly MucDaBiet[] = DA_BIET,
 ): { moi: ViPham[]; daBiet: { vp: ViPham; muc: MucDaBiet }[] } {
   const moi: ViPham[] = [];
   const daBiet: { vp: ViPham; muc: MucDaBiet }[] = [];
   for (const vp of ds) {
-    const muc = DA_BIET.find(
+    const muc = nen.find(
       (m) => m.loai === vp.loai && vp.moTa.includes(m.khop) && (m.man === undefined || m.man === khoa),
     );
     if (muc) daBiet.push({ vp, muc });
