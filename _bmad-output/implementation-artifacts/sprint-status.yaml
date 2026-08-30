@@ -206,7 +206,7 @@ development_status:
   7-4-so-nhat-ky: done
   7-5-ngay-gio-am-lich: done
   7-6-mo-cua: done
-  epic-7-retrospective: optional
+  epic-7-retrospective: done
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──
 # Loại: story → vào Đợt 3 (epics-dot-3.md) · sửa → vá có chủ ý · vận hành → không phải mã.
@@ -271,4 +271,21 @@ action_items:
   - epic: 7
     action: "Bật đăng nhập Google: cần tên miền + HTTPS trước (Google không nhận http trên IP), rồi ba biến trong .env và một lần deploy.sh"
     owner: "Hiệp"
+    status: open
+  # Retro Epic 7 (29/08/2026) — đề xuất chờ Hiệp chốt; xem epic-7-retro-2026-08-29.md § Việc chốt.
+  - epic: 7
+    action: "Chốt tinh chỉnh AD-17 (ba giới hạn ẩn theo báo cáo — giữ hay bỏ), ghi vào ARCHITECTURE-SPINE nếu giữ"
+    owner: "Hiệp"
+    status: open
+  - epic: 7
+    action: "Tên miền + TLS — mở đường Google login và mời người ngoài VPN"
+    owner: "Hiệp / Đợt 5"
+    status: open
+  - epic: 7
+    action: "Bấm thử Đợt 4 (giỗ · ẩn/khôi phục · sổ nhật ký) rồi mời thành viên thật đầu tiên, ngồi cạnh"
+    owner: "Hiệp"
+    status: open
+  - epic: 7
+    action: "Mỗi kịch bản bam-thu mới chạy HAI lần liên tiếp trước khi đóng story"
+    owner: "nếp làm việc, từ Đợt 5"
     status: open
