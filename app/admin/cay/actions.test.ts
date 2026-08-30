@@ -30,6 +30,7 @@ import { dungDongHoThu, donDongHoThu, type DongHoThu } from '@/core/gates/dong-h
 import { getPerson } from '@/core/person';
 import { getNeighborhood, searchPersons } from '@/core/tree';
 import { listHiddenAssertions } from '@/core/assertion';
+import { listPendingAttachments, requestAttachment } from '@/core/identity';
 import { anKhangDinh, ghiThemKhangDinh, ghiThemQuanHe, loaiKhangDinh, xemHoSo } from './actions';
 
 let d: DongHoThu;
@@ -359,5 +360,20 @@ describe('anKhangDinh — ẩn theo báo cáo (AD-17, story 7-3) qua phiên th�
     const rong = await anKhangDinh('00000000-0000-7000-8000-000000000000', '   ');
     expect(rong.ok).toBe(false);
     if (!rong.ok) expect(rong.error.code).toBe('invalid');
+  });
+});
+
+describe('màn duyệt vào phả biết AI đang xin (nợ 5-5, đóng ở story 7-6 bằng bằng chứng)', () => {
+  it('tài khoản chưa gắn xin nhận chỗ Mồ Côi ⇒ quản trị đọc được tên hiển thị của tài khoản ấy, không chỉ id', async () => {
+    cookieHienTai = d.chuaGan.cookie;
+    const xin = await requestAttachment(d.nguoi.moCoi);
+    expect(xin.ok).toBe(true);
+    laQuanTri();
+    const ds = await listPendingAttachments();
+    expect(ds.ok).toBe(true);
+    if (!ds.ok) return;
+    const dong = ds.value.find((r) => r.personId === d.nguoi.moCoi);
+    expect(dong?.accountName).toBeTruthy();
+    expect(dong?.accountName).not.toBe(dong?.accountId);
   });
 });

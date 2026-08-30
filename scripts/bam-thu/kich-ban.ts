@@ -21,7 +21,6 @@ export type KichBan = {
   chay: (p: Page, goc: string, dauLuot: string) => Promise<string>;
 };
 
-const NAM_THU = '1901';
 export const TEN_NGUOI_THU = 'Nguyễn Thử Kịch Bản';
 
 async function doiRoiDoc(p: Page, chon: string, ms = 1500): Promise<string> {
@@ -42,9 +41,11 @@ export const KICH_BAN: readonly KichBan[] = [
     vai: 'quan-tri',
     // Đo 29/08: một khẳng định + một nguồn = 2 hàng nhật ký (AD-10: nguồn là một thực thể có dấu vết).
     revisionMongDoi: 2,
-    chay: async (p, goc) => {
+    chay: async (p, goc, dauLuot) => {
       await p.goto(`${goc}/admin/cay`, { waitUntil: 'networkidle' });
-      await p.locator('.react-flow__node').first().click();
+      // Thẻ CỐ ĐỊNH của dòng họ thử (người quản trị, sinh 1975) — `.first()` trôi sau khi K3 thêm
+      // người không năm sinh vào cùng vùng (lượt chạy lại 29/08).
+      await p.locator('.react-flow__node', { hasText: 'Thử Quản Trị' }).first().click();
       await p.waitForTimeout(1200);
       // Tiền kiểm: thẻ đã chọn phải CÓ năm sinh — không thì không dựng được mâu thuẫn, và ✗ sẽ nói
       // sai lý do (review 7-1).
@@ -54,15 +55,20 @@ export const KICH_BAN: readonly KichBan[] = [
       // Biểu mẫu ghi thêm là một KHỐI trong phiếu, không phải `<form>` — neo vào ô giá trị.
       const oGiaTri = p.locator('aside input[id$="-gia-tri"]').first();
       await oGiaTri.waitFor({ timeout: 5000 });
-      await oGiaTri.fill(NAM_THU);
+      // Năm mang dấu lượt (như K4) — chạy lại trên cùng dòng họ thử thì vẫn là một giá trị MỚI.
+      const nam = `1${dauLuot.slice(-3)}`;
+      await oGiaTri.fill(nam);
       await p.locator('aside input[id$="-nguon"]').first().fill('kịch bản ghi 7-1');
       await p.locator('aside').getByRole('button', { name: 'Ghi vào phả' }).click();
       const chu = await doiRoiDoc(p, 'aside', 2000);
-      // Hai giá trị đơn trị ⇒ câu mâu thuẫn của CHỒNG phải hiện cùng năm mới. Neo vào đúng câu
-      // `cauMauThuan('birth', 2)`, không neo "không thể cùng đúng" — chú thích tĩnh của biểu mẫu
-      // cũng chứa cụm ấy (review 7-1).
-      phaiCo(chu, NAM_THU, 'Hai giá trị không thể cùng đúng');
-      return `cột phải bày ${NAM_THU} và câu "Hai giá trị không thể cùng đúng"`;
+      // Chồng đơn trị hoá mâu thuẫn ⇒ câu của CHỒNG (`cauMauThuan`): "Hai giá trị không thể cùng
+      // đúng" ở lượt đầu, "N lời khai, không thể cùng đúng" từ lượt thứ hai trên cùng dòng họ thử.
+      // Không neo cụm "không thể cùng đúng" trần — chú thích biểu mẫu cũng có nó (review 7-1).
+      phaiCo(chu, nam);
+      if (!/(Hai giá trị|\d+ lời khai)[^.]*không thể cùng đúng/.test(chu)) {
+        throw new Error(`cột phải không bày câu mâu thuẫn của chồng — đang nói: "${chu.slice(0, 240)}…"`);
+      }
+      return `cột phải bày ${nam} và câu mâu thuẫn của chồng Sinh`;
     },
   },
   {

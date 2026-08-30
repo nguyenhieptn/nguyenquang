@@ -116,6 +116,8 @@ export function QuanhMinhClient({
         hoTen: v.hoTen,
         tieuSu: v.tieuSu,
         ...(v.goiYGio ? { goiYGio: v.goiYGio } : {}),
+        // Story 7-6: không thấy tên thì không ghi lên — nút thêm/ghi tắt theo cờ này.
+        ...(v.visibility === 'anonymous' ? { anDanh: true } : {}),
         quanHe: v.quanHe,
         // `chong` vắng = NGOÀI BÁN KÍNH RIÊNG TƯ, không phải "chưa có gì" — hai câu khác nhau.
         chong:
@@ -245,14 +247,18 @@ export function QuanhMinhClient({
       {/* Ba lối của phiếu, đứng TRÊN nội dung: đặt làm tâm · thêm người quanh đây · trang đầy đủ. */}
       {chonId ? (
         <div className="flex flex-wrap gap-2 border-b border-border px-5 py-3">
-          <button
-            type="button"
-            onClick={() => chonId && setThem({ mocId: chonId, huong: 'con', hoTen: '' })}
-            className="inline-flex min-h-11 items-center gap-2 rounded-md border border-input px-3 text-[17px]"
-          >
-            <UserRoundPlus className="size-4" aria-hidden />
-            Thêm người quanh đây
-          </button>
+          {/* Người ẩn danh (FR-55) không có nút thêm: ghi là hành vi có địa chỉ, mà địa chỉ đang
+              được giữ kín (story 7-6, nợ 6-10). Phiếu nói lý do ngay dưới. */}
+          {!hoSoHienHanh?.anDanh ? (
+            <button
+              type="button"
+              onClick={() => chonId && setThem({ mocId: chonId, huong: 'con', hoTen: '' })}
+              className="inline-flex min-h-11 items-center gap-2 rounded-md border border-input px-3 text-[17px]"
+            >
+              <UserRoundPlus className="size-4" aria-hidden />
+              Thêm người quanh đây
+            </button>
+          ) : null}
           {chonId !== neoId ? (
             <button
               type="button"

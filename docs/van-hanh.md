@@ -199,6 +199,21 @@ Nó cần một server đang chạy, một database có dữ liệu, và một m
 hỏng trên mọi máy chưa dựng đủ — và một cổng hay đỏ vì lý do ngoài mã là một cổng sắp bị bỏ qua.
 Chạy tay trước mỗi lần phát hành.
 
+## Đăng nhập Google — bật khi có mã (story 7-6)
+
+Mã và nút đã sẵn; chỉ thiếu ba biến trong `.env` (mẫu ở `.env.example § Đăng nhập Google`):
+
+1. Vào Google Cloud Console → *APIs & Services* → *Credentials* → *Create credentials* → *OAuth
+   client ID* → loại *Web application*. Authorized redirect URI:
+   `http://<tailscale-ip>:3000/api/auth/callback/google` (đúng `BETTER_AUTH_URL` + đường ấy; có tên
+   miền thì thêm một dòng nữa).
+2. Chép `Client ID` / `Client secret` vào `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`; đặt
+   `NEXT_PUBLIC_GOOGLE_SIGNIN=1`.
+3. `./scripts/deploy.sh` (biến `NEXT_PUBLIC_*` nướng vào bó lúc BUILD — restart không đủ).
+
+Người vào bằng Google lần đầu vẫn qua bước nhận chỗ (FR-64): tài khoản Google là tài khoản, chỗ trong
+phả là gắn kết, và gắn kết vẫn cần ban tu phả duyệt.
+
 ## Ngày đầu tiếp quản — checklist
 
 1. Được thêm vào máy chủ (SSH) và vào tailnet Tailscale của dòng họ.
@@ -214,7 +229,7 @@ Chạy tay trước mỗi lần phát hành.
 |---|---|---|
 | ~~Bản sao lưu nằm cùng máy với production~~ | **CHỐT BỎ 26/08/2026** — miễn trừ phần off-host của AD-25, xem ARCHITECTURE-SPINE § AD-25. Sao lưu vẫn chạy hằng ngày, vẫn 90 ngày, `--restore` vẫn bắt buộc. Cái mất: không đỡ được **mất máy**, mà phả nay đã có dữ liệu chỉ tồn tại trong database | — |
 | ~~Media trên đĩa local, chưa off-host~~ | Cùng miễn trừ trên | — |
-| Google/Facebook login chưa bật | Chỉ đăng nhập bằng tài khoản riêng | Tạo OAuth app, điền `GOOGLE_CLIENT_ID/SECRET` vào `.env` — code đã sẵn |
+| Google login chưa bật | Chỉ đăng nhập bằng tài khoản riêng | Xem § Đăng nhập Google — ba biến, một lần restart (story 7-6). Facebook: không làm |
 | Chưa có TLS / tên miền | Chỉ truy cập qua VPN Tailscale (mã hoá sẵn trong tailnet) | Khi chốt tên miền (PRD Q6): Caddy/Cloudflare Tunnel trước app |
 | Huy hiệu React Flow trên màn cây | Thẩm mỹ | Mua React Flow Pro nếu muốn gỡ |
 

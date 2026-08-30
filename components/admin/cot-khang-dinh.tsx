@@ -111,6 +111,12 @@ export type HoSoPanel = {
   quanHe?: { chaMe: ChipQuanHe[]; banDoi: ChipQuanHe[]; con: ChipQuanHe[] };
   /** `null` = ngoài bán kính riêng tư của người xem (AD-13/AD-21). KHÔNG phải lỗi. */
   chong: ChongKhangDinh[] | null;
+  /**
+   * Story 7-6 — người này ẨN DANH với người xem (FR-55: ngoài bán kính, tên được giữ kín). Không
+   * thấy tên thì không ghi lên: phiếu không mọc biểu mẫu ghi thêm, và nơi gọi không mọc "Thêm
+   * người quanh đây". Core đã gác bằng bán kính khi đọc; đây là MÔ HÌNH — ghi là hành vi có địa chỉ.
+   */
+  anDanh?: boolean;
   /** FR-41 (7-5) — gợi ý ngày giỗ từ ngày mất; vắng khi đã có giỗ hay ngày mất không chính xác. */
   goiYGio?: { chuoi: string; tuNgayMat: string; ngay: number; thang: number; nhuan: boolean };
   /**
@@ -454,7 +460,14 @@ function Than({
             </section>
           ) : null}
 
-          {chong !== null ? (
+          {hoSo.anDanh ? (
+            <p className="mt-4 max-w-[46ch] text-[17px] text-muted-foreground">
+              Người này được giữ kín với người xem — phả không ghi thêm lên một người mình không thấy
+              tên. Muốn ghi, tìm họ qua người thân trong bán kính của mình, hoặc nhờ ban tu phả.
+            </p>
+          ) : null}
+
+          {chong !== null && !hoSo.anDanh ? (
             <div className="mt-4">
               {moGhi === null ? (
                 <BieuMauGhiThem
@@ -814,7 +827,21 @@ function MotChong({
               giá trị kia lên. Giá trị bị loại vẫn nằm trong nhật ký.
             </p>
           ) : null}
-          {khoiGhiThem ? <div className="mt-1">{khoiGhiThem}</div> : null}
+          {/* Chồng mâu thuẫn không có nút giá trị để bấm-mà-mở (hàng thường mới có) — không có lối
+              này thì lời khai thứ ba phải đi vòng qua "Ghi thêm thông tin" ở cuối phiếu (review 7-3). */}
+          {khoiGhiThem ? (
+            <div className="mt-1">{khoiGhiThem}</div>
+          ) : loaiGhi ? (
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={onMoGhi}
+              aria-label={`Ghi thêm ${NHAN_LOAI[loaiGhi].toLowerCase()}`}
+              className="mt-1 h-11 text-[17px]"
+            >
+              Ghi thêm một lời khai khác
+            </Button>
+          ) : null}
         </div>
       </section>
     );

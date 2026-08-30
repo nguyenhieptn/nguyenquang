@@ -71,7 +71,7 @@ gốc để lần sau không phải điều tra lại.
 
 ## Deferred from: 5-5-duyet-vao-pha (2026-08-25)
 
-- **Màn duyệt chưa nói TÀI KHOẢN nào đang xin.** `PendingAttachment` mang `accountId` nhưng không
+- ~~**Màn duyệt chưa nói TÀI KHOẢN nào đang xin.**~~ **ĐÃ LÀM — story 6-2 (27/08), đóng bằng bằng chứng ở 7-6**: `docNhanTaiKhoan` bày tên + tên đăng nhập; test adapter `actions.test.ts § màn duyệt`. Nguyên văn: `PendingAttachment` mang `accountId` nhưng không
   mang tên hiển thị, nên màn chỉ nói được "một tài khoản đang nhận là <tên người trong phả>".
   Người duyệt cần biết ai đang xin để quyết. `lookupAccountNames` đã có ở `core/assertion/ops`,
   nhưng đây là dữ liệu danh tính đi qua ranh giới AD-8 (`user` nằm ngoài phân vùng clan) nên đáng
@@ -429,12 +429,12 @@ người ta bỏ qua nó. Đã bỏ 768px khỏi bề mặt B.
 
 ## Deferred from: code review of story 6-10-pha-quanh-minh (2026-08-29)
 
-- **Người ẩn danh trên bề mặt thành viên vẫn ghi lên được.** Thẻ *"Một người trong họ"* (ngoài bán
+- ~~**Người ẩn danh trên bề mặt thành viên vẫn ghi lên được.**~~ **ĐÃ LÀM — story 7-6 (29/08/2026)**: quyết định *không thấy tên thì không ghi lên* — không nút thêm, không biểu mẫu, phiếu nói lý do. Nguyên văn: Thẻ *"Một người trong họ"* (ngoài bán
   kính, được giữ kín — FR-55) có đủ *Thêm người quanh đây* và *Đặt làm tâm*; core giữ đúng liên
   kết và bán kính, nhưng biểu mẫu đọc *"là con của Một người trong họ"*. Cần một quyết định: thành
   viên có được ghi lên người mình không thấy tên không. Dòng họ thử chưa có ai ẩn danh để nhìn.
   [app/(pha)/gia-pha/_quanh-minh/quanh-minh-client.tsx]
-- **`loading.tsx` của `/gia-pha` nhịp theo hình cũ** (chi của mình: đầu trang + hàng đời) trong khi
+- ~~**`loading.tsx` của `/gia-pha` nhịp theo hình cũ**~~ **ĐÃ LÀM — story 7-6**: máy = canvas + cột 360px, điện thoại = hàng đời. Nguyên văn: (chi của mình: đầu trang + hàng đời) trong khi
   màn thật trên máy nay là canvas + cột phải. Khung chờ và khung thật lệch một nhịp lúc dữ liệu về.
   [app/(pha)/gia-pha/loading.tsx]
 - **`doBanKinh` chép hai nơi** (`app/admin/cay/page.tsx` · `app/(pha)/gia-pha/page.tsx`) — một

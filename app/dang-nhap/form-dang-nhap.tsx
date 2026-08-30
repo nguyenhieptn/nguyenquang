@@ -294,11 +294,28 @@ export function FormDangNhap({
         )}
       </form>
 
-      {/* Đăng nhập Google: server chỉ bật provider khi GOOGLE_CLIENT_ID/SECRET có trong môi
-          trường (core/identity/ba.ts) — client không đọc được biến server, và chưa có cờ
-          NEXT_PUBLIC_* nào khai báo trạng thái ấy. Nên KHÔNG render nút Google: một nút chết
-          tệ hơn không có nút. Khi hạ tầng thêm cờ (vd NEXT_PUBLIC_GOOGLE_SIGNIN=1), dựng nút
-          ở đây bằng authClient.signIn.social({ provider: 'google' }). */}
+      {/* Đăng nhập Google (story 7-6): server chỉ bật provider khi GOOGLE_CLIENT_ID/SECRET có
+          trong môi trường (core/identity/ba.ts); client không đọc được biến server nên đi qua cờ
+          NEXT_PUBLIC_GOOGLE_SIGNIN=1 — đặt cùng lúc với hai mã kia (docs/van-hanh.md § Đăng nhập
+          Google). Không cờ ⇒ không nút: một nút chết tệ hơn không có nút. */}
+      {process.env.NEXT_PUBLIC_GOOGLE_SIGNIN === '1' ? (
+        <div className="mt-6 border-t border-border pt-5">
+          <Button
+            type="button"
+            variant="outline"
+            disabled={dangGui}
+            onClick={() => {
+              void authClient.signIn.social({ provider: 'google', callbackURL: '/' });
+            }}
+            className="h-12 w-full text-[17px]"
+          >
+            Vào bằng tài khoản Google
+          </Button>
+          <p className="mt-2 text-[15px] text-muted-foreground">
+            Lần đầu vào bằng Google thì cũng tới bước nhận chỗ của mình trong phả như tạo tài khoản.
+          </p>
+        </div>
+      ) : null}
     </div>
   );
 }
