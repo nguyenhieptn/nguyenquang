@@ -39,7 +39,9 @@ const aNameChild = uuidv7();
 const aEdgeReplay = uuidv7(); // parent-child assertion whose removal getTreeAt must survive
 
 const guest: GuestContext = { accountId: null, clanId, personId: null, role: 'guest' };
-const admin: SessionContext = { accountId: accB, clanId, personId: null, role: 'admin' };
+// Vai `admin` đến từ một gắn kết ĐANG HOẠT ĐỘNG, nên quản trị luôn có `personId` — ngữ cảnh
+// `personId: null` kèm vai là trạng thái phiên thật không sinh ra (story 7-1).
+const admin: SessionContext = { accountId: accB, clanId, personId: uuidv7(), role: 'admin' };
 const stranger: SessionContext = { accountId: accA, clanId, personId: pStranger, role: 'member' };
 const relative: SessionContext = { accountId: accA, clanId, personId: pRelative, role: 'member' };
 
@@ -274,9 +276,11 @@ describe('getTreeAt', () => {
     expect(asMember.ok).toBe(false);
     if (!asMember.ok) expect(asMember.error.code).toBe('forbidden');
 
+    // Khách chưa đăng nhập: qua `gateApprover` (story 7-1) là `unauthenticated` — đúng hơn
+    // 'forbidden', vì adapter dẫn khách về cửa đăng nhập chứ không nói "không đủ quyền".
     const asGuest = await withClanContext(clanId, (tx) => ops.getTreeAt(tx, guest, new Date()));
     expect(asGuest.ok).toBe(false);
-    if (!asGuest.ok) expect(asGuest.error.code).toBe('forbidden');
+    if (!asGuest.ok) expect(asGuest.error.code).toBe('unauthenticated');
   });
 });
 

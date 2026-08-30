@@ -163,6 +163,26 @@ họ thử sống qua đêm.
 Cùng bộ dựng với bài test adapter (`core/gates/dong-ho-thu.ts`), nên cây thử có đủ ca: ba đời,
 một cặp vợ chồng, hai anh em, một mảnh rời, một người chưa có cha.
 
+### Kịch bản ghi — cổng thứ sáu, script duy nhất được bấm nút ghi
+
+Bộ đo chỉ ĐỌC. Test adapter gọi server action mà không có màn. Ở giữa là một lớp lỗi hai thứ ấy
+đều không thấy: nút ghi có chạy, nhưng màn nói sai hoặc không nói gì (câu xác nhận nằm trong hàng
+vừa bị gỡ — code review 6-4). `npm run bam-thu` (story 7-1) bấm nút ghi THẬT trên dòng họ thử rồi
+đọc lại màn và đếm `revision` của đúng clan ấy:
+
+```bash
+GIAPHA_CLAN_ID=<id dòng họ thử> SOI_GOC=http://$(tailscale ip -4):3200 \
+  SOI_TEN=thu.quan.tri.<mã> SOI_MK='<mật khẩu in ra>' npm run bam-thu        # cả ba kịch bản
+npm run bam-thu -- k2                                                        # một kịch bản
+```
+
+Ba rào đứng trước mọi cú bấm, hụt một rào là dừng, không chạm gì: tên clan của `GIAPHA_CLAN_ID`
+trong DB phải bắt đầu bằng *"Dòng họ thử"* · `SOI_TEN` phải là `thu.quan.tri.*` · sau đăng nhập
+thanh trên phải mang họ *"Nguyễn Thử"*. Tài khoản thành viên suy từ tên quản trị (cùng mã). Ba
+kịch bản là ba LỚP (phiếu bề mặt B · bảng nơi chốn · bề mặt A của thành viên); story nào có nút
+ghi mới thì thêm kịch bản vào `scripts/bam-thu/kich-ban.ts` với `revisionMongDoi` đo được. Ảnh ở
+`var/bam-thu/`. Chạy ở mỗi story có nút ghi, và trước mỗi lần phát hành cùng `npm run soi`.
+
 ### Khi thêm một màn mới
 
 Thêm một dòng vào `scripts/soi/dang-ky.ts`. Quên thì `npm test` ĐỎ — `dang-ky.test.ts` đối chiếu bản

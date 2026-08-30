@@ -13,6 +13,7 @@ import { attachment, notification, person } from '@/db/schema';
 import { writeRevision } from '@/core/revision';
 import { err, isUuid, ok, type Result } from '@/core/types';
 import type { SessionContext } from './session';
+import { gateWriter } from './gates';
 
 export type AttachmentRole = 'admin' | 'branch-head' | 'member';
 
@@ -521,15 +522,16 @@ export async function updateSelfVisibilityOp(
   ctx: SessionContext,
   args: { personId: string; hiddenFromPublic?: boolean; refusePrint?: boolean },
 ): Promise<Result<{ personId: string }>> {
-  if (!ctx.personId) return err('unattached', 'Chưa gắn với ai trong phả nên chưa có gì để chỉnh.');
-  if (args.personId !== ctx.personId) {
+  const gate = gateWriter(ctx);
+  if (!gate.ok) return gate;
+  if (args.personId !== gate.value.personId) {
     return err('forbidden', 'Quyền FR-55 chỉ áp cho node của chính mình.');
   }
   if (args.hiddenFromPublic === undefined && args.refusePrint === undefined) {
     return err('invalid', 'Không có gì để thay đổi.');
   }
 
-  const [own] = await tx.select().from(person).where(eq(person.id, ctx.personId));
+  const [own] = await tx.select().from(person).where(eq(person.id, gate.value.personId));
   if (!own) return err('not-found', 'Không thấy node của mình.');
 
   const patch: { hiddenFromPublic?: boolean; refusePrint?: boolean; updatedAt: Date } = {
@@ -560,11 +562,12 @@ export async function getMyNotificationsOp(
   tx: Tx,
   ctx: SessionContext,
 ): Promise<Result<NotificationItem[]>> {
-  if (!ctx.personId) return err('unattached', 'Chưa gắn với ai trong phả.');
+  const gate = gateWriter(ctx);
+  if (!gate.ok) return gate;
   const rows = await tx
     .select()
     .from(notification)
-    .where(eq(notification.personId, ctx.personId))
+    .where(eq(notification.personId, gate.value.personId))
     .orderBy(desc(notification.createdAt));
   return ok(
     rows.map((r) => ({
@@ -587,14 +590,15 @@ export async function markNotificationSeenOp(
   ctx: SessionContext,
   args: { notificationId: string },
 ): Promise<Result<{ seenAt: Date }>> {
-  if (!ctx.personId) return err('unattached', 'Chưa gắn với ai trong phả.');
+  const gate = gateWriter(ctx);
+  if (!gate.ok) return gate;
   if (!isUuid(args.notificationId)) return err('not-found', 'Không thấy thông báo này.');
   const [row] = await tx
     .select()
     .from(notification)
     .where(eq(notification.id, args.notificationId));
   // Someone else's notification reads as absent — existence is not leaked.
-  if (!row || row.personId !== ctx.personId) return err('not-found', 'Không thấy thông báo này.');
+  if (!row || row.personId !== gate.value.personId) return err('not-found', 'Không thấy thông báo này.');
   if (row.seenAt) return ok({ seenAt: row.seenAt });
 
   const seenAt = new Date();

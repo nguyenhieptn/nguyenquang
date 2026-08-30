@@ -47,6 +47,31 @@ const eslintConfig = defineConfig([
       ],
     },
   },
+  // ── Cổng chỉ có hai tên (story 7-1, retro Epic 6) ──────────────────────────────────────────
+  // 29/08/2026: `gateWriter` được sửa thứ tự `unauthenticated`/`unattached` buổi sáng; buổi chiều
+  // một ops mới tự viết ba dòng kiểm và lặp đúng lỗi ấy — tsc · eslint · 549 test · build · soi đều
+  // xanh. Rà lại thấy `core/merge/ops.ts` cũng mang một bản chép từ Đợt 1. Cổng là thứ máy phải
+  // gác: trong ops/read-ops KHÔNG so `'guest'`, KHÔNG tự sinh `unattached`/`unauthenticated` —
+  // gọi `gateWriter` / `gateApprover` (`core/identity/gates.ts`). Lens "ai NHÌN được gì" là
+  // `coQuyenDuyet` (`core/identity/privacy.ts`), không phải cổng.
+  {
+    files: ["core/**/ops.ts", "core/**/read-ops.ts"],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector: "BinaryExpression > Literal[value='guest']",
+          message:
+            "Cổng chỉ có hai tên: gateWriter / gateApprover (core/identity/gates.ts). Chép lại cổng là lặp lỗi 29/08 (story 7-1).",
+        },
+        {
+          selector: "CallExpression[callee.name='err'] > Literal:first-child[value=/^(unattached|unauthenticated)$/]",
+          message:
+            "Ops không tự sinh 'unattached'/'unauthenticated' — hai mã ấy chỉ ra từ gateWriter / gateApprover (story 7-1).",
+        },
+      ],
+    },
+  },
   // core/ không được import ngược lên adapter.
   {
     files: ["core/**/*.ts"],

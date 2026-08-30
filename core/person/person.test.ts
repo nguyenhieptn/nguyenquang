@@ -15,7 +15,7 @@ const owner = ownerPool();
 const clanId = uuidv7();
 
 const member: SessionContext = { accountId: 's12-person-member', clanId, personId: uuidv7(), role: 'member' };
-const unattached: SessionContext = { accountId: 's12-person-noattach', clanId, personId: null, role: 'member' };
+const unattached: SessionContext = { accountId: 's12-person-noattach', clanId, personId: null, role: 'guest' }; // như phiên thật (7-1)
 const guest: GuestContext = { accountId: null, clanId, personId: null, role: 'guest' };
 
 beforeAll(async () => {

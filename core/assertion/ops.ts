@@ -37,45 +37,9 @@ import { DON_TRI } from '@/core/person/chong';
 import type { ViewerContext } from '@/core/identity/session';
 import type { AssertionSpec, GenealogicalDate, SourceSpec } from './index';
 
-// ── Context gates ────────────────────────────────────────────────────────────
-
-/** A viewer allowed to write: authenticated AND attached to a node (AD-8). */
-export type AttachedContext = {
-  accountId: string;
-  clanId: string;
-  personId: string;
-  role: 'admin' | 'branch-head' | 'member';
-};
-
-/**
- * Guests and unattached accounts get err on every write — with TWO different codes.
- *
- * ── `unattached` từng là mã chết (sửa 29/08/2026, tầng test adapter đầu tiên bắt được) ──────
- * `resolveSessionImpl` trả `role: 'guest'` cho tài khoản ĐÃ đăng nhập mà chưa gắn chỗ, và bản
- * trước kiểm `role === 'guest'` TRƯỚC `personId === null` — nên tài khoản ấy nhận
- * `unauthenticated`, nhánh `unattached` không bao giờ tới được qua một phiên thật, và adapter
- * không phân biệt nổi *"chưa đăng nhập"* với *"đã đăng nhập, chưa nhận chỗ"*. Mà
- * `EXPERIENCE.md § Chưa gắn node` đòi đúng phép phân biệt ấy: mọi hành động ghi dẫn về luồng
- * nhận chỗ, không phải về màn đăng nhập.
- *
- * Nay: không tài khoản ⇒ `unauthenticated`; có tài khoản mà không có chỗ ⇒ `unattached`.
- * `role === 'guest'` kèm `personId` là trạng thái sản phẩm không tạo ra được, nên gộp về vế sau.
- */
-export function gateWriter(ctx: ViewerContext): Result<AttachedContext> {
-  if (ctx.accountId === null) return err('unauthenticated', 'writing requires a signed-in account');
-  if (ctx.personId === null || ctx.role === 'guest')
-    return err('unattached', 'writing requires an account attached to a clan node');
-  return ok(ctx as AttachedContext);
-}
-
-/** Promotion / restore / reject / pending queue need the approval right (FR-3). */
-export function gateApprover(ctx: ViewerContext): Result<AttachedContext> {
-  const writer = gateWriter(ctx);
-  if (!writer.ok) return writer;
-  if (writer.value.role !== 'admin' && writer.value.role !== 'branch-head')
-    return err('forbidden', 'requires the approval right (admin or branch-head)');
-  return writer;
-}
+// ── Context gates — sống ở `core/identity/gates.ts` (story 7-1), re-export cho nơi gọi cũ ──
+import { gateApprover, gateWriter, type AttachedContext } from '@/core/identity/gates';
+export { gateWriter, gateApprover, type AttachedContext };
 
 // ── Validation helpers ───────────────────────────────────────────────────────
 

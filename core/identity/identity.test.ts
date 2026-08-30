@@ -745,9 +745,9 @@ describe('vai và gỡ gắn (story 6-2)', () => {
     const clanRieng = uuidv7();
     clanPhu.push(clanRieng);
     const accountId = `s62-mot-minh-${run}`;
+    const personId = uuidv7();
     await withClanContext(clanRieng, async (tx) => {
       await tx.insert(clan).values({ id: clanRieng, name: 'S62 Một Quản Trị' });
-      const personId = uuidv7();
       await tx.insert(person).values({
         id: personId,
         clanId: clanRieng,
@@ -763,7 +763,8 @@ describe('vai và gỡ gắn (story 6-2)', () => {
         status: 'active',
       });
     });
-    const minh: SessionContext = { accountId, clanId: clanRieng, personId: null, role: 'admin' };
+    // Phiên thật của một gắn kết đang hoạt động mang đúng `personId` của gắn kết ấy (story 7-1).
+    const minh: SessionContext = { accountId, clanId: clanRieng, personId, role: 'admin' };
 
     const tuGo = await withClanContext(clanRieng, (tx) => detachSelfOp(tx, minh));
     expect(tuGo.ok).toBe(false);

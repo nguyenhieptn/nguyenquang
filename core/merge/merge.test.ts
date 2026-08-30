@@ -94,7 +94,8 @@ const memberAcc = `${STORY}-acc-member`;
 
 const adminCtx: SessionContext = { accountId: adminAcc, clanId, personId: adminPerson, role: 'admin' };
 const memberCtx: SessionContext = { accountId: memberAcc, clanId, personId: memberPerson, role: 'member' };
-const unattachedCtx: SessionContext = { accountId: `${STORY}-acc-loose`, clanId, personId: null, role: 'member' };
+// Đã đăng nhập mà chưa gắn: phiên thật mang `role: 'guest'` (`core/identity/auth.ts`), không phải 'member' (7-1).
+const unattachedCtx: SessionContext = { accountId: `${STORY}-acc-loose`, clanId, personId: null, role: 'guest' };
 const guestCtx: ViewerContext = { accountId: null, clanId, personId: null, role: 'guest' };
 
 function unwrap<T>(r: Result<T>): T {

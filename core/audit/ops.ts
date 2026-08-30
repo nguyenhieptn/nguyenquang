@@ -44,6 +44,8 @@ import { err, isUuid, ok, type Result } from '@/core/types';
 import { ANONYMOUS_LABEL, PRIVACY_RADIUS, visibilityFor } from '@/core/identity/privacy';
 import type { ViewerContext } from '@/core/identity/session';
 import { lookupAccountNames } from '@/core/assertion/ops';
+import { gateApprover } from '@/core/identity/gates';
+import { coQuyenDuyet } from '@/core/identity/privacy';
 import { bfsDistances, loadTreeData } from '@/core/tree/ops';
 
 type RevisionRow = typeof revision.$inferSelect;
@@ -236,7 +238,7 @@ export async function getPersonHistory(
   if (!subject) return err('not-found', 'person not found');
 
   let distance: number | null = null;
-  const privileged = ctx.role === 'admin' || ctx.role === 'branch-head';
+  const privileged = coQuyenDuyet(ctx);
   if (subject.isLiving && !privileged && ctx.personId !== null && ctx.personId !== personId) {
     distance = (await viewerDistances(tx, ctx.personId)).get(personId);
   }
@@ -347,9 +349,9 @@ type ReplayAssertion = {
  * than corrupting the replay.
  */
 export async function getTreeAt(tx: Tx, ctx: ViewerContext, at: Date): Promise<Result<TreeSnapshot>> {
-  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
-    return err('forbidden', 'point-in-time reconstruction is limited to admin and branch-head (AD-21)');
-  }
+  // AD-21: tái hiện theo thời điểm là quyền duyệt — qua CỔNG, không so vai tay (story 7-1).
+  const gate = gateApprover(ctx);
+  if (!gate.ok) return gate;
 
   const rows = await tx
     .select()
@@ -522,7 +524,7 @@ export async function getRecentAdditions(
     .orderBy(desc(revision.createdAt), desc(revision.id))
     .limit(n);
 
-  const privileged = ctx.role === 'admin' || ctx.role === 'branch-head';
+  const privileged = coQuyenDuyet(ctx);
   const viewerNode = ctx.personId;
   const dist =
     !privileged && viewerNode !== null && rows.some((r) => r.isLiving)

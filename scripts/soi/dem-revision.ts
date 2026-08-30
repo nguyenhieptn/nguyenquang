@@ -22,6 +22,43 @@
 import 'dotenv/config';
 import { ownerPool } from '@/db';
 
+/** Đếm `revision` của MỘT clan — kịch bản ghi (story 7-1) chỉ được đo trong dòng họ thử của nó. */
+export async function demRevisionCua(clanId: string): Promise<number | null> {
+  let pool;
+  try {
+    pool = ownerPool();
+    const cl = await pool.connect();
+    try {
+      await cl.query('BEGIN');
+      await cl.query('select set_config($1, $2, true)', ['app.clan_id', clanId]);
+      const kq = await cl.query<{ n: number }>('select count(*)::int as n from revision');
+      await cl.query('COMMIT');
+      const n = kq.rows[0]?.n;
+      return typeof n === 'number' ? n : null;
+    } finally {
+      cl.release();
+    }
+  } catch {
+    return null;
+  } finally {
+    await pool?.end().catch(() => {});
+  }
+}
+
+/** Tên một clan — `clan` đọc được không cần context (danh bạ, không chứa dữ liệu về người). */
+export async function tenClan(clanId: string): Promise<string | null> {
+  let pool;
+  try {
+    pool = ownerPool();
+    const kq = await pool.query<{ name: string }>('select name from clan where id = $1', [clanId]);
+    return kq.rows[0]?.name ?? null;
+  } catch {
+    return null;
+  } finally {
+    await pool?.end().catch(() => {});
+  }
+}
+
 export async function demRevision(): Promise<number | null> {
   let pool;
   try {

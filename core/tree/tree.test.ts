@@ -92,7 +92,8 @@ const NAME = {
   VX: 'S13 Lê Thị Xa',
 };
 
-const adminCtx: ViewerContext = { accountId: acc, clanId, personId: null, role: 'admin' };
+// Quản trị luôn có chỗ — vai đến từ gắn kết đang hoạt động (story 7-1). Chỗ ấy không cần là người trong bộ dữ liệu này.
+const adminCtx: ViewerContext = { accountId: acc, clanId, personId: uuidv7(), role: 'admin' };
 const guestCtx: ViewerContext = { accountId: null, clanId, personId: null, role: 'guest' };
 const memberB2: ViewerContext = { accountId: acc, clanId, personId: B2, role: 'member' };
 const memberC1: ViewerContext = { accountId: acc, clanId, personId: C1, role: 'member' };

@@ -16,6 +16,7 @@
 import { withClanContext } from '@/db';
 import { err, type Result } from '@/core/types';
 import { resolveSession } from '@/core/identity/session';
+import { gateWriter } from '@/core/identity/gates';
 import {
   addPlaceOps,
   listMergedPlacesOps,
@@ -46,7 +47,9 @@ export type { MucChacChanNoi } from './cham-diem';
 export async function listPlaces(): Promise<Result<NoiChon[]>> {
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập.');
-  if (!session.personId) return err('unattached', 'Chưa gắn vào một người trong phả.');
+  // Danh mục là dữ liệu TRONG HỌ (FR-65), nên cổng là `gateWriter` — không chép lại (story 7-1).
+  const gate = gateWriter(session);
+  if (!gate.ok) return gate;
   return withClanContext(session.clanId, (tx) => listPlacesOps(tx));
 }
 
@@ -107,6 +110,7 @@ export async function unmergePlace(placeId: string): Promise<Result<NoiChon>> {
 export async function listMergedPlaces(): Promise<Result<NoiDaGop[]>> {
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập.');
-  if (!session.personId) return err('unattached', 'Chưa gắn vào một người trong phả.');
+  const gate = gateWriter(session);
+  if (!gate.ok) return gate;
   return withClanContext(session.clanId, (tx) => listMergedPlacesOps(tx));
 }

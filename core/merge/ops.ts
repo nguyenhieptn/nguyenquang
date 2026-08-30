@@ -33,6 +33,8 @@ import { err, isUuid, ok, type Result } from '@/core/types';
 import { PRIVACY_RADIUS, visibilityFor } from '@/core/identity/privacy';
 import type { SessionContext, ViewerContext } from '@/core/identity/session';
 import { lookupAccountNames, projectPerson } from '@/core/assertion/ops';
+import { gateApprover, gateWriter } from '@/core/identity/gates';
+import { coQuyenDuyet } from '@/core/identity/privacy';
 import { bfsDistances, loadTreeData } from '@/core/tree/ops';
 
 /** Trigram floor for duplicate candidates (AD-16: folded comparison, never bare ILIKE). */
@@ -96,25 +98,11 @@ export type ExecuteMergeOutcome = {
   repointedCount: number;
 };
 
-// ── permission guards (AD-22) ────────────────────────────────────────────────
-
-function requireAttached(ctx: ViewerContext): Result<SessionContext> {
-  if (ctx.accountId === null || ctx.role === 'guest') {
-    return err('unauthenticated', 'sign-in required');
-  }
-  if (ctx.personId === null) return err('unattached', 'account has no clan node attachment');
-  return ok(ctx);
-}
-
-function requireApprover(ctx: ViewerContext): Result<SessionContext> {
-  if (ctx.accountId === null || ctx.role === 'guest') {
-    return err('unauthenticated', 'sign-in required');
-  }
-  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
-    return err('forbidden', 'requires the approval right (admin or branch-head)');
-  }
-  return ok(ctx);
-}
+// ── permission guards (AD-22) — cổng ở `core/identity/gates.ts` (story 7-1) ─────────────────
+// Bản chép cũ ở đây mang đúng thứ tự sai mà `gateWriter` được sửa 29/08 (`role === 'guest'` trước
+// `personId === null` ⇒ tài khoản đã đăng nhập mà chưa gắn nhận `unauthenticated`).
+const requireAttached = gateWriter;
+const requireApprover = gateApprover;
 
 // ── evidence helpers ─────────────────────────────────────────────────────────
 
@@ -289,7 +277,7 @@ async function viewerDistances(
 /** True when EVERY person is at least 'limited' to this viewer — nobody is anonymous to them. */
 async function allVisible(tx: Tx, ctx: SessionContext, rows: PrivacyRow[]): Promise<boolean> {
   const viewer = { role: ctx.role, personId: ctx.personId };
-  const privileged = ctx.role === 'admin' || ctx.role === 'branch-head';
+  const privileged = coQuyenDuyet(ctx);
   const needsDistance =
     !privileged && ctx.personId !== null && rows.some((r) => r.isLiving && r.id !== ctx.personId);
   const distances = needsDistance && ctx.personId !== null ? await viewerDistances(tx, ctx.personId) : null;

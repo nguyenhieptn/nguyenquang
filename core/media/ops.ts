@@ -37,6 +37,8 @@ import type { SessionContext } from '@/core/identity/session';
 import { bfsDistances, loadTreeData } from '@/core/tree/ops';
 import { getStorage } from './storage';
 import { mintPlaybackToken } from './token';
+import { coQuyenDuyet } from '@/core/identity/privacy';
+import { gateWriter } from '@/core/identity/gates';
 
 export const RECORDING_MIMES = ['audio/webm', 'audio/mp4', 'audio/mpeg', 'audio/ogg'] as const;
 export type RecordingMime = (typeof RECORDING_MIMES)[number];
@@ -92,7 +94,7 @@ type RecordingRow = typeof recording.$inferSelect;
 // ── The one rule set (AD-12) ────────────────────────────────────────────────────────────────
 
 function isApprover(ctx: SessionContext): boolean {
-  return ctx.role === 'admin' || ctx.role === 'branch-head';
+  return coQuyenDuyet(ctx);
 }
 
 /** Recorder, or the teller's own attached account. */
@@ -143,10 +145,9 @@ function statusLabel(row: RecordingRow): string | null {
 // ── FR-47: save ─────────────────────────────────────────────────────────────────────────────
 
 function validateSaveInput(ctx: SessionContext, input: SaveRecordingInput): Result<void> {
-  if (ctx.personId === null) {
-    // Any ATTACHED member may record; an account without a node may not (AD-8).
-    return err('unattached', 'Chưa gắn vào phả nên chưa thu lời kể được.');
-  }
+  // Any ATTACHED member may record; an account without a node may not (AD-8) — qua cổng (7-1).
+  const gate = gateWriter(ctx);
+  if (!gate.ok) return gate;
   if (!(RECORDING_MIMES as readonly string[]).includes(input.mime)) {
     return err('invalid', `Định dạng âm thanh không nhận: ${input.mime}`);
   }
@@ -299,7 +300,7 @@ export async function listRecordingsOp(tx: Tx, ctx: SessionContext): Promise<Res
 
   // The walk is the expensive part, so it runs only when it can change an answer: the dead and
   // privileged viewers are 'full' regardless, and a viewer with no node is outside every radius.
-  const privileged = ctx.role === 'admin' || ctx.role === 'branch-head';
+  const privileged = coQuyenDuyet(ctx);
   const viewerNode = ctx.personId;
   const dist =
     !privileged && viewerNode !== null && visible.some((r) => r.tellerIsLiving === true)

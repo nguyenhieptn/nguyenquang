@@ -28,7 +28,8 @@ const nodeId = uuidv7();
 
 const ctx: SessionContext = { accountId: acc, clanId, personId: nodeId, role: 'admin' };
 /** Tài khoản CHƯA gắn node — mọi lối ghi phải từ chối (AD-8). */
-const ctxRoi: SessionContext = { accountId: acc, clanId, personId: null, role: 'admin' };
+// Chưa gắn ⇒ phiên thật là `role: 'guest'` — không có quản trị nào không có chỗ (story 7-1).
+const ctxRoi: SessionContext = { accountId: acc, clanId, personId: null, role: 'guest' };
 /** Thành viên thường: ĐÃ gắn node, nhưng không có quyền duyệt. */
 const ctxThuong: SessionContext = { accountId: acc, clanId, personId: nodeId, role: 'member' };
 

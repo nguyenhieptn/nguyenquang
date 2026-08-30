@@ -1,3 +1,12 @@
+
+/**
+ * LENS, không phải GATE (story 7-1): "người này NHÌN được gì" — quản trị và đầu mối chi thấy trọn
+ * (AD-21). Bốn chỗ (privacy · audit · media · merge) từng chép `role === 'admin' || 'branch-head'`;
+ * một tên cho một câu hỏi, để lượt thêm vai sau này sửa một chỗ. Chặn GHI thì dùng `gateApprover`.
+ */
+export function coQuyenDuyet(viewer: { role: string }): boolean {
+  return viewer.role === 'admin' || viewer.role === 'branch-head';
+}
 /**
  * AD-13 — privacy radius as a PURE function. No configuration surface, no widening.
  *
@@ -72,7 +81,7 @@ export function visibilityFor(
   today = new Date(),
 ): Visibility {
   if (!subject.isLiving) return 'full';
-  if (viewer.role === 'admin' || viewer.role === 'branch-head') return 'full';
+  if (coQuyenDuyet(viewer)) return 'full';
   if (viewer.personId && subject.personId && viewer.personId === subject.personId) return 'full';
 
   const inRadius = viewer.personId !== null && distance !== null && distance <= PRIVACY_RADIUS;
