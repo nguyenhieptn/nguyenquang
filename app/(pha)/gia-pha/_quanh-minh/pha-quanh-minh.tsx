@@ -24,7 +24,6 @@ import Link from 'next/link';
 import type { NutCanvas } from '@/components/admin/khung-cay-admin';
 import { KHUNG, RONG } from '@/components/pha/khung';
 import { ThanhDieuHuong } from '@/components/pha/thanh-dieu-huong';
-import { coBanLamViec } from '@/lib/vai-quan-tri';
 import type { Neighborhood } from '@/core/tree';
 import { tenChi } from '../_chia-se/chuyen-doi';
 import { QuanhMinhClient } from './quanh-minh-client';
@@ -35,6 +34,7 @@ export function PhaQuanhMinh({
   tenPha,
   banLamViec,
   loiNeo,
+  moPhieuNgay,
 }: {
   vung: Neighborhood;
   minhId: string | null;
@@ -42,6 +42,8 @@ export function PhaQuanhMinh({
   banLamViec: boolean;
   /** Một câu khi `?neo=` trỏ vào người không thấy — về mình, và nói vì sao. */
   loiNeo?: string;
+  /** `?phieu=mo` — vừa thêm người xong, điện thoại mở sẵn tấm phiếu của neo. */
+  moPhieuNgay: boolean;
 }) {
   // Dịch sang hình dạng của tầng component — một lần, tường minh (`build-contract § Phân tầng`).
   const nut: NutCanvas[] = vung.nodes.map((n) => ({
@@ -107,6 +109,7 @@ export function PhaQuanhMinh({
             canKiet={vung.exhausted}
             nut={nut}
             minhId={minhId}
+            moPhieuNgay={moPhieuNgay}
           />
           <p className="mt-1.5 hidden max-w-3xl text-[15px] text-muted-foreground md:block">
             Kéo để di chuyển · chụm hoặc dùng nút + − để phóng to. Chạm một người để mở phiếu bên

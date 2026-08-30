@@ -51,6 +51,7 @@ export function QuanhMinhClient({
   canKiet,
   nut,
   minhId,
+  moPhieuNgay,
 }: {
   neoId: string;
   banKinh: number;
@@ -58,6 +59,12 @@ export function QuanhMinhClient({
   nut: NutCanvas[];
   /** Node của chính người xem — nhãn "mình". */
   minhId: string | null;
+  /**
+   * Mở sẵn tấm phiếu của neo (điện thoại) — `?phieu=mo`. Chỉ một ca dùng: vừa thêm một người
+   * xong và dời tâm sang họ. Trên máy cột phải luôn mở nên không cần; trên điện thoại thì không
+   * có nó là ghi xong thấy một danh sách lặng lẽ, không biết mình vừa ghi vào đâu (AC 16).
+   */
+  moPhieuNgay: boolean;
 }) {
   const router = useRouter();
   const manRong = useManRong();
@@ -69,12 +76,17 @@ export function QuanhMinhClient({
    * sẵn (để cột phải trên máy có nội dung), nhưng trên điện thoại không được tự bật tấm phiếu
    * lên che danh sách: tấm chỉ mở sau một cú chạm có chủ ý.
    */
-  const [tamMo, setTamMo] = useState(false);
+  const [tamMo, setTamMo] = useState(moPhieuNgay);
   const [hoSo, setHoSo] = useState<HoSoPanel | null>(null);
   const [dangTai, batDauTai] = useTransition();
   /** `null` = biểu mẫu thêm người đóng. Mở thì phiếu nhường chỗ cho biểu mẫu. */
   const [them, setThem] = useState<{ mocId: string | null; huong: HuongThem; hoTen: string } | null>(null);
-  const [banThem, setBanThem] = useState(false);
+  /**
+   * Biểu mẫu thêm người đã BẨN chưa — ref, không state: không lượt vẽ nào cần nó, chỉ `chon()`
+   * đọc nó ngay lúc bấm để hỏi trước khi gỡ một biểu mẫu đang gõ dở (bề mặt A không có `Esc` hai
+   * nhịp như bàn tu phả, nên câu hỏi nằm ở đúng cú bấm sẽ làm mất chữ).
+   */
+  const banThem = useRef(false);
 
   /** Người mà phiếu ĐANG MUỐN bày — chốt hiệu lực cho lượt nạp, xem `cay-client.tsx`. */
   const dangMuon = useRef<string | null>(null);
@@ -132,9 +144,12 @@ export function QuanhMinhClient({
 
   const chon = useCallback(
     (id: string) => {
+      // Đổi người là gỡ biểu mẫu thêm người của người cũ. Có chữ gõ dở thì hỏi — trong một hệ
+      // không có nút xoá, một lời khai gõ dở mất đi im lặng là thứ người ta không tha thứ.
+      if (banThem.current && !window.confirm('Bỏ những gì vừa gõ trong biểu mẫu thêm người?')) return;
       setChonId(id);
       setThem(null);
-      setBanThem(false);
+      banThem.current = false;
       setTamMo(true);
       // DỌN NGAY, không đợi lượt nạp về — phiếu không được in tên A cạnh biểu mẫu ghi cho B.
       setHoSo(null);
@@ -171,11 +186,21 @@ export function QuanhMinhClient({
 
   const dongThem = useCallback(() => {
     setThem(null);
-    setBanThem(false);
+    banThem.current = false;
   }, []);
 
-  const tenTheoId = (id: string | null) => (id ? (nut.find((n) => n.id === id)?.the.hoTen ?? null) : null);
   const hoSoHienHanh = hoSo && hoSo.personId === chonId ? hoSo : null;
+  /**
+   * Tên mốc: từ canvas, và nếu mốc KHÔNG có trên hình (chọn qua chip quan hệ một người ngoài bán
+   * kính đang bày) thì từ chính hồ sơ đang mở. Bản đầu chỉ tra canvas, nên ca ấy `tenMoc` là
+   * `null` và biểu mẫu chỉ còn lựa chọn *"chưa biết nối vào ai"* — trong khi `mocId` vẫn được
+   * gửi đi và người mới thành CON của mốc. Câu trên màn và hàng ghi xuống nói hai chuyện khác nhau
+   * (sửa 29/08 sau code review).
+   */
+  const tenTheoId = (id: string | null) =>
+    id
+      ? (nut.find((n) => n.id === id)?.the.hoTen ?? (hoSoHienHanh?.personId === id ? hoSoHienHanh.hoTen : null))
+      : null;
   const daThayCanhCu = them
     ? camNutTam(nut.map((n) => ({ id: n.id, chaId: n.chaId })), them.mocId, them.huong).daThayCanhCu
     : false;
@@ -188,7 +213,9 @@ export function QuanhMinhClient({
       huong={them.huong}
       onDoiHuong={(h) => setThem((cu) => (cu ? { ...cu, huong: h } : cu))}
       onDoiTen={(t) => setThem((cu) => (cu ? { ...cu, hoTen: t } : cu))}
-      onDoiBan={setBanThem}
+      onDoiBan={(b) => {
+        banThem.current = b;
+      }}
       daThayCanhCu={daThayCanhCu}
       onDong={dongThem}
       onGui={async (d) => {
@@ -203,10 +230,10 @@ export function QuanhMinhClient({
           huong: them.huong,
         });
         if (!res.ok) return res.error.message;
-        // Ghi xong thì DỜI TÂM sang người vừa tạo — thấy ngay chỗ mình vừa ghi vào.
+        // Ghi xong thì DỜI TÂM sang người vừa tạo — thấy ngay chỗ mình vừa ghi vào. `phieu=mo`
+        // để điện thoại mở luôn tấm phiếu của họ; máy thì cột phải tự mở.
         dongThem();
-        setTamMo(false);
-        router.push(`${DUONG}?neo=${encodeURIComponent(res.value.personId)}`);
+        router.push(`${DUONG}?neo=${encodeURIComponent(res.value.personId)}&phieu=mo`);
         return null;
       }}
     />
@@ -336,9 +363,9 @@ export function QuanhMinhClient({
             // Nhãn nói đúng thứ đang bày: phiếu, hay biểu mẫu thêm người.
             nhan={them ? 'Thêm người vào phả' : 'Hồ sơ'}
             onDong={() => {
+              // Đóng tấm KHÔNG gỡ gì: biểu mẫu đang gõ dở ở nguyên chỗ (`TamPhieu` giấu con, không
+              // gỡ), mở lại vẫn còn. Chọn người khác mới là lúc biểu mẫu cũ rời đi (`chon`).
               setTamMo(false);
-              // Biểu mẫu đang có chữ thì GIỮ — đóng tấm không phải là bỏ chữ đã gõ; mở lại vẫn còn.
-              if (!banThem) setThem(null);
             }}
           >
             {phieu}

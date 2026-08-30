@@ -37,7 +37,12 @@ function doBanKinh(raw: string | undefined): number {
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ neo?: string | string[]; 'ban-kinh'?: string | string[] }>;
+  searchParams: Promise<{
+    neo?: string | string[];
+    'ban-kinh'?: string | string[];
+    /** `mo` — vừa thêm người xong, điện thoại mở sẵn tấm phiếu (xem `quanh-minh-client.tsx`). */
+    phieu?: string | string[];
+  }>;
 }) {
   const viewer = await resolveViewer();
   // Không phiên và cũng không có phả nào mở cho khách — cùng nghĩa với 'unauthenticated'.
@@ -68,6 +73,7 @@ export default async function Page({
           tenPha={tenPha}
           banLamViec={banLamViec}
           loiNeo={loiNeo}
+          moPhieuNgay={(Array.isArray(sp.phieu) ? sp.phieu[0] : sp.phieu) === 'mo'}
         />
       );
     }

@@ -95,8 +95,9 @@ describe('nền đã biết trong bản kê', () => {
 
   it('nợ đếm VƯỢT lúc ghi nợ thì thành mục cần mắt và in chữ TĂNG — không trông vào người nhớ số cũ', () => {
     const vp = { loai: 'cham-duoi-san', moTa: '13×60px < 44×44 — a · "React Flow"' };
+    // Mốc của mục React Flow là 3 (ba canvas) — bốn vi phạm là vượt một.
     const bk: BanKe = {
-      man: [man([{ phep: 'chạm', soPhanTu: 9, viPham: [vp, vp, vp] }])],
+      man: [man([{ phep: 'chạm', soPhanTu: 9, viPham: [vp, vp, vp, vp] }])],
     };
     expect(demDo(bk)).toBe(0);
     expect(demVuotNo(bk)).toBe(1);

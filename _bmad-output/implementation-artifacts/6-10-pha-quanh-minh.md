@@ -4,7 +4,7 @@ baseline_commit: 34915ca
 
 # Story 6.10: Phả quanh mình — cây và phiếu cho người trong họ
 
-Status: review
+Status: done
 
 ## Story
 
@@ -136,6 +136,25 @@ Story này là **gói lại cho bề mặt A**, không phải một canvas thứ
 - [x] **T10** Bốn cổng: `npm run lint` · `tsc` · `vitest` · `build`
 - [x] **T11** Dựng dòng họ thử, `next start` ở `:3200` ghim `GIAPHA_CLAN_ID`, `npm run soi --
       gia-pha` ở 390 + 1280, nhìn ảnh chụp (AC 22) — xem § Lượt chạy thật
+- [x] **T12** Code review: 6 patch + 3 defer, đã vá hết; bốn cổng xanh lại (lint · tsc · 524/524 · build)
+
+### Review Findings
+
+Code review 29/08/2026 — ba lượt đọc đối kháng (soi lỗi · soi biên · đối chiếu 22 AC), mở mã ở
+từng nơi gọi trước khi chấm. Bốn cổng xanh trước khi vá.
+
+- [x] [Review][Patch] **Tấm phiếu đóng là GỠ biểu mẫu đang gõ dở, trong khi chú thích hứa "mở lại vẫn còn"** — `TamPhieu` `return null` khi đóng ⇒ `BieuMauThemNguoi` unmount ⇒ mất họ tên, năm sinh, xuất xứ; nơi gọi lại giữ `them` khi `banThem` nên mở lại thấy một biểu mẫu TRỐNG với mốc cũ. Nay đóng là `hidden` — con ở nguyên chỗ, trạng thái ở nguyên chỗ. [components/pha/tam-phieu.tsx:52]
+- [x] [Review][Patch] **Mốc không có trên canvas ⇒ biểu mẫu chỉ còn "chưa biết nối vào ai" mà `mocId` vẫn gửi đi** — bấm một chip quan hệ trỏ ra ngoài vùng đang bày, rồi *Thêm người quanh đây*: `tenTheoId` chỉ tra `nut` nên `tenMoc = null`, `HUONG` lọc còn mỗi `'roi'`, mà `huong` vẫn là `'con'` và người mới thành CON của mốc. Câu trên màn và hàng ghi xuống nói hai chuyện. Nay tra thêm hồ sơ đang mở. **Cùng lỗ ở `cay-client.tsx` (admin), vá luôn.** [app/(pha)/gia-pha/_quanh-minh/quanh-minh-client.tsx:196; app/admin/cay/cay-client.tsx:318]
+- [x] [Review][Patch] **AC 16 chỉ đạt trên máy** — thêm người xong dời tâm sang người mới; máy có cột phải tự mở, điện thoại thì `tamMo` về `false` sau khi trang dựng lại: người ghi thấy một danh sách lặng lẽ, không phiếu nào. Nay `?phieu=mo` mở sẵn tấm phiếu của neo — đúng một ca, và đúng ca người ta cần thấy chỗ mình vừa ghi vào. [app/(pha)/gia-pha/page.tsx; quanh-minh-client.tsx]
+- [x] [Review][Patch] **Bấm sang người khác khi biểu mẫu thêm người đang có chữ ⇒ mất im lặng** — bàn tu phả có `Esc` hai nhịp; bề mặt A không có phím tắt nên không có câu hỏi nào. Nay `chon()` hỏi một câu trước khi gỡ (`window.confirm`); cờ bẩn thành `ref` vì không lượt vẽ nào cần nó — và `no-unused-vars` bắt đúng cái state không ai đọc. [quanh-minh-client.tsx:84]
+- [x] [Review][Patch] `coBanLamViec` import mà không dùng ở `pha-quanh-minh.tsx` (nhận qua prop). [pha-quanh-minh.tsx:27]
+- [x] [Review][Patch] `ban-ke.test.ts` chốt trần React Flow = 2 trong khi `da-biet.ts` vừa nâng lên 3 — test đỏ, và đỏ đúng. [scripts/soi/ban-ke.test.ts]
+
+- [x] [Review][Defer] Người ẩn danh (*"Một người trong họ"*) trên bề mặt A vẫn có *Thêm người quanh đây* và *Đặt làm tâm* — core giữ đúng liên kết, nhưng biểu mẫu đọc *"là con của Một người trong họ"*; cần một quyết định về việc thành viên có được ghi lên người mình không thấy tên [quanh-minh-client.tsx] — deferred, ca chưa tới được trên dòng họ thử (không ai ẩn danh)
+- [x] [Review][Defer] `app/(pha)/gia-pha/loading.tsx` vẫn nhịp theo hình *chi của mình* (đầu trang + hàng đời), trong khi màn thật nay là canvas + cột phải trên máy — khung chờ và khung thật lệch một nhịp [app/(pha)/gia-pha/loading.tsx] — deferred, thẩm mỹ
+- [x] [Review][Defer] `doBanKinh` chép từ `app/admin/cay/page.tsx` — hai bản của một hằng số 1–6 [app/(pha)/gia-pha/page.tsx:31] — deferred, nhỏ
+
+Gạt bỏ: hai `useManRong()` cùng chạy (hai listener `matchMedia`, vô hại); quản trị mở `/gia-pha` không thấy nút duyệt (cố ý, AC 14).
 
 ## Dev Notes
 

@@ -427,6 +427,19 @@ người ta bỏ qua nó. Đã bỏ 768px khỏi bề mặt B.
   `/admin/cay` (`ChuaCoGi` · có cây), `/admin/hop-nhat` (không mảnh rời · có) đều có hai bộ mặt mà
   bản đăng ký không nói vì sao chỉ đo một. [scripts/soi/dang-ky.ts]
 
+## Deferred from: code review of story 6-10-pha-quanh-minh (2026-08-29)
+
+- **Người ẩn danh trên bề mặt thành viên vẫn ghi lên được.** Thẻ *"Một người trong họ"* (ngoài bán
+  kính, được giữ kín — FR-55) có đủ *Thêm người quanh đây* và *Đặt làm tâm*; core giữ đúng liên
+  kết và bán kính, nhưng biểu mẫu đọc *"là con của Một người trong họ"*. Cần một quyết định: thành
+  viên có được ghi lên người mình không thấy tên không. Dòng họ thử chưa có ai ẩn danh để nhìn.
+  [app/(pha)/gia-pha/_quanh-minh/quanh-minh-client.tsx]
+- **`loading.tsx` của `/gia-pha` nhịp theo hình cũ** (chi của mình: đầu trang + hàng đời) trong khi
+  màn thật trên máy nay là canvas + cột phải. Khung chờ và khung thật lệch một nhịp lúc dữ liệu về.
+  [app/(pha)/gia-pha/loading.tsx]
+- **`doBanKinh` chép hai nơi** (`app/admin/cay/page.tsx` · `app/(pha)/gia-pha/page.tsx`) — một
+  hằng 1–6 ở hai chỗ.
+
 ## Chốt BỎ — 26/08/2026
 
 Ba việc được nêu và chủ dự án chốt **không làm**. Ghi ra để lần sau không ai đề xuất lại như thể

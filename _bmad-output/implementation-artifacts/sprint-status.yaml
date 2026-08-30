@@ -177,8 +177,13 @@ development_status:
   # chỉ thấy vùng quanh mình, thêm/sửa được, KHÔNG duyệt được. Tới 6-9 đường SỬA chỉ có ở /admin —
   # "con cháu đề xuất, trưởng họ duyệt" mà con cháu chưa có chỗ đề xuất. Mượn nguyên thẻ, phiếu,
   # biểu mẫu của components/admin qua một lớp đổi token; ruột ghi chung ở lib/ghi-pha.ts.
-  # Dựng 29/08, đo trên DÒNG HỌ THỬ (scripts/dong-ho-thu.ts) ở cả 390 và 1280. Chờ code review.
-  6-10-pha-quanh-minh: review
+  # Dựng 29/08, đo trên DÒNG HỌ THỬ (scripts/dong-ho-thu.ts) ở cả 390 và 1280: trọn bộ 29 lượt,
+  # 0 vi phạm mới. Vi phạm duy nhất lượt đầu — chấm ○ tồn nghi 2.31:1 trên giấy — vá bằng cách để
+  # chấm mang màu mực, phân biệt bằng hình; đóng luôn mục nợ 2.72:1 treo từ 6-6.
+  # Code review 29/08 — 6 patch + 3 defer, ĐÃ VÁ HẾT. Nặng nhất: tấm phiếu đóng là GỠ biểu mẫu
+  # đang gõ dở trong khi chú thích hứa "mở lại vẫn còn"; và mốc ngoài canvas làm biểu mẫu nói
+  # "chưa biết nối vào ai" trong khi vẫn ghi con của mốc (cùng lỗ ở admin, vá luôn).
+  6-10-pha-quanh-minh: done
   epic-6-retrospective: optional
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──

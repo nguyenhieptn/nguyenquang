@@ -47,7 +47,15 @@ export function TamPhieu({
     };
   }, [mo, onDong]);
 
-  if (!mo) return null;
+  /**
+   * ĐÓNG là GIẤU, không phải gỡ (sửa 29/08 sau code review 6-10).
+   *
+   * Bản đầu `return null` khi đóng, nên biểu mẫu thêm người đang gõ dở bị gỡ khỏi cây React —
+   * mất họ tên, năm sinh, xuất xứ — trong khi nơi gọi hứa *"đóng tấm không phải là bỏ chữ đã gõ;
+   * mở lại vẫn còn"*. Lời hứa ấy chỉ đúng khi con của tấm ở nguyên chỗ. `hidden` bỏ nó khỏi cả
+   * mắt lẫn cây trợ năng; trạng thái React thì ở lại.
+   */
+  if (!mo) return <div hidden>{children}</div>;
   return (
     <>
       <div

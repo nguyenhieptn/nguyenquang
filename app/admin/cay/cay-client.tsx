@@ -315,8 +315,14 @@ export function CayClient({
     [napHoSo, router],
   );
 
+  /**
+   * Tên mốc: từ canvas, và nếu mốc không có trên hình (chọn qua chip quan hệ một người ngoài bán
+   * kính đang bày) thì từ hồ sơ đang mở — kẻo biểu mẫu chỉ còn *"chưa biết nối vào ai"* trong khi
+   * `mocId` vẫn gửi đi (code review 6-10; cùng lỗ ở cả hai bề mặt).
+   */
   const mocHoTen = them?.mocId
-    ? (nut.find((n) => n.id === them.mocId)?.the.hoTen ?? null)
+    ? (nut.find((n) => n.id === them.mocId)?.the.hoTen ??
+      (hoSo?.personId === them.mocId ? hoSo.hoTen : null))
     : null;
 
   /**
