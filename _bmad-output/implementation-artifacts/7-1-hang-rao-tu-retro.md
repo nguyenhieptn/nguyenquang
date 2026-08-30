@@ -4,7 +4,7 @@ baseline_commit: e3874b6
 
 # Story 7.1: Hàng rào từ retro — cổng chỉ có hai tên, và kịch bản ghi có mắt
 
-Status: review
+Status: done
 
 ## Story
 
@@ -64,7 +64,9 @@ trước `personId === null`); `core/audit/ops.ts:350` gác `getTreeAt` bằng s
    `core/audit/ops.ts § getTreeAt` dùng `gateApprover`; `core/place/index.ts` không tự gác
    `unattached` (đưa xuống ops qua cổng, hoặc bỏ gác nếu đọc danh mục không cần gắn — quyết: dùng
    `gateWriter` trong ops vì danh mục là dữ liệu trong họ, không công khai — FR-65).
-3. `coQuyenDuyet(ctx)` ở `core/identity/session.ts`; bốn chỗ `privileged` dùng nó; có test thuần.
+3. `coQuyenDuyet(ctx)` ở `core/identity/privacy.ts` (cạnh `visibilityFor` — nó là lens); bốn chỗ
+   `privileged` trong core và `lib/vai-quan-tri.ts § coBanLamViec` dùng nó; kiểm bằng `privacy.test`
+   hiện có (mọi ca `admin`/`branch-head` ⇒ 'full' đi qua nó) — sửa sau code review.
 4. Test cho luật lint: một file mẫu vi phạm (trong `var/` hoặc chuỗi) chạy qua ESLint API ⇒ đúng hai
    lỗi; file dùng cổng ⇒ 0 lỗi (`eslint.config.test.ts`, nếp `chrome.test.ts` đọc cấu hình thật).
 
@@ -73,12 +75,13 @@ trước `personId === null`); `core/audit/ops.ts:350` gác `getTreeAt` bằng s
    không phải dòng họ thử, khi `SOI_TEN` không phải tài khoản thử, hoặc khi thanh trên không mang
    họ thử. Ba rào có test thuần (hàm `kiemRao`).
 6. K1: đăng nhập quản trị, mở `/admin/cay`, chọn thẻ đầu, bấm giá trị *Sinh*, ghi năm mới ⇒ cột phải
-   hiện năm ấy VÀ câu mâu thuẫn; `revision` tăng đúng 1 (một khẳng định + nguồn = một revision? —
-   khai đúng con số đo được, ghi vào story).
+   hiện năm ấy VÀ câu mâu thuẫn; `revision` tăng đúng **2** (đo 29/08: một khẳng định + một nguồn —
+   AD-10, nguồn là thực thể có dấu vết; spec ban đầu đoán 1).
 7. K2: `/admin/noi-chon`, gộp "Quang Trung, Vũng Tàu" vào "Quang Trung, Định Hoá…" ⇒ câu *"Đã gộp …
    1 khẳng định"* hiện ở BẢNG (không trong hàng); tách lại ⇒ *"Đã tách lại"*; `revision` +2.
 8. K3: đăng nhập thành viên, `/gia-pha`, chọn thẻ đầu, *Thêm người quanh đây*, ghi một người ⇒ thẻ
-   mang tên ấy xuất hiện trên canvas; `revision` +1.
+   mang tên ấy xuất hiện trên canvas; `revision` **+4** (đo 29/08: người + nguồn + tên + cha-con;
+   spec ban đầu đoán 1).
 9. Bản kê cuối: mỗi kịch bản một dòng ✓/✗ với câu màn đã nói, tổng revision trước → sau, exit 1 nếu
    có ✗. Ảnh chụp mỗi kịch bản vào `var/bam-thu/`.
 10. `docs/van-hanh.md § Bộ đo` thêm mục *Kịch bản ghi* (khi nào chạy, ba rào, cách đọc bản kê).
@@ -91,8 +94,9 @@ trước `personId === null`); `core/audit/ops.ts:350` gác `getTreeAt` bằng s
 - Không đổi hành vi cổng (thứ tự, mã lỗi) — chỉ gom về một chỗ.
 - Không viết kịch bản cho mọi nút ghi; ba kịch bản là ba LỚP (phiếu B · bảng nơi · bề mặt A). Story
   sau có nút ghi mới thì thêm kịch bản của nó.
-- `core/identity/ops.ts` so `role` cho việc QUẢN LÝ vai (trao/hạ) — là nghiệp vụ, không phải cổng;
-  giữ nguyên, luật lint không chạm vì không so `'guest'` và không sinh `unattached`.
+- `core/identity/ops.ts` so `role` cho việc QUẢN LÝ vai (trao/hạ: *ai được trao vai gì*) — là nghiệp
+  vụ, giữ nguyên. Riêng bốn cổng DUYỆT chép tay trong tệp ấy (xem danh sách chờ, duyệt, từ chối,
+  xem tài khoản) thì code review bắt và nay qua `gateApprover` (giữ câu tiếng Việt ở `forbidden`).
 
 ## Tasks / Subtasks
 - [x] **T1** Luật lint + test cấu hình (AC 1, 4)
@@ -138,7 +142,8 @@ Claude Fable 5 · 29/08/2026.
   ra +4 (người + nguồn + tên + cha-con), không +3 như đoán. Lượt hai: **3/3 ✓, revision 77 → 85**.
 - Hai kiểm âm: `GIAPHA_CLAN_ID` = phả thật ⇒ *"✗ rào clan: clan "Dòng họ Nguyễn Quang" KHÔNG phải
   dòng họ thử"*; trỏ vào `:3000` với clan thử ⇒ *"✗ rào thanh-tren"*. Cả hai dừng trước cú bấm đầu.
-- `soi` không chạy ở story này: không màn nào đổi.
+- `soi` không chạy ở story này: không màn nào đổi (cổng thứ năm gác MÀN; story này không có màn).
+- Kết quả bốn cổng còn lại lúc đóng: `lint` ✓ · `tsc` ✓ · `vitest` 556/556 ✓ · `build` ✓.
 
 ### File List
 - `core/identity/gates.ts` (mới) · `core/identity/privacy.ts` (`coQuyenDuyet`) · `core/assertion/ops.ts` (re-export)
@@ -147,3 +152,38 @@ Claude Fable 5 · 29/08/2026.
 - `core/audit/audit.test.ts` · `core/merge/merge.test.ts` · `core/place/place.test.ts` · `core/person/person.test.ts` · `core/identity/identity.test.ts` · `core/tree/tree.test.ts` — ngữ cảnh thật
 - `scripts/bam-thu.ts` · `scripts/bam-thu/{rao,rao.test,kich-ban}.ts` (mới) · `scripts/soi/dem-revision.ts` (`demRevisionCua`, `tenClan`) · `package.json` (`bam-thu`)
 - `docs/van-hanh.md § Kịch bản ghi`
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 5+ · Edge Case 17 · Acceptance Auditor 12 → 26 sau gộp trùng → **21 patch · 2 defer · 3 dismiss**.
+
+Patch (đã áp, cổng xanh):
+1. **Luật lint phủ CẢ `core/**`** (bản đầu chỉ `ops.ts`/`read-ops.ts`: 31/41 tệp ngoài phạm vi) —
+   miễn đúng bốn tệp định nghĩa vai/cổng + `core/gates/**`; bắt thêm `case`/`.includes`; khối
+   ops mang đủ ba selector (flat config không gộp mảng luật). Test luật viết lại: mỗi khẳng định
+   đã kiểm là đỏ được.
+2. Luật mới bắt **thêm bảy chỗ chép cổng**: `core/place/index.ts § searchPlaces`, `core/identity/
+   info.ts`, `self.ts`, và bốn cổng duyệt chép tay trong `core/identity/ops.ts` (giữ câu tiếng
+   Việt ở `forbidden`, còn `unattached`/`unauthenticated` ra từ cổng).
+3. **Câu của cổng là tiếng Việt** — adapter có chỗ in thẳng `error.message` (`noi-chon/page.tsx`).
+4. `coQuyenDuyet` nhận `Role`, đứng dưới docblock của `privacy.ts`, xuất qua `core/identity`;
+   `lib/vai-quan-tri.ts § coBanLamViec` dùng nó — hết bản chép thứ bảy.
+5. `bam-thu`: khoá không khớp ⇒ exit 1 (không "xanh rỗng"); `SOI_TEN` phải là quản trị; rào 3
+   buộc màn mang **mã clan** của `GIAPHA_CLAN_ID` (hai dòng họ thử cùng lúc); revision không đếm được
+   ⇒ "không kết luận được", không phải ✗ màn; `moTrinhDuyet` vào trong `try`; rào 3 hỏng ⇒ dừng và
+   VẪN in bản kê.
+6. Kịch bản: K1 tiền kiểm có năm sinh + neo đúng câu `cauMauThuan` (chú thích biểu mẫu cũng chứa
+   "không thể cùng đúng"); K2 đếm chính xác `— (\d+) khẳng định` + `finally` tách lại; K3 tên mang
+   dấu lượt.
+7. Ngữ cảnh test còn sót (`media.test.ts`, bốn bài identity với `guest`/`member` không chỗ) sửa về
+   hình thật; mã lỗi đổi theo cổng (`unattached` thay `forbidden` cho tài khoản chưa gắn) và test nói rõ.
+8. `demRevision` dùng lại `demRevisionCua`; `docs/van-hanh.md` thêm "cách đọc bản kê"; story sửa
+   AC 3 (chỗ của lens), AC 6/8 (con số đo), § Phạm vi.
+
+Quyết định: rào 3 chạy SAU đăng nhập — trang công khai không bày tên dòng họ (đã thử `/` và
+`/dang-nhap`), và đăng nhập chỉ ghi `session` toàn cục, không chạm phả (`revision` chứng). Ghi rõ ở
+đầu `bam-thu.ts` và `docs/van-hanh.md`.
+
+Defer: luật lint không thấy `const MA = 'unattached'` / `err(MA)` hay `{ code: 'unattached' }` — chấp
+nhận: luật gác NẾP, review gác NGHĨA (retro 6, nếp 5). Dismiss: "K1 màn không nói câu mâu thuẫn khi
+thẻ không có năm sinh" (đã tiền kiểm); "browser leak khi rào 3 hỏng" (đã trong `try/finally`).

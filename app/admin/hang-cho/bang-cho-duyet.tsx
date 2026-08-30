@@ -415,13 +415,15 @@ function HangKhangDinh({
         `whitespace-normal` — MÓN HOÃN của code review 6-3, nay đến hạn (`deferred-work.md`:
         *"đó là màn của 6-8, story sắp dựng lại chính hàng chờ ấy"*).
 
-        `TableCell` mang `whitespace-nowrap` (`components/ui/table.tsx:86`), nên `max-w-[42ch]`
+        `TableCell` TỪNG mang `whitespace-nowrap` (tới story 7-2, 29/08/2026), nên `max-w-[42ch]`
         và `max-w-[32ch]` viết ra ở story 3-3 CHƯA TỪNG có hiệu lực: câu của một khẳng định và
         xuất xứ do người gõ tay là văn xuôi dài tuỳ ý. Đo được ngay lượt soi đầu của 6-8: bảng
-        rộng 1239 trong hộp 972, phải cuộn ngang mới đọc hết.
+        rộng 1239 trong hộp 972, phải cuộn ngang mới đọc hết. Nay `TableCell` không còn nowrap;
+        `whitespace-normal` giữ lại như một lời khai rõ ý, và `break-words` cho một URL/email
+        dán vào không đẩy bảng ra ngoài hộp.
       */}
       <TableCell className="align-top whitespace-normal">
-        <p className="max-w-[42ch] text-[17px]">{d.cau}</p>
+        <p className="max-w-[42ch] break-words text-[17px]">{d.cau}</p>
         <div className="mt-1 flex flex-wrap items-center gap-2">
           <ChamTinCay muc={d.tinCay} />
           {/* Dấu của dòng đụng độ — CHỮ, không chỉ màu (`EXPERIENCE.md § Accessibility Floor`). */}
@@ -433,11 +435,11 @@ function HangKhangDinh({
         </div>
       </TableCell>
       <TableCell className="align-top whitespace-normal">
-        <p className="max-w-[32ch] text-[17px]">{d.nguon}</p>
+        <p className="max-w-[32ch] break-words text-[17px]">{d.nguon}</p>
       </TableCell>
       {/* Ô THỨ BA của món hoãn 6-3 — bản vá đầu sót nó, và `deferred-work.md` đã kịp đánh dấu ✅.
           `nguoiKhai` là `authUser.name`: chữ người dùng tự gõ, dài tuỳ ý. */}
-      <TableCell className="max-w-[24ch] align-top text-[17px] whitespace-normal">
+      <TableCell className="max-w-[24ch] break-words align-top text-[17px] whitespace-normal">
         {d.nguoiKhai}
         <span className="block text-[15px] text-muted-foreground">{d.luc}</span>
       </TableCell>

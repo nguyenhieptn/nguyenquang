@@ -50,24 +50,61 @@ const eslintConfig = defineConfig([
   // ── Cổng chỉ có hai tên (story 7-1, retro Epic 6) ──────────────────────────────────────────
   // 29/08/2026: `gateWriter` được sửa thứ tự `unauthenticated`/`unattached` buổi sáng; buổi chiều
   // một ops mới tự viết ba dòng kiểm và lặp đúng lỗi ấy — tsc · eslint · 549 test · build · soi đều
-  // xanh. Rà lại thấy `core/merge/ops.ts` cũng mang một bản chép từ Đợt 1. Cổng là thứ máy phải
-  // gác: trong ops/read-ops KHÔNG so `'guest'`, KHÔNG tự sinh `unattached`/`unauthenticated` —
-  // gọi `gateWriter` / `gateApprover` (`core/identity/gates.ts`). Lens "ai NHÌN được gì" là
-  // `coQuyenDuyet` (`core/identity/privacy.ts`), không phải cổng.
+  // xanh. Code review 7-1 đếm thêm: 31/41 tệp core nằm ngoài glob `ops.ts` đầu tiên, và trong đó còn
+  // ba bản chép nữa (`info.ts`, `self.ts`, `place/index.ts`). Nên luật phủ CẢ `core/**`, chỉ miễn
+  // đúng những tệp ĐỊNH NGHĨA vai và cổng. Lens "ai NHÌN được gì" là `coQuyenDuyet`, không phải cổng.
+  //
+  //   · không so `'guest'` (mọi hình: `===`, `!==`, `case`, `.includes`)
+  //   · không tự sinh `err('unattached', …)` — kể cả ở surface `index.ts`: chưa gắn là việc của cổng
+  //   · ops/read-ops không tự sinh `err('unauthenticated', …)`; surface được, vì "không có phiên" là
+  //     điều chỉ surface biết (nó là nơi gọi `resolveSession`)
+  {
+    files: ["core/**/*.ts"],
+    ignores: [
+      "core/**/*.test.ts",
+      "core/identity/gates.ts",
+      "core/identity/session.ts",
+      "core/identity/auth.ts",
+      "core/identity/privacy.ts",
+      "core/gates/**", // dòng họ thử dựng ngữ cảnh phiên THẬT của tài khoản chưa gắn (`role: 'guest'`)
+    ],
+    rules: {
+      "no-restricted-syntax": [
+        "error",
+        {
+          selector:
+            "BinaryExpression > Literal[value='guest'], SwitchCase > Literal[value='guest'], CallExpression[callee.property.name='includes'] Literal[value='guest']",
+          message:
+            "Cổng chỉ có hai tên: gateWriter / gateApprover (core/identity/gates.ts). Chép lại cổng là lặp lỗi 29/08 (story 7-1). Lens thì dùng coQuyenDuyet.",
+        },
+        {
+          selector: "CallExpression[callee.name='err'] > Literal:first-child[value='unattached']",
+          message: "Không tự sinh 'unattached' — mã ấy chỉ ra từ gateWriter / gateApprover (story 7-1).",
+        },
+      ],
+    },
+  },
+  // Khối SAU thay thế cấu hình của cùng luật ở khối trước (flat config không gộp mảng), nên khối
+  // ops/read-ops phải mang ĐỦ ba selector — không phải chỉ selector thứ ba.
   {
     files: ["core/**/ops.ts", "core/**/read-ops.ts"],
     rules: {
       "no-restricted-syntax": [
         "error",
         {
-          selector: "BinaryExpression > Literal[value='guest']",
+          selector:
+            "BinaryExpression > Literal[value='guest'], SwitchCase > Literal[value='guest'], CallExpression[callee.property.name='includes'] Literal[value='guest']",
           message:
-            "Cổng chỉ có hai tên: gateWriter / gateApprover (core/identity/gates.ts). Chép lại cổng là lặp lỗi 29/08 (story 7-1).",
+            "Cổng chỉ có hai tên: gateWriter / gateApprover (core/identity/gates.ts). Chép lại cổng là lặp lỗi 29/08 (story 7-1). Lens thì dùng coQuyenDuyet.",
         },
         {
-          selector: "CallExpression[callee.name='err'] > Literal:first-child[value=/^(unattached|unauthenticated)$/]",
+          selector: "CallExpression[callee.name='err'] > Literal:first-child[value='unattached']",
+          message: "Không tự sinh 'unattached' — mã ấy chỉ ra từ gateWriter / gateApprover (story 7-1).",
+        },
+        {
+          selector: "CallExpression[callee.name='err'] > Literal:first-child[value='unauthenticated']",
           message:
-            "Ops không tự sinh 'unattached'/'unauthenticated' — hai mã ấy chỉ ra từ gateWriter / gateApprover (story 7-1).",
+            "Ops không tự sinh 'unauthenticated' — surface (index.ts) mới biết có phiên hay không; trong ops thì qua gateWriter / gateApprover (story 7-1).",
         },
       ],
     },

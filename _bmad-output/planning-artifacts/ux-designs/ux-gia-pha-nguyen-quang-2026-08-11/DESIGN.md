@@ -17,7 +17,7 @@ colors:
   card: '#FBF6E9'              # ô nổi trên nền giấy
   card-foreground: '#3A2F24'
   border: '#DDD0B2'
-  muted-foreground: '#6F5F47'  # nhãn phụ, siêu dữ liệu — 29/08/2026 (story 7-2): giấy dó 5.38 · ô nổi ≥5.9 · nền bàn B 5.14 (sàn 4.5)
+  muted-foreground: '#6F5F47'  # nhãn phụ, siêu dữ liệu — 29/08/2026 (story 7-2): giấy dó 5.24 · ô nổi 5.72 · nền bàn B 5.14 · ô trắng 6.17 (sàn 4.5)
   primary: '#A8322A'           # SON — khan hiếm, xem § Do's and Don'ts
   primary-foreground: '#F8F2E2'
   ring: '#A8322A'

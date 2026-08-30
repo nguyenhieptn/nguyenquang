@@ -9,13 +9,14 @@
  * Vì thế `components/pha/thanh-dieu-huong.tsx` nhận kết quả này qua THAM SỐ chứ không tự gọi:
  * nó còn được dựng từ `error.tsx`, mà error boundary buộc phải là client.
  */
-import { resolveSession } from '@/core/identity';
+import { coQuyenDuyet, resolveSession } from '@/core/identity';
 import type { AttachmentRole } from '@/core/identity';
 
 /** Đúng hai vai mà `app/admin/layout.tsx` cho qua cổng. Bày lối cho vai khác là mời tới cửa khoá. */
 export async function coBanLamViec(): Promise<boolean> {
   const phien = await resolveSession();
-  return phien?.role === 'admin' || phien?.role === 'branch-head';
+  // Cùng một lens với core (`coQuyenDuyet`, story 7-1) — không phải bản chép thứ hai của cùng câu hỏi.
+  return phien !== null && coQuyenDuyet(phien);
 }
 
 /**

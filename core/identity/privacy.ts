@@ -1,12 +1,5 @@
+import type { Role } from './session';
 
-/**
- * LENS, không phải GATE (story 7-1): "người này NHÌN được gì" — quản trị và đầu mối chi thấy trọn
- * (AD-21). Bốn chỗ (privacy · audit · media · merge) từng chép `role === 'admin' || 'branch-head'`;
- * một tên cho một câu hỏi, để lượt thêm vai sau này sửa một chỗ. Chặn GHI thì dùng `gateApprover`.
- */
-export function coQuyenDuyet(viewer: { role: string }): boolean {
-  return viewer.role === 'admin' || viewer.role === 'branch-head';
-}
 /**
  * AD-13 — privacy radius as a PURE function. No configuration surface, no widening.
  *
@@ -112,3 +105,14 @@ export function fieldsFor(level: Visibility): {
 
 /** Placeholder identity for 'anonymous' — keeps the genealogical link, hides the person. */
 export const ANONYMOUS_LABEL = 'Một người trong họ';
+
+/**
+ * LENS, không phải GATE (story 7-1): "người này NHÌN được gì" — quản trị và đầu mối chi thấy trọn
+ * (AD-21). Bốn chỗ trong core (privacy · audit · media · merge) và `lib/vai-quan-tri.ts` từng chép
+ * `role === 'admin' || 'branch-head'`; một tên cho một câu hỏi, để lượt thêm vai sửa một chỗ.
+ * Kiểu là `Role`, không phải `string` — một vai gõ sai phải là lỗi biên dịch. Chặn GHI thì dùng
+ * `gateApprover`.
+ */
+export function coQuyenDuyet(viewer: { role: Role }): boolean {
+  return viewer.role === 'admin' || viewer.role === 'branch-head';
+}

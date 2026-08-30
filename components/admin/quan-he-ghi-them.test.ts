@@ -106,10 +106,10 @@ describe('gỡ một cạnh ghi nhầm', () => {
     expect(loaiDuocDuNoiTiep('union-partner')).toBe(true);
   });
 
-  it('sáu loại kia giữ nguyên luật cũ: chỉ chồng mâu thuẫn mới có nút Loại', () => {
-    for (const k of ['name', 'gender', 'birth', 'death', 'place', 'note']) {
-      expect(loaiDuocDuNoiTiep(k), k).toBe(false);
-    }
+  it('bốn loại ĐƠN TRỊ giữ luật cũ (chỉ chồng mâu thuẫn mới có nút Loại); place/note mở từ story 7-3', () => {
+    for (const k of ['name', 'gender', 'birth', 'death']) expect(loaiDuocDuNoiTiep(k), k).toBe(false);
+    // Bốn loại nối tiếp, bốn đường ra — ghi nhầm một quê quán không còn là vĩnh viễn.
+    for (const k of ['place', 'note']) expect(loaiDuocDuNoiTiep(k), k).toBe(true);
   });
 });
 

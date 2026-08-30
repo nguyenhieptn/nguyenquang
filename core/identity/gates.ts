@@ -36,9 +36,10 @@ export type AttachedContext = {
  * `role === 'guest'` kèm `personId` là trạng thái sản phẩm không tạo ra được, nên gộp về vế sau.
  */
 export function gateWriter(ctx: ViewerContext): Result<AttachedContext> {
-  if (ctx.accountId === null) return err('unauthenticated', 'writing requires a signed-in account');
+  // Câu là cho NGƯỜI đọc (adapter có chỗ in thẳng `error.message`); mã là cho máy rẽ nhánh.
+  if (ctx.accountId === null) return err('unauthenticated', 'Cần đăng nhập trước đã.');
   if (ctx.personId === null || ctx.role === 'guest')
-    return err('unattached', 'writing requires an account attached to a clan node');
+    return err('unattached', 'Tài khoản chưa gắn vào người nào trong phả — gắn xong mới làm được.');
   return ok(ctx as AttachedContext);
 }
 
@@ -47,6 +48,6 @@ export function gateApprover(ctx: ViewerContext): Result<AttachedContext> {
   const writer = gateWriter(ctx);
   if (!writer.ok) return writer;
   if (writer.value.role !== 'admin' && writer.value.role !== 'branch-head')
-    return err('forbidden', 'requires the approval right (admin or branch-head)');
+    return err('forbidden', 'Việc này cần quyền duyệt — quản trị hoặc đầu mối chi.');
   return writer;
 }

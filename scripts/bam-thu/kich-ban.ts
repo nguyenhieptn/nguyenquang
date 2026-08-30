@@ -18,7 +18,7 @@ export type KichBan = {
   /** Số hàng `revision` mà kịch bản này sinh ra trong clan thử. */
   revisionMongDoi: number;
   /** Chạy, trả về CÂU MÀN ĐÃ NÓI (để in ra bản kê). Ném lỗi khi màn không nói điều mong đợi. */
-  chay: (p: Page, goc: string) => Promise<string>;
+  chay: (p: Page, goc: string, dauLuot: string) => Promise<string>;
 };
 
 const NAM_THU = '1901';
@@ -46,7 +46,11 @@ export const KICH_BAN: readonly KichBan[] = [
       await p.goto(`${goc}/admin/cay`, { waitUntil: 'networkidle' });
       await p.locator('.react-flow__node').first().click();
       await p.waitForTimeout(1200);
-      await p.locator('aside button[aria-label^="Ghi thêm năm sinh"]').first().click();
+      // Tiền kiểm: thẻ đã chọn phải CÓ năm sinh — không thì không dựng được mâu thuẫn, và ✗ sẽ nói
+      // sai lý do (review 7-1).
+      const nutSinh = p.locator('aside button[aria-label^="Ghi thêm năm sinh"]').first();
+      if (!(await nutSinh.count())) throw new Error('thẻ đã chọn chưa có năm sinh — K1 không dựng được mâu thuẫn từ đây');
+      await nutSinh.click();
       // Biểu mẫu ghi thêm là một KHỐI trong phiếu, không phải `<form>` — neo vào ô giá trị.
       const oGiaTri = p.locator('aside input[id$="-gia-tri"]').first();
       await oGiaTri.waitFor({ timeout: 5000 });
@@ -54,9 +58,11 @@ export const KICH_BAN: readonly KichBan[] = [
       await p.locator('aside input[id$="-nguon"]').first().fill('kịch bản ghi 7-1');
       await p.locator('aside').getByRole('button', { name: 'Ghi vào phả' }).click();
       const chu = await doiRoiDoc(p, 'aside', 2000);
-      // Thẻ đầu (Tổ) đã có năm sinh ⇒ hai giá trị đơn trị ⇒ câu mâu thuẫn phải hiện cùng năm mới.
-      phaiCo(chu, NAM_THU, 'không thể cùng đúng');
-      return `cột phải bày ${NAM_THU} và câu "không thể cùng đúng"`;
+      // Hai giá trị đơn trị ⇒ câu mâu thuẫn của CHỒNG phải hiện cùng năm mới. Neo vào đúng câu
+      // `cauMauThuan('birth', 2)`, không neo "không thể cùng đúng" — chú thích tĩnh của biểu mẫu
+      // cũng chứa cụm ấy (review 7-1).
+      phaiCo(chu, NAM_THU, 'Hai giá trị không thể cùng đúng');
+      return `cột phải bày ${NAM_THU} và câu "Hai giá trị không thể cùng đúng"`;
     },
   },
   {
@@ -80,16 +86,24 @@ export const KICH_BAN: readonly KichBan[] = [
       await chon.selectOption(giaTri);
       await hang.getByRole('checkbox').click();
       await hang.getByRole('button', { name: /^Gộp — / }).click();
-      let chu = await doiRoiDoc(p, 'main', 2000);
-      phaiCo(chu, 'Đã gộp', '1 khẳng định');
-      // Câu phải ở NGOÀI hàng vừa gộp — hàng ấy đã rời danh sách sống.
-      if ((await p.locator('main li').filter({ hasText: 'Đã gộp' }).count()) > 0) {
-        throw new Error('câu xác nhận vẫn nằm trong một hàng — phải lên bảng');
+      try {
+        const chu = await doiRoiDoc(p, 'main', 2000);
+        phaiCo(chu, 'Đã gộp');
+        // Đếm CHÍNH XÁC, không `includes` — "11 khẳng định" cũng chứa "1 khẳng định" (review 7-1).
+        const so = chu.match(/— (\d+) khẳng định/)?.[1];
+        if (so !== '1') throw new Error(`bảng nói ${so ?? '?'} khẳng định — mong đợi đúng 1 (quê quán của Em)`);
+        // Câu phải ở NGOÀI hàng vừa gộp — hàng ấy đã rời danh sách sống.
+        if ((await p.locator('main li').filter({ hasText: 'Đã gộp' }).count()) > 0) {
+          throw new Error('câu xác nhận vẫn nằm trong một hàng — phải lên bảng');
+        }
+      } finally {
+        // Dù ✓ hay ✗, TÁCH LẠI để dòng họ thử về nguyên trạng — lượt sau còn có "Vũng Tàu" sống để gộp.
+        const tach = p.getByRole('button', { name: 'Tách lại' }).first();
+        if (await tach.count()) await tach.click();
       }
-      await p.getByRole('button', { name: 'Tách lại' }).first().click();
-      chu = await doiRoiDoc(p, 'main', 2000);
-      phaiCo(chu, 'Đã tách lại');
-      return 'bảng nói "Đã gộp … 1 khẳng định", rồi "Đã tách lại"';
+      const chu2 = await doiRoiDoc(p, 'main', 2000);
+      phaiCo(chu2, 'Đã tách lại');
+      return 'bảng nói "Đã gộp — 1 khẳng định", rồi "Đã tách lại"';
     },
   },
   {
@@ -98,20 +112,22 @@ export const KICH_BAN: readonly KichBan[] = [
     vai: 'thanh-vien',
     // Đo 29/08: người + nguồn + khẳng định tên + khẳng định cha-con = 4.
     revisionMongDoi: 4,
-    chay: async (p, goc) => {
+    chay: async (p, goc, dauLuot) => {
       await p.goto(`${goc}/gia-pha`, { waitUntil: 'networkidle' });
       await p.locator('.react-flow__node').first().click();
       await p.waitForTimeout(1200);
       await p.locator('aside').getByRole('button', { name: 'Thêm người quanh đây' }).click();
       const form = p.locator('aside form').first();
       await form.waitFor({ timeout: 5000 });
-      await form.locator('input[id$="-ten"]').fill(TEN_NGUOI_THU);
+      // Tên mang DẤU LƯỢT: thẻ "Kịch Bản" của lượt trước còn trên canvas không được làm ✓ giả (review 7-1).
+      const ten = `${TEN_NGUOI_THU} ${dauLuot}`;
+      await form.locator('input[id$="-ten"]').fill(ten);
       await form.locator('input[id$="-nguon"]').fill('kịch bản ghi 7-1');
       await form.getByRole('button', { name: 'Ghi vào phả' }).click();
       await p.waitForTimeout(2500);
       const chu = (await p.locator('.react-flow').innerText()).replace(/\s+/g, ' ');
-      phaiCo(chu, 'Kịch Bản');
-      return `canvas có thẻ "${TEN_NGUOI_THU}"`;
+      phaiCo(chu, dauLuot);
+      return `canvas có thẻ "${ten}"`;
     },
   },
   {

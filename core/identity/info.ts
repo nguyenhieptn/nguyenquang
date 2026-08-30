@@ -20,6 +20,7 @@ import { writeRevision } from '@/core/revision';
 import { resolveSession, resolveViewer } from './session';
 import type { SessionContext, ViewerContext } from './session';
 import type { AttachmentRole } from './ops';
+import { gateWriter } from './gates';
 
 export type ClanSettings = {
   surname?: string;
@@ -180,11 +181,12 @@ export async function getMyPersonFlagsOp(
   tx: Tx,
   ctx: SessionContext,
 ): Promise<Result<MyPersonFlags>> {
-  if (!ctx.personId) return err('unattached', 'Chưa gắn với ai trong phả.');
+  const gate = gateWriter(ctx);
+  if (!gate.ok) return gate;
   const [row] = await tx
     .select({ hiddenFromPublic: person.hiddenFromPublic, refusePrint: person.refusePrint })
     .from(person)
-    .where(eq(person.id, ctx.personId));
+    .where(eq(person.id, gate.value.personId));
   if (!row) return err('not-found', 'Không thấy node của mình.');
   return ok(row);
 }
@@ -225,7 +227,6 @@ export async function getMyAttachment(): Promise<Result<MyAttachment | null>> {
 export async function getMyPersonFlags(): Promise<Result<MyPersonFlags>> {
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập.');
-  if (!session.personId)
-    return err('unattached', 'Chưa gắn với ai trong phả nên chưa có gì để xem.');
+  // Cổng nằm trong ops (`gateWriter`) — surface không chép lại (story 7-1).
   return withClanContext(session.clanId, (tx) => getMyPersonFlagsOp(tx, session));
 }

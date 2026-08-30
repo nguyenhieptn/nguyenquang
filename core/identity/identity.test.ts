@@ -360,13 +360,15 @@ describe('attachment flow (FR-64, AD-8)', () => {
     expect(m2Req.ok).toBe(true);
     const m2AttachmentId = m2Req.ok ? m2Req.value.attachmentId : '';
 
-    // Guest cannot approve, cannot list.
+    // Tài khoản đã đăng nhập mà chưa gắn (`role: 'guest'`) không duyệt, không xem được — và mã là
+    // `unattached`, không phải `forbidden` (qua `gateApprover`, story 7-1): việc đầu tiên của người
+    // ấy là nhận chỗ, adapter dẫn về `/gan-node`.
     const guestList = await withClanContext(clanId, (tx) => listPendingAttachmentsOp(tx, ctx(m2Acc, 'guest')));
-    expect(!guestList.ok && guestList.error.code === 'forbidden').toBe(true);
+    expect(!guestList.ok && guestList.error.code === 'unattached').toBe(true);
     const guestApprove = await withClanContext(clanId, (tx) =>
       approveAttachmentOp(tx, ctx(m2Acc, 'guest'), { attachmentId: m2AttachmentId }),
     );
-    expect(!guestApprove.ok && guestApprove.error.code === 'forbidden').toBe(true);
+    expect(!guestApprove.ok && guestApprove.error.code === 'unattached').toBe(true);
 
     // Branch-head cannot grant a role above member…
     const bhCtx = ctx(bhAcc, 'branch-head', bhPerson);
@@ -515,10 +517,15 @@ describe('từ chối yêu cầu vào phả (story 5-5)', () => {
     );
     const attId = xin.ok ? xin.value.attachmentId : '';
 
+    // Chưa gắn ⇒ `unattached` (gateApprover, 7-1); thành viên có chỗ mà không có quyền ⇒ `forbidden`.
     const khach = await withClanContext(clanId, (tx) =>
       rejectAttachmentOp(tx, ctx(acc, 'guest'), { attachmentId: attId, note: 'thử' }),
     );
-    expect(!khach.ok && khach.error.code === 'forbidden').toBe(true);
+    expect(!khach.ok && khach.error.code === 'unattached').toBe(true);
+    const thanhVien = await withClanContext(clanId, (tx) =>
+      rejectAttachmentOp(tx, ctx(acc, 'member', node), { attachmentId: attId, note: 'thử' }),
+    );
+    expect(!thanhVien.ok && thanhVien.error.code === 'forbidden').toBe(true);
   });
 
   it('yêu cầu ĐÃ DUYỆT thì không từ chối được — gỡ gắn là việc khác', async () => {
@@ -850,7 +857,8 @@ describe('vai và gỡ gắn (story 6-2)', () => {
   });
 
   it('danh sách gắn kết: cùng cổng quyền với hàng chờ, và bày CẢ hàng không active', async () => {
-    const khach = await withClanContext(clanId, (tx) => listAttachmentsOp(tx, ctx(`s62-g-${run}`, 'member')));
+    // Thành viên CÓ chỗ (vai đến từ gắn kết đang hoạt động — 7-1) nhưng không có quyền duyệt.
+    const khach = await withClanContext(clanId, (tx) => listAttachmentsOp(tx, ctx(`s62-g-${run}`, 'member', adminPersonId)));
     expect(khach.ok).toBe(false);
     if (!khach.ok) expect(khach.error.code).toBe('forbidden');
 
@@ -928,14 +936,14 @@ describe('vai và gỡ gắn (story 6-2)', () => {
         note: 'gỡ để thử',
       }),
     );
-    const duyet = await withClanContext(clanId, (tx) =>
-      approveAttachmentOp(tx, ctx(`s62-dauMoi-${run}`, 'branch-head'), { attachmentId }),
-    );
+    // Đầu mối chi có chỗ — ngữ cảnh gõ tay không có `personId` là trạng thái phiên thật không sinh ra (7-1).
+    const dauMoi = ctx(`s62-dauMoi-${run}`, 'branch-head', adminPersonId);
+    const duyet = await withClanContext(clanId, (tx) => approveAttachmentOp(tx, dauMoi, { attachmentId }));
     expect(duyet.ok).toBe(false);
     if (!duyet.ok) expect(duyet.error.code).toBe('conflict');
 
     const tuChoi = await withClanContext(clanId, (tx) =>
-      rejectAttachmentOp(tx, ctx(`s62-dauMoi-${run}`, 'branch-head'), { attachmentId, note: 'x' }),
+      rejectAttachmentOp(tx, dauMoi, { attachmentId, note: 'x' }),
     );
     expect(tuChoi.ok).toBe(false);
   });

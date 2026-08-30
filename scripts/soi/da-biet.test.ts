@@ -52,8 +52,10 @@ describe('nền đã biết', () => {
     for (const m of DA_BIET) expect(m.toiDa, m.moTa).toBeGreaterThan(0);
   });
 
-  it('nợ của MỘT màn phải khai `man` — nợ theo màn mà không khai là nuốt vi phạm của màn khác', () => {
-    const theoMan = DA_BIET.filter((m) => /hàng chờ|hợp nhất/.test(m.moTa));
-    for (const m of theoMan) expect(m.man, m.moTa).toBeDefined();
+  it('nền không rỗng, và nợ của MỘT màn phải khai `man` (bảng hiện chỉ còn nợ tầng token của thư viện)', () => {
+    expect(DA_BIET.length).toBeGreaterThan(0);
+    // Sau 7-2 không còn mục theo màn — bất biến giữ bằng câu ngược: mục nào KHÔNG có `man` thì
+    // `moTa` không được nhắc tên một màn.
+    for (const m of DA_BIET) if (m.man === undefined) expect(m.moTa, m.moTa).not.toMatch(/hàng chờ|hợp nhất|nơi chốn|mâu thuẫn/);
   });
 });

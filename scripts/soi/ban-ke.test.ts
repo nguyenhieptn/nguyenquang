@@ -105,9 +105,16 @@ describe('nền đã biết trong bản kê', () => {
     expect(veTongKet(bk)).toContain('TĂNG +1');
   });
 
-  // Luật "nợ theo màn không nuốt vi phạm cùng hình ở màn khác" nay kiểm ở `da-biet.test.ts` với một
-  // nền tiêm vào — bảng nợ thật không còn mục theo màn sau story 7-2, nên không dựng ca ở đây được
-  // mà không giả vờ một món nợ đã trả.
+  it('nợ theo màn KHÔNG nuốt vi phạm cùng hình ở màn khác — đi qua đúng đường demDo → tachTheoMan', () => {
+    // Bảng nợ thật không còn mục theo màn sau 7-2; tiêm một nền để luật vẫn có cổng đỏ được.
+    const nen = [{ loai: 'cham-duoi-san', khop: '23×', man: 'hop-nhat', toiDa: 8, moTa: 'x', viSao: 'y'.repeat(31), theoDoi: 'z'.repeat(6) }];
+    const vp = { loai: 'cham-duoi-san', moTa: '23×120px < 44×44 — a · "Nguyễn"' };
+    const oDungMan: BanKe = { man: [{ ...man([{ phep: 'chạm', soPhanTu: 1, viPham: [vp] }]), khoa: 'hop-nhat' }] };
+    const oManKhac: BanKe = { man: [{ ...man([{ phep: 'chạm', soPhanTu: 1, viPham: [vp] }]), khoa: 'cay' }] };
+    expect(demDo(oDungMan, nen)).toBe(0);
+    expect(demDo(oManKhac, nen)).toBe(1);
+    expect(demDaBiet(oDungMan, nen)[0].so).toBe(1);
+  });
 });
 
 describe('vẽ bản kê', () => {

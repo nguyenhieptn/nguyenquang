@@ -4,7 +4,7 @@ baseline_commit: 57b7ce8
 
 # Story 7.2: Trả nợ sàn — một token, hai dòng class, một `nowrap`
 
-Status: review
+Status: done
 
 ## Story
 
@@ -25,8 +25,9 @@ tràn 1517px khi mở "Trả lại", `TableCell nowrap`) đều ghi *"trông nh�
 ## Quyết định thiết kế — chốt 29/08/2026
 
 1. **Một token, mọi bề mặt**: `--muted-foreground` `#796952` → **`#6f5f47`** (cùng sắc nâu đất, tối
-   hơn ~4%). Số học: bàn `#edeae4` **5.14:1** · ô trắng **6.17:1** · giấy dó `#f4ecd8` **5.38:1** —
-   qua sàn ở cả ba, không cần scope riêng cho bề mặt B (một token hai giá trị là hai màu để nhớ).
+   hơn ~4%). Số học (sửa sau code review — lượt dựng tính giấy dó trên hex sai `#f5efe2`): bàn
+   `#edeae4` **5.14:1** · ô trắng **6.17:1** · giấy dó `#f4ecd8` **5.24:1** · ô nổi `#fbf6e9` **5.72:1** —
+   qua sàn ở cả bốn, không cần scope riêng cho bề mặt B (một token hai giá trị là hai màu để nhớ).
    `DESIGN.md` chép ngược (`#7D6C55` → `#6F5F47`) — `specs/frontend-stack.md § 7`.
 2. **`TableCell` bỏ `whitespace-nowrap`**, `TableHead` giữ (nhãn cột ngắn, xuống dòng là xấu). Ô bảng
    chứa văn xuôi do người gõ; nowrap mặc định là lý do 6-3 và 6-8 mỗi story vá một lần.
@@ -47,8 +48,10 @@ tràn 1517px khi mở "Trả lại", `TableCell nowrap`) đều ghi *"trông nh�
 
 ## Phạm vi — KHÔNG thuộc story này
 - Ba mục React Flow (nhãn ghi công) — quyết định giấy phép, để nguyên.
-- Không đổi màu nào khác; không chạm `--color-tin-loi-ke` dù DESIGN.md ghi cùng hex `#7D6C55` (nó là
-  viền chip, không phải chữ; sàn 3:1 cho đồ hoạ — đạt).
+- Không đổi màu nào khác; không chạm `--color-tin-loi-ke` dù DESIGN.md ghi cùng hex `#7D6C55`. Lý do
+  đúng (sửa sau code review): nó được dùng làm `color` của chấm tin cậy trên THẺ (`the-nguoi.tsx`),
+  nền thẻ là ô nổi/trắng nơi nó đạt 5.06:1 — không có chỗ nào đặt nó lên nền bàn. Đổi nó là đổi một
+  mức tin cậy, việc của bảng màu FR-2, không phải của story trả nợ sàn.
 
 ## Tasks / Subtasks
 - [x] **T1** Token + DESIGN.md (AC 1)
@@ -83,3 +86,24 @@ Claude Fable 5 · 29/08/2026.
 - `components/ui/table.tsx` · `app/admin/hop-nhat/page.tsx`
 - `scripts/soi/da-biet.ts` (xoá ba mục, `tachDaBiet` nhận nền) · `scripts/soi/da-biet.test.ts` · `scripts/soi/ban-ke.test.ts`
 - `_bmad-output/implementation-artifacts/deferred-work.md` (bốn mục ✅)
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 11 · Edge Case 6 · Acceptance Auditor 7 → 12 sau gộp trùng → **9 patch · 1 defer · 2 dismiss**.
+
+Patch:
+1. **Con số tương phản sai** — lượt dựng tính giấy dó trên hex sai (`#f5efe2`): thật là giấy dó
+   `#f4ecd8` **5.24** và ô nổi `#fbf6e9` **5.72** (không phải 5.38 / "≥5.9"). Sửa ở `globals.css`,
+   `DESIGN.md`, `deferred-work.md`, story. Cả hai vẫn qua sàn.
+2. **Ba chú thích nói `TableCell` vẫn `nowrap`** (`bang-cho-duyet`, `nap-khung-client` ×2) — đúng lớp
+   "chú thích nói chặn mà không chặn" 7-1 sinh ra để bắt; viết lại thì quá khứ.
+3. `break-words` cho bốn ô văn xuôi (URL/email dán vào không đẩy bảng); hop-nhat thêm `min-w-11`.
+4. **Luật "nợ theo màn không nuốt màn khác" mất cổng đỏ**: `nen` tiêm xuyên `tachTheoMan` → `demDo` →
+   `demDaBiet` (bản đầu `demDaBiet` vẫn đọc `DA_BIET` toàn cục); test ở `ban-ke.test.ts` phục hồi qua
+   đúng đường ấy; `da-biet.test.ts` bất biến `man` viết lại thành câu ngược, không còn vòng lặp rỗng.
+5. § Phạm vi: lý do giữ `--color-tin-loi-ke` sửa cho đúng (nó là `color` của chấm trên thẻ nền
+   sáng, 5.06:1 — không phải "viền, sàn 3:1").
+
+Defer (→ `deferred-work.md § 7-2`): `nap-khung-client` ô bảng thiếu `align-top` khi dòng cao không
+đều. Dismiss: kiểm tính hợp lệ của nền tiêm vào (seam chỉ cho test); "gate mù với cột bị ép hẹp"
+(không có phép đo nào cho việc chữ xuống dòng trong ô — ghi nhận, không phải lỗi của story).

@@ -440,8 +440,8 @@ function KhoiCanhBao({
     /*
       `whitespace-normal` — KHÔNG phải trang trí (bắt được 26/08/2026 bằng cách đo trình duyệt).
 
-      `TableCell` của `components/ui/table.tsx:86` mang `whitespace-nowrap` — đúng cho ô dữ liệu
-      bảng, sai chết người cho khối văn xuôi này: mọi đoạn nằm trên MỘT dòng, `max-w-[70ch]` viết
+      `TableCell` của `components/ui/table.tsx` TỪNG mang `whitespace-nowrap` (bỏ ở story 7-2) —
+      đúng cho ô dữ liệu bảng, sai chết người cho khối văn xuôi này: mọi đoạn nằm trên MỘT dòng, `max-w-[70ch]` viết
       ra từ story 3-2 chưa từng có hiệu lực, và câu *"Nối vào đúng người cha ở màn **Mảnh chưa
       nối**"* chạy quá mép hộp 56px, chỉ đọc được nếu cuộn ngang. Bốn cổng xanh suốt từ đó.
     */
@@ -1103,9 +1103,9 @@ function PhaXemTruoc({ ketQua, boTep }: { ketQua: KetQuaXemTruoc; boTep: () => v
                     {/* `whitespace-normal` + `max-w` — cùng bệnh đã vá ở khối cảnh báo, ô bên
                         cạnh thì sót (bắt 27/08 sau code review). `ghi_chu` là văn xuôi tự do,
                         không giới hạn độ dài, và chính `getTemplate()` dạy điền cả câu vào đó;
-                        `TableCell` mang `whitespace-nowrap` nên một ghi chú 200 ký tự đẩy cả
-                        bảng ra ngoài hộp. */}
-                    <TableCell className="max-w-[36ch] py-3 whitespace-normal">
+                        `TableCell` TỪNG mang `whitespace-nowrap` (bỏ ở 7-2) nên một ghi chú 200 ký
+                        tự đẩy cả bảng ra ngoài hộp. */}
+                    <TableCell className="max-w-[36ch] break-words py-3 whitespace-normal">
                       {/* Tên người = khẳng định về người thật ⇒ luật bề mặt A: serif-phả. */}
                       <p className="font-[family-name:var(--font-pha)] text-[17px] font-semibold">
                         {d.hoTen}

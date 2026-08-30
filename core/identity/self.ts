@@ -8,6 +8,7 @@
 import { withClanContext } from '@/db';
 import { err, type Result } from '@/core/types';
 import { resolveSession } from './session';
+import { gateWriter } from './gates';
 import {
   getMyNotificationsOp,
   markNotificationSeenOp,
@@ -24,8 +25,10 @@ export async function updateSelfVisibility(args: {
 }): Promise<Result<{ personId: string }>> {
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập.');
-  if (!session.personId) return err('unattached', 'Chưa gắn với ai trong phả nên chưa có gì để chỉnh.');
-  const personId = session.personId;
+  // Cổng ở `updateSelfVisibilityOp` (gateWriter) — surface không chép lại (story 7-1).
+  const gate = gateWriter(session);
+  if (!gate.ok) return gate;
+  const personId = gate.value.personId;
   return withClanContext(session.clanId, (tx) =>
     updateSelfVisibilityOp(tx, session, { personId, ...args }),
   );

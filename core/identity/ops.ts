@@ -13,7 +13,7 @@ import { attachment, notification, person } from '@/db/schema';
 import { writeRevision } from '@/core/revision';
 import { err, isUuid, ok, type Result } from '@/core/types';
 import type { SessionContext } from './session';
-import { gateWriter } from './gates';
+import { gateApprover, gateWriter } from './gates';
 
 export type AttachmentRole = 'admin' | 'branch-head' | 'member';
 
@@ -133,9 +133,8 @@ export async function listPendingAttachmentsOp(
   tx: Tx,
   ctx: SessionContext,
 ): Promise<Result<PendingAttachment[]>> {
-  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
-    return err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới xem được danh sách chờ duyệt.');
-  }
+  const cong = gateApprover(ctx);
+  if (!cong.ok) return cong.error.code === 'forbidden' ? err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới xem được danh sách chờ duyệt.') : cong;
   const rows = await tx
     .select({
       attachmentId: attachment.id,
@@ -162,9 +161,8 @@ export async function approveAttachmentOp(
   args: { attachmentId: string; role?: AttachmentRole },
 ): Promise<Result<{ attachmentId: string; role: AttachmentRole }>> {
   const grant = args.role ?? 'member';
-  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
-    return err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới duyệt được.');
-  }
+  const cong = gateApprover(ctx);
+  if (!cong.ok) return cong.error.code === 'forbidden' ? err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới duyệt được.') : cong;
   if (grant !== 'member' && ctx.role !== 'admin') {
     return err('forbidden', 'Chỉ quản trị mới trao được vai trên thành viên thường.');
   }
@@ -235,9 +233,8 @@ export async function rejectAttachmentOp(
   ctx: SessionContext,
   args: { attachmentId: string; note: string },
 ): Promise<Result<{ attachmentId: string }>> {
-  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
-    return err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới từ chối được yêu cầu vào phả.');
-  }
+  const cong = gateApprover(ctx);
+  if (!cong.ok) return cong.error.code === 'forbidden' ? err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới từ chối được yêu cầu vào phả.') : cong;
   if (!isUuid(args.attachmentId)) return err('not-found', 'Không thấy yêu cầu gắn này.');
 
   const [target] = await tx.select().from(attachment).where(eq(attachment.id, args.attachmentId));
@@ -326,9 +323,8 @@ export async function listAttachmentsOp(
   tx: Tx,
   ctx: SessionContext,
 ): Promise<Result<AttachmentRow[]>> {
-  if (ctx.role !== 'admin' && ctx.role !== 'branch-head') {
-    return err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới xem được danh sách tài khoản.');
-  }
+  const cong = gateApprover(ctx);
+  if (!cong.ok) return cong.error.code === 'forbidden' ? err('forbidden', 'Chỉ trưởng chi hoặc quản trị mới xem được danh sách tài khoản.') : cong;
   const rows = await tx
     .select({
       attachmentId: attachment.id,

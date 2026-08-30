@@ -39,3 +39,5 @@ export type { PrivacySubject, PrivacyViewer, Visibility } from './privacy';
 
 export { getClanInfo, getMyAttachment, getMyPersonFlags, updateClanInfo } from './info';
 export type { ClanInfo, ClanSettings, MyAttachment, MyPersonFlags } from './info';
+/** Lens "ai NHÌN được trọn" (story 7-1) — cho `lib/vai-quan-tri.ts`, không cho adapter tự so vai. */
+export { coQuyenDuyet } from './privacy';

@@ -62,11 +62,12 @@ const adminCtx: SessionContext = {
   personId: adminPersonId,
   role: 'admin',
 };
+// Chưa gắn ⇒ phiên thật là `role: 'guest'` (`core/identity/auth.ts`) — không có 'member' không có chỗ (7-1).
 const unattachedCtx: SessionContext = {
   accountId: '1-5-acc-unattached',
   clanId,
   personId: null,
-  role: 'member',
+  role: 'guest',
 };
 
 /** Keys written to storage this run — removed in afterAll. */

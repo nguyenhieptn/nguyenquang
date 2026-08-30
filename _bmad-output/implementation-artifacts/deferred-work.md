@@ -330,7 +330,7 @@ từng mục**. Đếm tăng lên = một hồi quy mới đang nấp sau một 
 
 ### Tương phản — quyết định THIẾT KẾ, không phải bản vá kỹ thuật
 
-- ~~**`--muted-foreground` #796952 trên nền bàn #edeae4 = 4.42:1, sàn là 4.5:1 — 185 chỗ.**~~ **ĐÃ LÀM — story 7-2 (29/08/2026)**: token → `#6f5f47` (bàn 5.14 · ô trắng 6.17 · giấy dó 5.38), DESIGN.md chép ngược, mục nợ xoá khỏi `da-biet.ts`. Nguyên văn:
+- ~~**`--muted-foreground` #796952 trên nền bàn #edeae4 = 4.42:1, sàn là 4.5:1 — 185 chỗ.**~~ **ĐÃ LÀM — story 7-2 (29/08/2026)**: token → `#6f5f47` (bàn 5.14 · ô trắng 6.17 · giấy dó 5.24 · ô nổi 5.72), DESIGN.md chép ngược, mục nợ xoá khỏi `da-biet.ts`. Nguyên văn:
   Một token, mọi màn của bề mặt B. Trên ô bảng trắng #ffffff cùng token ấy đạt **5.31:1**, nên chỉ
   nền bàn mới hụt. Số học kiểm độc lập, không chỉ tin phép đo.
   Vá là đổi token ⇒ đổi cả `DESIGN.md` (`specs/frontend-stack.md § 7`), và đổi diện mạo mọi màn
@@ -492,3 +492,20 @@ hỏi; câu cảnh báo cha-mẹ đọc ngược nghĩa; `giaiNoi` từ N+1 thà
 - **Cụm có hai dòng cùng giá trị (X, X, Y): một X chính thức khoá nút nâng của X còn lại.** Đúng theo
   luật "không hai dòng chính thức trong một cụm", và dòng X thứ hai chỉ là lời khai lặp — chấp nhận.
   Ghi lại vì người vận hành có thể hỏi "sao không nâng được"; câu chỉ dẫn hai bước ở phiếu đã trả lời.
+
+## Deferred from: code review of story 7-1-hang-rao-tu-retro (2026-08-29)
+
+Ba lớp: 26 phát hiện sau gộp → 21 patch · 2 defer · 3 dismiss. Luật lint mở rộng phủ cả `core/**`
+bắt thêm bảy chỗ chép cổng; `bam-thu` thêm rào mã clan và các đường ✗ nói đúng lý do.
+
+- **Luật lint không thấy cổng chép qua biến hay object literal** (`const MA = 'unattached'; err(MA)`,
+  `{ code: 'unattached' }`). Luật gác NẾP; nghĩa thì review gác. Nếu lặp một lần nữa thì nâng thành
+  luật ESLint tự viết (đi theo kiểu, không theo chữ).
+- **Rào 3 của `bam-thu` chạy sau đăng nhập.** Trang công khai không bày tên dòng họ. Đăng nhập chỉ
+  ghi `session` toàn cục; nếu sau này có trang công khai bày tên họ (sổ dòng họ), chuyển rào lên trước.
+
+## Deferred from: code review of story 7-2-tra-no-san (2026-08-29)
+
+- **`nap-khung-client` ô bảng thiếu `align-top`** khi các ô trong một dòng xuống dòng khác nhau (số
+  dòng và ô tích canh giữa một khối tên cao). `bang-cho-duyet` đã `align-top` từng ô; bảng xem trước
+  chưa. Một dòng class mỗi ô — làm khi chạm màn nạp khung lần tới.

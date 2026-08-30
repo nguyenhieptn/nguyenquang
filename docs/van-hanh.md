@@ -183,6 +183,11 @@ kịch bản là ba LỚP (phiếu bề mặt B · bảng nơi chốn · bề m�
 ghi mới thì thêm kịch bản vào `scripts/bam-thu/kich-ban.ts` với `revisionMongDoi` đo được. Ảnh ở
 `var/bam-thu/`. Chạy ở mỗi story có nút ghi, và trước mỗi lần phát hành cùng `npm run soi`.
 
+Đọc bản kê: mỗi kịch bản một dòng ✓/✗, dưới nó là **câu màn đã nói** và `revision +N` (số hàng nhật
+ký kịch bản ấy sinh ra, so với `revisionMongDoi` đã đo). ✗ có ba dạng: màn không nói điều mong đợi
+(kèm 240 ký tự màn đang nói), revision lệch (đường ghi đã đổi hình — phải có người nhìn), hoặc
+*không đếm được revision* (DB / `DATABASE_URL_OWNER`, kết quả không kết luận được). Exit 1 khi có ✗.
+
 ### Khi thêm một màn mới
 
 Thêm một dòng vào `scripts/soi/dang-ky.ts`. Quên thì `npm test` ĐỎ — `dang-ky.test.ts` đối chiếu bản

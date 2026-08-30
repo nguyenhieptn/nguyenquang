@@ -44,13 +44,18 @@ function moiViPhamDo(bk: BanKe): { vp: ViPham; khoa: string }[] {
 }
 
 /** Tách theo TỪNG màn rồi gộp — `tachDaBiet` cần khoá màn để nợ theo màn khớp đúng chỗ. */
-function tachTheoMan(bk: BanKe): { moi: ViPham[]; daBiet: { vp: ViPham; muc: (typeof DA_BIET)[number] }[] } {
+function tachTheoMan(
+  bk: BanKe,
+  nen: readonly (typeof DA_BIET)[number][] = DA_BIET,
+): { moi: ViPham[]; daBiet: { vp: ViPham; muc: (typeof DA_BIET)[number] }[] } {
   const moi: ViPham[] = [];
   const daBiet: { vp: ViPham; muc: (typeof DA_BIET)[number] }[] = [];
   const theoKhoa = new Map<string, ViPham[]>();
   for (const { vp, khoa } of moiViPhamDo(bk)) theoKhoa.set(khoa, [...(theoKhoa.get(khoa) ?? []), vp]);
   for (const [khoa, ds] of theoKhoa) {
-    const t = tachDaBiet(ds, khoa);
+    // `nen` xuyên suốt (story 7-2): bảng nợ thật không còn mục theo màn, nên luật "nợ theo màn không
+    // nuốt vi phạm ở màn khác" chỉ test được bằng một nền tiêm vào — và phải đi qua ĐÚNG đường này.
+    const t = tachDaBiet(ds, khoa, nen);
     moi.push(...t.moi);
     daBiet.push(...t.daBiet);
   }
@@ -69,14 +74,17 @@ export function demBoQuaNang(bk: BanKe): number {
 }
 
 /** Vi phạm MỚI — cái thật sự hạ cổng. Màn bỏ qua vì hạ tầng cũng tính. */
-export function demDo(bk: BanKe): number {
-  return tachTheoMan(bk).moi.length + demBoQuaNang(bk);
+export function demDo(bk: BanKe, nen: readonly (typeof DA_BIET)[number][] = DA_BIET): number {
+  return tachTheoMan(bk, nen).moi.length + demBoQuaNang(bk);
 }
 
 /** Vi phạm đã ghi nợ, đếm theo từng mục của nền — kèm số VƯỢT so với lúc ghi nợ. */
-export function demDaBiet(bk: BanKe): { muc: (typeof DA_BIET)[number]; so: number; vuot: number }[] {
-  const { daBiet } = tachTheoMan(bk);
-  return DA_BIET.map((muc) => {
+export function demDaBiet(
+  bk: BanKe,
+  nen: readonly (typeof DA_BIET)[number][] = DA_BIET,
+): { muc: (typeof DA_BIET)[number]; so: number; vuot: number }[] {
+  const { daBiet } = tachTheoMan(bk, nen);
+  return nen.map((muc) => {
     const so = daBiet.filter((d) => d.muc === muc).length;
     return { muc, so, vuot: Math.max(0, so - muc.toiDa) };
   });

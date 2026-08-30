@@ -66,7 +66,8 @@ export async function searchPlaces(
   // Cùng cổng với `listPlaces`: tìm là một cách liệt kê chậm hơn, không phải một quyền khác.
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập.');
-  if (!session.personId) return err('unattached', 'Chưa gắn vào một người trong phả.');
+  const gate = gateWriter(session);
+  if (!gate.ok) return gate;
   return withClanContext(session.clanId, (tx) =>
     searchPlacesOps(tx, session, { ten, ...(donViCha !== undefined ? { donViCha } : {}) }),
   );
@@ -106,7 +107,7 @@ export async function unmergePlace(placeId: string): Promise<Result<NoiChon>> {
   return withClanContext(session.clanId, (tx) => unmergePlaceOps(tx, session, { placeId }));
 }
 
-/** Bia mộ kèm nơi thắng. Cùng cổng với `listPlaces`. */
+/** Bia mộ kèm nơi thắng. Cùng cổng với `listPlaces` — `gateWriter`, không chép. */
 export async function listMergedPlaces(): Promise<Result<NoiDaGop[]>> {
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập.');
