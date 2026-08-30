@@ -66,7 +66,7 @@ gốc để lần sau không phải điều tra lại.
   `core/person/read-ops.ts` nơi còn cả hàng thô. Việc riêng, nhỏ, và nên làm trước khi dòng họ
   nhập dữ liệu thật hàng loạt.
 
-- **`hideAssertion` trong panel.** Epic xếp SHOULD (*"nhỏ, đã có sẵn chỗ"*). AD-17 cho phép một
+- ~~**`hideAssertion` trong panel.**~~ **ĐÃ LÀM — story 7-3 (29/08/2026)**: nút *Ẩn theo báo cáo…* trên mọi dòng, cả hai bề mặt, lý do vào `revision.note`. Nguyên văn: Epic xếp SHOULD (*"nhỏ, đã có sẵn chỗ"*). AD-17 cho phép một
   lượt báo cáo ẩn ngay không cần duyệt; hàm core đã có, chỉ thiếu nút.
 
 ## Deferred from: 5-5-duyet-vao-pha (2026-08-25)
@@ -126,7 +126,7 @@ gốc để lần sau không phải điều tra lại.
 
 ## Deferred from: 6-1-noi-nguoi-da-co (2026-08-25)
 
-- **`place` và `note` ghi được mà không gỡ được.** Nút *"Loại"* ở `components/admin/cot-khang-dinh.tsx`
+- ~~**`place` và `note` ghi được mà không gỡ được.**~~ **ĐÃ LÀM — story 7-3**: `loaiDuocDuNoiTiep` mở cho `place`/`note`, nút nói *Loại nơi này* / *Loại ghi chú này*. Nguyên văn: Nút *"Loại"* ở `components/admin/cot-khang-dinh.tsx`
   chỉ mọc trên chồng **mâu thuẫn**. Bốn loại có `DON_TRI = false` (`core/person/chong.ts:39-47`)
   là chồng **nối tiếp** nên không bao giờ mâu thuẫn: `parent-child`, `union-partner`, `place`,
   `note`. Story 6-1 mở nút cho hai loại QUAN HỆ (`loaiDuocDuNoiTiep`) vì nó vừa dựng đường ghi

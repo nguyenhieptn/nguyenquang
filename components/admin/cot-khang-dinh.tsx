@@ -48,7 +48,14 @@ const NHAN_LOAI_CHONG = (khoa: string): string =>
     ? 'quan hệ cha con'
     : khoa === 'union-partner'
       ? 'quan hệ vợ chồng'
-      : 'một khẳng định';
+      : khoa === 'place'
+        ? 'một nơi chốn'
+        : khoa === 'note'
+          ? 'một ghi chú'
+          : 'một khẳng định';
+/** Chữ trên nút Loại của chồng NỐI TIẾP — nói đúng thứ nó loại (story 7-3). */
+const NHAN_NUT_LOAI = (khoa: string): string =>
+  khoa === 'place' ? 'Loại nơi này' : khoa === 'note' ? 'Loại ghi chú này' : 'Loại quan hệ này';
 import { BieuMauGhiThem, type VaiNoi } from './bieu-mau-ghi-them';
 import type { UngVienNoi } from './chon-noi';
 import { ghiThemDuoc, NHAN_LOAI, type LoaiGhiThem } from './loai-ghi-them';
@@ -177,6 +184,11 @@ type Props = {
   dangTai: boolean;
   onNangTang: (assertionId: string) => Promise<string | null>;
   onLoai: (assertionId: string, ghiChu: string) => Promise<string | null>;
+  /**
+   * Story 7-3 — ẩn theo báo cáo (AD-17): mọi thành viên, cả hai bề mặt, không cần duyệt. BẮT BUỘC,
+   * không `?:` — cùng lý do với `beMat`: quên ở một nơi gọi là một dòng có nút ẩn không làm gì.
+   */
+  onAn: (assertionId: string, lyDo: string) => Promise<string | null>;
   /** Story 5-6 — ghi thêm một khẳng định cho chính người đang bày. */
   onGhiThem: (loai: LoaiGhiThem, giaTri: string, xuatXu: string) => Promise<string | null>;
   /** Story 5-7 — nơi đi lối riêng: `placeId` + vai, không phải một chuỗi. */
@@ -220,6 +232,7 @@ function Than({
   dangTai,
   onNangTang,
   onLoai,
+  onAn,
   onGhiThem,
   onGhiNoi,
   onTimNoi,
@@ -374,6 +387,7 @@ function Than({
                         chong={theoKhoa.get(khoa)!}
                         onNangTang={onNangTang}
                         onLoai={onLoai}
+                        onAn={onAn}
                         moGhi={moGhi === khoa ? (khoa as LoaiGhiThem) : undefined}
                         onMoGhi={() => setMoGhi(khoa as LoaiGhiThem)}
                         onDongGhi={() => setMoGhi(undefined)}
@@ -539,6 +553,7 @@ function MotChong({
   chong,
   onNangTang,
   onLoai,
+  onAn,
   moGhi,
   onMoGhi,
   onDongGhi,
@@ -557,6 +572,7 @@ function MotChong({
   chong: ChongKhangDinh;
   onNangTang: (assertionId: string) => Promise<string | null>;
   onLoai: (assertionId: string, ghiChu: string) => Promise<string | null>;
+  onAn: (assertionId: string, lyDo: string) => Promise<string | null>;
   moGhi: LoaiGhiThem | undefined;
   onMoGhi: () => void;
   onDongGhi: () => void;
@@ -660,6 +676,7 @@ function MotChong({
         nangDuoc={beMat === 'B' && (!dinh || !chinhThucTrongCum(d.id))}
         loaiDuoc={beMat === 'B' && (dinh || loaiDuocDuNoiTiep(chong.khoa))}
         onNangTang={onNangTang}
+        onAnDong={onAn}
       />
     );
   });
@@ -884,6 +901,7 @@ function MotDong({
   loaiDuoc,
   onNangTang,
   onLoaiDong,
+  onAnDong,
 }: {
   dong: DongKhangDinh;
   /** Để bỏ phần đầu chuỗi khi nó nói lại đúng cái nhãn bên trái — xem `phieu-ly-lich.ts § gonGiaTri`. */
@@ -907,9 +925,14 @@ function MotDong({
   onNangTang: (assertionId: string) => Promise<string | null>;
   /** Đã đóng gói sẵn ghi chú đúng với loại chồng — xem `NHAN_LOAI_CHONG` ở nơi gọi. */
   onLoaiDong: (assertionId: string) => Promise<string | null>;
+  /** AD-17 — ẩn theo báo cáo, có ở MỌI dòng, cả hai bề mặt (story 7-3). */
+  onAnDong: (assertionId: string, lyDo: string) => Promise<string | null>;
 }) {
   const [loi, setLoi] = useState<string | null>(null);
   const [dangChay, batDau] = useTransition();
+  /** Ô lý do của "Ẩn theo báo cáo" — mở tại dòng, không hộp thoại: người đang nhìn dòng nào thì nói về dòng ấy. */
+  const [moAn, setMoAn] = useState(false);
+  const [lyDoAn, setLyDoAn] = useState('');
 
   const chay = (fn: (id: string) => Promise<string | null>) => () => {
     setLoi(null);
@@ -956,8 +979,7 @@ function MotDong({
         </p>
       ) : null}
 
-      {nangHienDuoc || loaiDuoc ? (
-        <div className="mt-1 flex flex-wrap gap-2">
+      <div className="mt-1 flex flex-wrap gap-2">
           {nangHienDuoc ? (
             <Button
               type="button"
@@ -987,9 +1009,65 @@ function MotDong({
               onClick={chay(onLoaiDong)}
               className="h-11 text-[17px] text-destructive"
             >
-              {dangGiu ? 'Loại giá trị đang giữ' : mauThuan ? 'Loại giá trị này' : 'Loại quan hệ này'}
+              {dangGiu ? 'Loại giá trị đang giữ' : mauThuan ? 'Loại giá trị này' : NHAN_NUT_LOAI(khoaChong)}
             </Button>
           ) : null}
+          {/**
+           * ẨN THEO BÁO CÁO — AD-17: một lượt báo cáo là ẩn NGAY, không cần duyệt; khôi phục mới
+           * cần (ở hàng chờ). Có ở MỌI dòng, CẢ HAI bề mặt: một lời khai làm đau người sống không
+           * được hiện lâu hơn thời gian người ấy tìm ra cái nút. Ghost, không son — đây không phải
+           * "chốt", là "gác lại để xem". Lý do bắt buộc và ở lại nhật ký (AD-4).
+           */}
+          <Button
+            type="button"
+            variant="ghost"
+            disabled={dangChay}
+            aria-expanded={moAn}
+            onClick={() => setMoAn((v) => !v)}
+            className="h-11 text-[17px]"
+          >
+            Ẩn theo báo cáo…
+          </Button>
+      </div>
+      {moAn ? (
+        <div className="mt-2 grid gap-2 border-l-4 border-ban-vien pl-3">
+          <label className="grid gap-1">
+            <span className="text-[15px] font-semibold text-muted-foreground">
+              Vì sao cần ẩn<span className="text-destructive"> ·</span>
+            </span>
+            <textarea
+              rows={2}
+              value={lyDoAn}
+              onChange={(e) => setLyDoAn(e.target.value)}
+              className="w-full rounded-md border border-ban-vien bg-ban-o px-3 py-2 text-[17px]"
+            />
+          </label>
+          <p className="max-w-[60ch] text-[15px] text-muted-foreground">
+            Ẩn ngay, không cần duyệt — ban tu phả sẽ xem lại và có thể hiện lại. Khẳng định này ở lại
+            trong nhật ký cùng lý do.
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={dangChay || !lyDoAn.trim()}
+              onClick={chay((id) => onAnDong(id, lyDoAn.trim()))}
+              className="h-11 text-[17px]"
+            >
+              {dangChay ? 'Đang ẩn…' : 'Ẩn ngay'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => {
+                setMoAn(false);
+                setLyDoAn('');
+              }}
+              className="h-11 text-[17px]"
+            >
+              Thôi
+            </Button>
+          </div>
         </div>
       ) : null}
     </li>

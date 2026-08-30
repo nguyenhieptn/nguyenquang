@@ -114,4 +114,32 @@ export const KICH_BAN: readonly KichBan[] = [
       return `canvas có thẻ "${TEN_NGUOI_THU}"`;
     },
   },
+  {
+    khoa: 'k4-an-theo-bao-cao',
+    ten: 'K4 · bề mặt A, thành viên: ẩn theo báo cáo ⇒ dòng rời phiếu ngay, không chờ duyệt',
+    vai: 'thanh-vien',
+    // Đo 29/08: ẩn = 1 hàng `hide`, lý do trong `note` (AD-17, story 7-3).
+    revisionMongDoi: 1,
+    chay: async (p, goc) => {
+      await p.goto(`${goc}/gia-pha`, { waitUntil: 'networkidle' });
+      // Người của chính mình — "Mình" có năm sinh 1980 trong dòng họ thử.
+      await p.locator('.react-flow__node', { hasText: 'Thử Mình' }).first().click();
+      await p.waitForTimeout(1200);
+      // Chồng MỘT dòng bày giá trị ở hàng đầu, còn nút nằm trong `<details>` bên dưới — neo vào KHỐI
+      // "Sinh" rồi mở tam giác, không tìm chữ "1980" trong `<li>` (nó không ở đó).
+      const chuTruoc = await doiRoiDoc(p, 'aside', 300);
+      if (!chuTruoc.includes('1980')) throw new Error('phiếu không bày năm sinh 1980 để ẩn');
+      // `aside section` LỒNG NHAU (khối ngoài bọc mọi chồng) — lọc `has: h3` khớp cả khối ngoài, và
+      // `.first()` chọn đúng khối ngoài ⇒ lượt chạy đầu ẨN NHẦM DÒNG TÊN. Đi từ chính `<h3>` lên cha.
+      const khoi = p.locator('aside h3', { hasText: /^Sinh$/ }).first().locator('xpath=..');
+      await khoi.locator('details').first().evaluate((d) => ((d as HTMLDetailsElement).open = true)).catch(() => {});
+      const dong = khoi.locator('li').first();
+      await dong.getByRole('button', { name: 'Ẩn theo báo cáo…' }).click();
+      await dong.locator('textarea').fill('kịch bản ghi 7-3 — thử ẩn');
+      await dong.getByRole('button', { name: 'Ẩn ngay' }).click();
+      const chu = await doiRoiDoc(p, 'aside', 2000);
+      if (chu.includes('1980')) throw new Error(`phiếu vẫn bày 1980 sau khi ẩn — đang nói: "${chu.slice(0, 200)}…"`);
+      return 'phiếu không còn dòng 1980 — ẩn ngay, không chờ duyệt';
+    },
+  },
 ];

@@ -18,7 +18,7 @@
  * Mọi hàm trả `Result` NGUYÊN VẸN từ core (không dịch, không throw). Quyền do core tự gác
  * (`gateWriter` / `gateApprover` trong từng op) — POST thẳng không qua UI thì core vẫn chặn.
  */
-import { addAssertion, addPerson } from '@/core/assertion';
+import { addAssertion, addPerson, hideAssertion } from '@/core/assertion';
 import type { AssertionSpec, NewPersonInput } from '@/core/assertion';
 import { LOAI_GHI_THEM, type LoaiGhiThem } from '@/components/admin/loai-ghi-them';
 import type { HuongThem } from '@/components/admin/dat-nut-tam';
@@ -362,4 +362,15 @@ export async function ghiNoi(
   const nguon = xuatXu.trim();
   if (!nguon) return err('invalid', 'Chưa ghi nghe được điều này từ đâu.');
   return addAssertion(personId, { kind: 'place', placeId, role: vai }, { kind: 'told-by', description: nguon });
+}
+
+/**
+ * Ẩn theo báo cáo (AD-17, story 7-3): một lượt báo cáo là ẩn NGAY, không cần duyệt — khôi phục mới
+ * cần. Mọi thành viên đã gắn chỗ ẩn được (`gateWriter` trong core); lý do đi vào `revision.note` và
+ * ở lại đó (AD-4). Một ruột cho cả hai bề mặt.
+ */
+export async function anKhangDinh(assertionId: string, lyDo: string): Promise<Result<void>> {
+  if (typeof assertionId !== 'string' || typeof lyDo !== 'string') return err('invalid', 'Tham số không hợp lệ.');
+  if (!lyDo.trim()) return err('invalid', 'Cần nói vì sao ẩn — lý do ở lại trong nhật ký.');
+  return hideAssertion(assertionId, lyDo.trim());
 }

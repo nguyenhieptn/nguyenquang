@@ -29,6 +29,7 @@ import {
   ghiThemKhangDinh,
   ghiThemNoi,
   ghiThemQuanHe,
+  anKhangDinh,
   loaiKhangDinh,
   nangTang,
   taoNoi,
@@ -638,6 +639,7 @@ export function CayClient({
             hoSo={hoSoHienHanh}
             dangTai={dangTai}
             onNangTang={async (id) => sauKhiGhi(await nangTang(id))}
+            onAn={async (id, lyDo) => sauKhiGhi(await anKhangDinh(id, lyDo))}
             /**
              * Ghi chú đi thẳng vào `revision` và Ở LẠI ĐÓ (AD-4) — `rejectAssertionOp` xoá cứng
              * hàng khẳng định, nên câu này là lời giải thích DUY NHẤT sống sót. Bản trước gắn

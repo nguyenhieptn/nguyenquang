@@ -21,6 +21,7 @@ import type { KetQuaTim } from '@/components/admin/man-admin';
 import type { UngVienNoiChon } from '@/core/place';
 import type { Result } from '@/core/types';
 import {
+  anKhangDinh as anKhangDinhChung,
   docHoSo,
   ghiKhangDinh,
   ghiNguoiMoi,
@@ -43,6 +44,13 @@ function lamMoi(): void {
 
 export async function xemHoSo(personId: string): Promise<Result<HoSoNguoi>> {
   return docHoSo(personId);
+}
+
+/** AD-17 — người trong họ ẩn được ngay, không chờ duyệt (story 7-3). */
+export async function anKhangDinh(assertionId: string, lyDo: string): Promise<Result<void>> {
+  const res = await anKhangDinhChung(assertionId, lyDo);
+  if (res.ok) lamMoi();
+  return res;
 }
 
 export async function timNguoi(tuKhoa: string): Promise<KetQuaTim[]> {

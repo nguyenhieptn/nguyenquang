@@ -48,6 +48,10 @@ export const NHAN_CAM_BAM: readonly RegExp[] = [
   /Tạo tài khoản/, // dang-nhap — ghi vào bảng tài khoản
   /Đăng xuất/, // toi — xoá phiên; không ghi vào phả, nhưng làm hỏng mọi phép đo sau nó
   /Ghi lại/, // noi-chon (6-4) — sửa tên / đơn vị cha của một nơi
+  // ── Story 7-3 ─────────────────────────────────────────────────────────────────────────────
+  /Ẩn ngay/, // phiếu, cả hai bề mặt — ẩn theo báo cáo (AD-17); "Ẩn theo báo cáo…" chỉ MỞ ô lý do
+  /Loại nơi này/, // phiếu B — gỡ một khẳng định nơi chốn ghi nhầm
+  /Loại ghi chú này/, // phiếu B — gỡ một ghi chú
 ];
 
 /**

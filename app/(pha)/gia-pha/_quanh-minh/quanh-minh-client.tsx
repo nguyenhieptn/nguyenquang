@@ -27,6 +27,7 @@ import { CanvasQuanhMinhTaiDong, useManRong } from '@/components/pha/cay-tai-don
 import { HangDoiQuanhMinh } from '@/components/pha/hang-doi-quanh-minh';
 import { TamPhieu } from '@/components/pha/tam-phieu';
 import {
+  anKhangDinh,
   ghiThemKhangDinh,
   ghiThemNoi,
   ghiThemQuanHe,
@@ -277,6 +278,8 @@ export function QuanhMinhClient({
         // chúng KHÔNG BAO GIỜ được gọi vì `beMat="A"` không mọc nút nào gọi chúng.
         onNangTang={async () => 'Duyệt là việc của ban tu phả.'}
         onLoai={async () => 'Duyệt là việc của ban tu phả.'}
+        // Ẩn theo báo cáo KHÔNG phải duyệt (AD-17): người trong họ ẩn được ngay (story 7-3).
+        onAn={async (id, lyDo) => sauKhiGhi(await anKhangDinh(id, lyDo))}
         onGhiThem={async (loai, giaTri, xuatXu) => {
           if (!chonId) return 'Chưa chọn ai trên cây.';
           return sauKhiGhi(await ghiThemKhangDinh(chonId, loai, giaTri, xuatXu));

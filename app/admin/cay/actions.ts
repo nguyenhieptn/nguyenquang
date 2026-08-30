@@ -22,6 +22,7 @@ import type { LoaiGhiThem } from '@/components/admin/loai-ghi-them';
 import type { UngVienNoiChon } from '@/core/place';
 import type { Result } from '@/core/types';
 import {
+  anKhangDinh as anKhangDinhChung,
   docHoSo,
   ghiKhangDinh,
   ghiNguoiMoi,
@@ -69,6 +70,13 @@ export async function loaiKhangDinh(
  * và "Mảnh chưa nối", mà con số ấy do `app/admin/layout.tsx` dựng, không phải trang này. Bài học
  * đã trả giá một lần ở `ghiVaoPha` (code review 5-1).
  */
+/** AD-17 — ẩn theo báo cáo, không cần duyệt. Hàng chờ có khu "đã ẩn" nên làm mới cả layout. */
+export async function anKhangDinh(assertionId: string, lyDo: string): Promise<Result<void>> {
+  const res = await anKhangDinhChung(assertionId, lyDo);
+  if (res.ok) lamMoiSo();
+  return res;
+}
+
 function lamMoiSo(): void {
   revalidatePath('/admin', 'layout');
 }

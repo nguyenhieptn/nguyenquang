@@ -43,7 +43,13 @@ async function main(): Promise<number> {
     const ten = k.vai === 'quan-tri' ? tenQT : tenThanhVienTu(tenQT);
     const phien = await moTrinhDuyet(gt.goc, 1280);
     try {
-      const loi = await dangNhap(phien, gt.goc, ten, mk);
+      // Một lượt đăng nhập lỡ (lượt chạy đầu 29/08: K4 hụt ở cửa dù K3 vừa vào bằng đúng tài khoản
+      // ấy) thì thử lại đúng MỘT lần — hai lần hụt mới là chuyện của máy chủ.
+      let loi = await dangNhap(phien, gt.goc, ten, mk);
+      if (loi) {
+        await phien.p.waitForTimeout(1500);
+        loi = await dangNhap(phien, gt.goc, ten, mk);
+      }
       if (loi) throw new Error(loi);
       // Rào 3 — đọc thanh trên SAU đăng nhập: bề mặt B bày "<tên> · <vai>"; bề mặt A bày tên
       // người đang đứng ở tâm. Cả hai phải mang họ thử.

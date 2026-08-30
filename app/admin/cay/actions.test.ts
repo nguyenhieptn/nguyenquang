@@ -29,7 +29,8 @@ vi.mock('next/cache', () => ({ revalidatePath: () => {}, revalidateTag: () => {}
 import { dungDongHoThu, donDongHoThu, type DongHoThu } from '@/core/gates/dong-ho-thu';
 import { getPerson } from '@/core/person';
 import { getNeighborhood, searchPersons } from '@/core/tree';
-import { ghiThemKhangDinh, ghiThemQuanHe, loaiKhangDinh, xemHoSo } from './actions';
+import { listHiddenAssertions } from '@/core/assertion';
+import { anKhangDinh, ghiThemKhangDinh, ghiThemQuanHe, loaiKhangDinh, xemHoSo } from './actions';
 
 let d: DongHoThu;
 
@@ -302,5 +303,45 @@ describe('xemHoSo — chồng MÂU THUẪN dựng được bằng đường ghi 
     if (!hoSo.ok) return;
     // Xa đã mất ⇒ 'full' với mọi người (người đã khuất đầy đủ với mọi người xem).
     expect(hoSo.value.visibility).toBe('full');
+  });
+});
+
+describe('anKhangDinh — ẩn theo báo cáo (AD-17, story 7-3) qua phiên thật', () => {
+  it('thành viên thường ẩn được NGAY, không cần duyệt: dòng rời phiếu, vào khu "đã ẩn" kèm lý do', async () => {
+    // Xa đã mất ⇒ 'full' với thành viên, nên phiếu bày chồng và có id để ẩn.
+    laThanhVien();
+    const truoc = await xemHoSo(d.nguoi.xa);
+    if (!truoc.ok) throw new Error(truoc.error.message);
+    const death = truoc.value.chong?.find((c) => c.kind === 'death');
+    const id = death?.rows[0]?.assertionId;
+    if (!id) throw new Error('Xa chưa có năm mất để ẩn');
+
+    const r = await anKhangDinh(id, 'S61 thử ẩn — lời khai làm đau người sống');
+    expect(r.ok).toBe(true);
+
+    // Lượt chạy đầu dạy một điều: ẩn năm MẤT thì cột chiếu `deathDate` về null, Xa thành "còn sống"
+    // với bán kính riêng tư, và thành viên cách bốn bậc KHÔNG còn thấy chồng nào (AD-13). Đúng luật,
+    // và là bằng chứng ẩn có chiếu lại (AD-19) — nên "dòng rời phiếu" kiểm là "không còn thấy id".
+    const sau = await xemHoSo(d.nguoi.xa);
+    expect(sau.ok && (sau.value.chong ?? []).some((c) => c.rows.some((x) => x.assertionId === id))).toBe(false);
+
+    laQuanTri();
+    const daAn = await listHiddenAssertions();
+    expect(daAn.ok).toBe(true);
+    if (!daAn.ok) return;
+    const dong = daAn.value.find((x) => x.assertionId === id);
+    expect(dong?.hiddenReason).toBe('S61 thử ẩn — lời khai làm đau người sống');
+    expect(dong?.personId).toBe(d.nguoi.xa);
+  });
+
+  it('khách ⇒ unauthenticated; lý do trống ⇒ invalid trước khi chạm core', async () => {
+    laKhach();
+    const r = await anKhangDinh('00000000-0000-7000-8000-000000000000', 'x');
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('unauthenticated');
+    laThanhVien();
+    const rong = await anKhangDinh('00000000-0000-7000-8000-000000000000', '   ');
+    expect(rong.ok).toBe(false);
+    if (!rong.ok) expect(rong.error.code).toBe('invalid');
   });
 });

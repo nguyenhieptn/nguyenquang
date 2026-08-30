@@ -127,5 +127,7 @@ export function cauSeGhi(a: {
  * story này. Ghi ra ở đây để lần sau không phải điều tra lại.
  */
 export function loaiDuocDuNoiTiep(khoaChong: string): boolean {
-  return khoaChong === 'parent-child' || khoaChong === 'union-partner';
+  // Story 7-3 lấp nốt cái lỗ ghi ở trên: `place` và `note` cũng gỡ được. Bốn loại nối tiếp, bốn
+  // đường ra. Nhãn nút nói đúng thứ nó loại — xem `NHAN_NUT_LOAI` ở `cot-khang-dinh.tsx`.
+  return khoaChong === 'parent-child' || khoaChong === 'union-partner' || khoaChong === 'place' || khoaChong === 'note';
 }
