@@ -3,7 +3,7 @@
  * là đỏ, và một hàm đổi lịch sai một ngày là hệ đi nói với các cụ rằng nhà mình cúng nhầm.
  */
 import { describe, expect, it } from 'vitest';
-import { amSangDuong, chuoiAm, docGio, duongSangAm, gioKeTiep, soNgayThangAm } from './am-lich';
+import { amSangDuong, cauGio, chuoiAm, docGio, duongSangAm, gioKeTiep, soNgayThangAm } from './am-lich';
 
 const MOC: { duong: [number, number, number]; am: [number, number, number, boolean]; ten: string }[] = [
   { duong: [10, 2, 2024], am: [1, 1, 2024, false], ten: 'Tết Giáp Thìn' },
@@ -56,9 +56,14 @@ describe('gioKeTiep — ngày giỗ rơi vào ngày dương nào kế tiếp', (
   it('giỗ ngày 30 của tháng thiếu ⇒ 29; tháng nhuận năm không có ⇒ tháng thường', () => {
     const r = gioKeTiep({ ngay: 30, thang: 12, nhuan: false }, { ngay: 1, thang: 1, nam: 2025 });
     expect(duongSangAm(r.duong)).toMatchObject({ ngay: 29, thang: 12, nam: 2024 });
+    expect(r.lui29).toBe(true);
+    expect(cauGio({ ngay: 30, thang: 12, nhuan: false }, r)).toContain('tháng thiếu, cúng ngày 29');
     const n = gioKeTiep({ ngay: 1, thang: 6, nhuan: true }, { ngay: 1, thang: 1, nam: 2026 });
     expect(n.nhuan).toBe(false);
     expect(duongSangAm(n.duong)).toMatchObject({ ngay: 1, thang: 6, nam: 2026 });
+    expect(cauGio({ ngay: 1, thang: 6, nhuan: true }, n)).toContain('năm nay không có tháng nhuận');
+    // Chuỗi gõ ở dạng NFD (macOS) vẫn đọc được.
+    expect(docGio('1/6 nhua\u0323\u0302n')).toEqual({ ngay: 1, thang: 6, nhuan: true });
   });
 });
 

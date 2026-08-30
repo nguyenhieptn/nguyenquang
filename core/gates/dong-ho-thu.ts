@@ -156,7 +156,8 @@ export async function dungDongHoThu(o: { tienTo?: string; ghim?: boolean } = {})
     const minh = await tao({ fullName: ten('Nguyễn Thử Mình'), gender: 'male', birth: nam(1980), parentId: cha, source: nguon });
     const em = await tao({ fullName: ten('Nguyễn Thử Em'), gender: 'female', birth: nam(1984), parentId: cha, source: nguon });
     const chu = await tao({ fullName: ten('Nguyễn Thử Chú'), gender: 'male', birth: nam(1955), parentId: to, source: nguon });
-    const xa = await tao({ fullName: ten('Lê Văn Xa'), gender: 'male', birth: nam(1930), death: nam(2000), source: nguon });
+    // Mất CHÍNH XÁC tới ngày (06/10/2000 = 9/9 Canh Thìn) ⇒ phiếu có gợi ý giỗ (story 7-5).
+    const xa = await tao({ fullName: ten('Lê Văn Xa'), gender: 'male', birth: nam(1930), death: { date: '2000-10-06', precision: 'exact' }, source: nguon });
     const moCoi = await tao({ fullName: ten('Nguyễn Thử Mồ Côi'), gender: 'male', birth: nam(1990), source: nguon });
     return { to, cha, me, minh, em, chu, xa, moCoi } satisfies NguoiThu;
   });
@@ -184,9 +185,8 @@ export async function dungDongHoThu(o: { tienTo?: string; ghim?: boolean } = {})
       if (!r.ok) throw new Error(`dong-ho-thu: mâu thuẫn — ${r.error.message}`);
     };
     await ghi(nguoi.chu, { kind: 'birth', value: { date: '1956-01-01', precision: 'year' } });
-    // Story 7-5: Tổ có ngày giỗ 15/8 (lịch giỗ có gì để bày); Xa mất ngày chính xác ⇒ phiếu có gợi ý.
+    // Story 7-5: Tổ có ngày giỗ 15/8 (lịch giỗ có gì để bày). Xa mất ngày chính xác từ lúc tạo (ở trên).
     await ghi(nguoi.to, { kind: 'gio', thang: 8, ngay: 15 });
-    await ghi(nguoi.xa, { kind: 'death', value: { date: '2000-10-06', precision: 'exact' } });
     const haiCha = await createPersonOp(tx, adminCtx, { fullName: ten('Nguyễn Thử Hai Cha'), gender: 'male', birth: nam(1985), parentId: nguoi.cha, source: nguon });
     if (!haiCha.ok) throw new Error(haiCha.error.message);
     await ghi(haiCha.value.personId, { kind: 'parent-child', parentId: nguoi.chu });

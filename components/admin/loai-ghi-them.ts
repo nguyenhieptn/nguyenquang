@@ -85,7 +85,7 @@ export function kiemGiaTri(loai: LoaiGhiThem, raw: string): LoiGiaTri {
   if (loai === 'gio') {
     // Cùng luật với `core/lich/am-lich.ts § docGio` — chép lại ở đây vì `components/` không import
     // core (build-contract § Phân tầng); core kiểm lần nữa khi ghi.
-    const m = v.toLowerCase().match(/^(\d{1,2})\s*[\/\-]\s*(\d{1,2})(\s*(nhuận|nhuan))?$/);
+    const m = v.normalize('NFC').toLowerCase().match(/^(\d{1,2})\s*[\/\-]\s*(\d{1,2})(\s*(nhuận|nhuan))?$/);
     if (!m || Number(m[1]) < 1 || Number(m[1]) > 30 || Number(m[2]) < 1 || Number(m[2]) > 12) {
       return { loi: 'ngày/tháng âm lịch, ví dụ 15/8' };
     }

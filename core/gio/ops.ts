@@ -6,12 +6,12 @@
  * Người CÒN SỐNG mà có khẳng định giỗ (ghi nhầm, hay ẩn năm mất — AD-19) thì KHÔNG vào lịch: bày
  * giỗ cho người sống là điều không được xảy ra, kể cả khi dữ liệu nói thế.
  */
-import { and, eq } from 'drizzle-orm';
+import { and, eq, isNull } from 'drizzle-orm';
 import type { Tx } from '@/db';
 import { assertion, person } from '@/db/schema';
 import { ok, type Result } from '@/core/types';
 import type { ViewerContext } from '@/core/identity/session';
-import { chuoiAm, chuoiDuong, gioKeTiep, homNayVN, soNgayGiua, type NgayDuong } from '@/core/lich/am-lich';
+import { cauGio, chuoiAm, chuoiDuong, gioKeTiep, homNayVN, soNgayGiua, type NgayDuong } from '@/core/lich/am-lich';
 
 export type GioSapToi = {
   personId: string;
@@ -27,6 +27,10 @@ export type GioSapToi = {
   /** Số ngày nữa tới giỗ (0 = hôm nay). */
   conNgay: number;
   tier: 'tentative' | 'official';
+  /** Câu đầy đủ, nói cả khi năm nay phải lệch (không tháng nhuận · tháng thiếu). */
+  cau: string;
+  /** Người này có HAI ngày giỗ khai khác nhau đang sống — chồng mâu thuẫn chờ ban tu phả (7-5 review). */
+  mauThuan: boolean;
 };
 
 export async function listGioSapToiOps(
@@ -45,7 +49,12 @@ export async function listGioSapToiOps(
     })
     .from(assertion)
     .innerJoin(person, eq(assertion.subjectPersonId, person.id))
-    .where(and(eq(assertion.kind, 'gio'), eq(assertion.status, 'live'), eq(person.isLiving, false)));
+    .where(and(eq(assertion.kind, 'gio'), eq(assertion.status, 'live'), eq(person.isLiving, false), isNull(person.mergedInto)));
+
+  // Người có >1 giỗ sống = chồng mâu thuẫn (DON_TRI.gio): mỗi ngày vẫn vào lịch — không tự chọn hộ —
+  // nhưng mang cờ để màn nói "hai ngày khai khác nhau".
+  const soGio = new Map<string, number>();
+  for (const r of rows) soGio.set(r.personId, (soGio.get(r.personId) ?? 0) + 1);
 
   const ra: GioSapToi[] = [];
   for (const r of rows) {
@@ -66,6 +75,8 @@ export async function listGioSapToiOps(
       chuoiDuong: chuoiDuong(ke.duong),
       conNgay,
       tier: r.tier,
+      cau: cauGio(g, ke),
+      mauThuan: (soGio.get(r.personId) ?? 0) > 1,
     });
   }
   // Gần nhất trước; cùng ngày thì theo tên.

@@ -4,7 +4,7 @@ baseline_commit: 8f263f8
 
 # Story 7.5: Ngày giỗ âm lịch — chép lấy ngày nhà đã dùng, chỉ gợi ý khi chưa có
 
-Status: review
+Status: done
 
 ## Story
 
@@ -37,8 +37,9 @@ cả hai (âm và dương) kèm nguồn."* Addendum 10/08: không còn kênh đ�
 4. **Lịch giỗ** ở `core/gio`: mọi giỗ sống của người đã khuất, quy ra ngày dương KẾ TIẾP kể từ hôm
    nay (năm âm này hoặc năm sau; tháng nhuận không có năm ấy thì lấy tháng thường; ngày 30 của
    tháng thiếu thì lùi về 29). Người đã khuất là `'full'` với mọi người xem (AD-13) — lịch công khai.
-   Trang `/gio` (bề mặt A, khách xem được) bày cả năm theo tháng âm; trang chủ có ô *Giỗ sắp tới*
-   (7 ngày, tối đa 5 dòng).
+   Trang `/gio` (bề mặt A, khách xem được) bày trọn một năm ÂM (385 ngày dương) theo tháng DƯƠNG —
+   thứ tự lịch treo tường, thứ người ta đặt lịch; trang chủ có ô *Giỗ sắp tới* (hôm nay + 7 ngày,
+   tối đa 5 dòng). *(Sửa sau code review: bản đầu viết "theo tháng âm" và cắt 365 ngày.)*
 5. Biểu mẫu ghi thêm nhận chuỗi `ngày/tháng` (`15/8`, `15/8 nhuận`) — một ô, gõ như người ta nói.
 
 ## Acceptance Criteria
@@ -46,11 +47,13 @@ cả hai (âm và dương) kèm nguồn."* Addendum 10/08: không còn kênh đ�
 2. `kind: 'gio'` đi qua mọi bảng đủ (`DON_TRI`/`HANG`/`NHAN`, `valueText`, `describeAssertionValue`,
    `describeAssertion` audit, `LOAI_GHI_THEM`) — `tsc` gác; ghi qua `addAssertion` với kiểm
    `1 ≤ thang ≤ 12`, `1 ≤ ngay ≤ 30`.
-3. Phiếu (cả hai bề mặt): chồng *Giỗ* bày "ngày N tháng M (nhuận) âm lịch — năm nay: dd/mm/yyyy";
+3. Phiếu (cả hai bề mặt): chồng *Giỗ* bày "ngày N tháng M (nhuận) âm lịch — sắp tới: dd/mm/yyyy"
+   (*sắp tới*, không *năm nay*: lần kế tiếp có thể rơi sang năm dương sau);
    hàng gợi ý khi đủ điều kiện (3); ghi từ biểu mẫu với chuỗi `ngày/tháng`.
 4. `core/gio.listGioSapToi({ soNgay })`: đúng ngày dương kế tiếp; người còn sống không vào lịch; test thật.
 5. `/gio` (khách xem được) và ô *Giỗ sắp tới* ở trang chủ; `soi gio trang-chu` 0 vi phạm mới (390px).
-6. `bam-thu` K5: thành viên ghi ngày giỗ cho Tổ từ phiếu ⇒ phiếu bày "giỗ ngày 15 tháng 8"; revision +2.
+6. `bam-thu` K5: thành viên ghi ngày giỗ **12/9** cho Tổ (đã có 15/8 từ dòng họ thử ⇒ chồng Giỗ hoá
+   mâu thuẫn, đúng hình cần bày) ⇒ phiếu bày "giỗ ngày 12 tháng 9 âm lịch — sắp tới: …"; revision +2.
 7. Năm cổng + bam-thu; `epics-dot-4`/PRD không cần sửa; `deferred-work` không phát sinh ngoài review.
 
 ## Phạm vi — KHÔNG thuộc story này
@@ -85,8 +88,9 @@ Claude Fable 5 · 29/08/2026.
 - `kind: 'gio'` đi qua sáu bảng đủ (`tsc` bắt từng chỗ, kể cả `LOAI_GHI_THEM.test` đếm "tám loại").
 - K5 lượt đầu chọn Chú — cách Mình BA bậc, ngoài canvas mặc định của thành viên; đổi sang Tổ (hai
   bậc, đã khuất, đã có giỗ 15/8 ⇒ ghi 12/9 là chồng Giỗ hoá mâu thuẫn — đúng hình cần bày).
-- Dòng họ thử thêm: Tổ giỗ 15/8; Xa mất chính xác 06/10/2000 (gợi ý 15/8 trên phiếu). Cả `:3200`
-  và `:3300` xoay clan mới.
+- Dòng họ thử thêm: Tổ giỗ 15/8; Xa mất chính xác 06/10/2000 = **9/9 Canh Thìn** (gợi ý 9/9 trên
+  phiếu — bản đầu ghi nhầm "15/8", chép từ mốc 2025 của bài test; code review bắt). Cả `:3200` và
+  `:3300` xoay clan mới.
 - `soi gio trang-chu gia-pha cay nguoi` 6 lượt 0 vi phạm mới; `bam-thu` K1–K5 5/5.
 
 ### File List
@@ -96,3 +100,32 @@ Claude Fable 5 · 29/08/2026.
 - `components/admin/loai-ghi-them.ts` (+test) · `components/admin/bieu-mau-ghi-them.tsx` (`giaTriBanDau`, ô giỗ) · `components/admin/cot-khang-dinh.tsx` (hàng Giỗ gợi ý)
 - `lib/ghi-pha.ts` · `app/admin/cay/cay-client.tsx` · `app/(pha)/gia-pha/_quanh-minh/quanh-minh-client.tsx`
 - `app/(pha)/gio/page.tsx` (mới) · `app/(pha)/page.tsx` (ô Giỗ sắp tới) · `scripts/soi/dang-ky.ts` · `core/gates/dong-ho-thu.ts` · `scripts/bam-thu/kich-ban.ts` (K5)
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 16 · Edge Case 12 · Acceptance Auditor 9 → 22 sau gộp trùng → **17 patch · 2 defer · 3 dismiss**.
+Phần thuật toán được cả ba lớp kiểm độc lập (quét vòng 1005 điểm 1900–2100, 720 tổ hợp giỗ × 108
+ngày): **0 lệch, không ném**. Mọi lỗi nằm ở đường nối giữa lịch thuần và bề mặt.
+
+Patch:
+1. **Lệch năm phải NÓI RA**: `gioKeTiep` trả `lui29` (ngày 30 tháng thiếu ⇒ cúng 29) và `nhuan` đã
+   giải; `cauGio` in "(tháng thiếu, cúng ngày 29)" / "(năm nay không có tháng nhuận, lấy tháng
+   thường)" — bản đầu lặng lẽ lùi và bày cặp âm–dương lệch nhau.
+2. **Người có hai giỗ sống** (chồng mâu thuẫn — chính K5 tạo ra): lịch vẫn bày cả hai, KHÔNG chọn hộ,
+   nhưng mang cờ `mauThuan` và câu "hai ngày khai khác nhau"; khoá React theo ngày âm, không theo
+   ngày dương (hai giỗ có thể rơi cùng ngày dương).
+3. `/gio` trọn **385 ngày** (một năm âm; cắt 365 bỏ rơi một phần ba lịch suốt nhiều tuần); trang chủ
+   bày `tồn nghi` (AD-9: mọi giỗ mới đều tồn nghi — bản đầu bày như đã chốt) và "và N giỗ nữa".
+4. `docGio` + kiểm phía client chuẩn hoá NFC (macOS/iOS gõ "nhuận" dạng tổ hợp); gợi ý chỉ trong dải
+   1900–2199; `listGioSapToiOps` lọc `mergedInto`; `TIEN_TO['gio']` để phiếu không lặp chữ "giỗ".
+5. Fixture: Xa mất chính xác từ lúc tạo (bản đầu THÊM một `death` thứ hai ⇒ mâu thuẫn thứ tư, trái
+   chú thích "ba mâu thuẫn"); câu rỗng của `/gio` trỏ vào *Phả quanh mình* (trang một người không
+   có nút ghi); "chưa dựng phả" khác "chưa đọc được".
+6. Spec sửa theo mã: AC 3 "sắp tới" (không "năm nay"), AC 6 K5 ghi 12/9, quyết định 4 "theo tháng
+   dương"; ghi chép gợi ý của Xa là **9/9 Canh Thìn** (bản đầu chép nhầm 15/8 từ mốc 2025 của test).
+   `docs/build-contract.md` thêm `/gio`, `/admin/nhat-ky`.
+
+Defer (→ `deferred-work.md § 7-5`): chỉ mục `(clan_id, kind)` cho `assertion` (lịch quét toàn bảng
+mỗi lượt trang chủ); "kèm nguồn" trên `/gio` (mô tả nguồn của khẳng định giỗ). Dismiss: `valueText`
+phụ thuộc giờ (đúng bản chất "sắp tới"; test khớp bằng regex); `_ctx` không dùng (người đã khuất
+'full' với mọi người — ghi rõ ở đầu file); văn khấn gợi ý (ngoài phạm vi, đã ghi).

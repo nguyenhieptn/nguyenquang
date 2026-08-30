@@ -111,12 +111,13 @@ app/(pha)/gia-pha/ca-toc/page.tsx        2-6 tầng 1
 app/(pha)/gia-pha/chi/[id]/page.tsx      2-6 tầng 2 theo chi
 app/(pha)/gia-pha/duong-cua-toi/page.tsx 2-6 tầng 3
 app/(pha)/nguoi/[id]/page.tsx            2-7 trang một người
+app/(pha)/gio/page.tsx                   7-5 lịch giỗ cả năm (khách xem được — người đã khuất là 'full')
 app/(pha)/tim?q=                         2-4 tìm + không-tìm-thấy
 app/(pha)/them/…                         2-3/2-5 tự khai 4 bước + thêm người thân
 app/(pha)/loi-ke/…                       2-8 thu lời kể
 app/(pha)/toi/page.tsx                   2-9 trang Tôi (FR-55)
 app/dang-nhap/page.tsx  app/gan-node/…   2-2 (bề mặt A, khung DOC)
-app/admin/layout.tsx + 8 màn            3-1…3-4, 5-1…5-8 (bề mặt B — khung trần, desktop)
+app/admin/layout.tsx + 10 màn           3-1…3-4, 5-1…5-8, 6-5 mâu thuẫn, 7-4 sổ nhật ký (bề mặt B — khung trần, desktop)
 lib/ghi-pha.ts                          ruột chung của mọi lối ghi/đọc hồ sơ — hai `actions.ts`
                                         (`admin/cay` · `(pha)/gia-pha`) chỉ là vỏ 'use server'
 app/admin/[...khong-co-man]/             bẫy 404 để app/admin/not-found.tsx chạy được

@@ -534,3 +534,15 @@ micro-giây (cả nhóm ghi cùng transaction rơi khỏi trang sau) và ảnh �
 
 - **Xem cây tại một thời điểm** — nửa sau FR-39, `getTreeAt` có ops, chưa màn (đã ở `epics-dot-4 §
   Sau epic này`; nhắc lại vì sổ nhật ký là chỗ tự nhiên để mở nó: một liên kết "cây lúc ấy" trên mỗi hàng).
+
+## Deferred from: code review of story 7-5-ngay-gio-am-lich (2026-08-29)
+
+Ba lớp: 22 phát hiện sau gộp → 17 patch · 2 defer · 3 dismiss. Thuật toán đổi lịch được ba lớp kiểm
+độc lập, 0 lệch; lỗi ở đường nối lịch ⇄ bề mặt (lệch năm im lặng, hai giỗ của một người, cửa sổ 365).
+
+- **`assertion` chưa có chỉ mục theo `kind`** — `listGioSapToiOps` quét toàn bảng ở mỗi lượt trang
+  chủ (`assertion_subject_idx` không phục vụ `kind` ở cột không dẫn đầu). Nhỏ khi phả nghìn dòng;
+  thêm `(clan_id, kind)` khi thấy trang chủ chậm — đo trước.
+- **"Kèm nguồn" trên lịch giỗ** (`review-culture:677`): `/gio` và ô trang chủ bày tầng (tồn nghi) mà
+  chưa bày *nguồn* của khẳng định giỗ ("theo lời cụ Bảng"). Phiếu có; lịch chưa. Một cột nữa ở
+  `GioSapToi` khi có người thật hỏi "ai bảo thế".

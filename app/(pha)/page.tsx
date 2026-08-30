@@ -331,7 +331,7 @@ export default async function Page() {
             {gioSapToi.length > 0 ? (
               <ul className="mt-5 space-y-4">
                 {gioSapToi.slice(0, 5).map((g) => (
-                  <li key={`${g.personId}-${g.duong}`} className="px-3.5 py-2">
+                  <li key={`${g.personId}-${g.ngay}/${g.thang}${g.nhuan ? 'n' : ''}`} className="px-3.5 py-2">
                     <p className="font-[family-name:var(--font-pha)] text-[19px] font-semibold leading-snug">
                       <Link href={`/nguoi/${g.personId}`} className="inline-flex min-h-11 items-center underline-offset-4 hover:underline">
                         {g.fullName}
@@ -339,15 +339,20 @@ export default async function Page() {
                     </p>
                     <p className="mt-1 text-[15px] text-muted-foreground">
                       {g.conNgay === 0 ? 'hôm nay' : `còn ${g.conNgay} ngày`} · {g.chuoiDuong} · {g.chuoiAm}
+                      {g.tier === 'tentative' ? ' · tồn nghi' : ''}
+                      {g.mauThuan ? ' · hai ngày khai khác nhau' : ''}
                     </p>
                   </li>
                 ))}
               </ul>
             ) : (
               <p className="mt-5 text-[15px] leading-relaxed text-muted-foreground">
-                Bảy ngày tới chưa có giỗ nào được ghi.
+                Hôm nay và bảy ngày tới chưa có giỗ nào được ghi.
               </p>
             )}
+            {gioSapToi.length > 5 ? (
+              <p className="mt-2 px-3.5 text-[15px] text-muted-foreground">và {gioSapToi.length - 5} giỗ nữa trong bảy ngày — xem lịch cả năm.</p>
+            ) : null}
             <Link href="/gio" className="mt-3 inline-flex min-h-11 items-center px-3.5 text-[17px] underline underline-offset-4">
               Lịch giỗ cả năm
             </Link>

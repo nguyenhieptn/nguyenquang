@@ -174,7 +174,16 @@ export type Gio = { ngay: number; thang: number; nhuan: boolean };
  * năm sau. Tháng nhuận không có năm ấy ⇒ lấy tháng thường cùng số; ngày 30 của tháng thiếu ⇒ 29.
  * Đây là phép quy đổi để BÀY — ngày giỗ nhà ghi là gì thì giữ nguyên là thế.
  */
-export function gioKeTiep(gio: Gio, homNay: NgayDuong): { duong: NgayDuong; namAm: number; nhuan: boolean } {
+export type GioKeTiep = {
+  duong: NgayDuong;
+  namAm: number;
+  /** Tháng nhuận CÓ năm ấy không — `false` khi nhà ghi "nhuận" mà năm nay không có, lấy tháng thường. */
+  nhuan: boolean;
+  /** Nhà ghi ngày 30 mà tháng ấy năm nay chỉ 29 — cúng 29. Phải NÓI RA, không lặng lẽ lùi (review 7-5). */
+  lui29: boolean;
+};
+
+export function gioKeTiep(gio: Gio, homNay: NgayDuong): GioKeTiep {
   const jdNay = jdTuDuong(homNay.ngay, homNay.thang, homNay.nam);
   const amNay = duongSangAm(homNay);
   for (const nam of [amNay.nam, amNay.nam + 1, amNay.nam + 2]) {
@@ -185,10 +194,12 @@ export function gioKeTiep(gio: Gio, homNay: NgayDuong): { duong: NgayDuong; namA
       d = amSangDuong({ ngay: Math.min(gio.ngay, 30), thang: gio.thang, nam, nhuan });
     }
     if (!d) continue;
+    let lui29 = false;
     if (gio.ngay === 30 && soNgayThangAm(gio.thang, nam, nhuan) === 29) {
       d = amSangDuong({ ngay: 29, thang: gio.thang, nam, nhuan })!;
+      lui29 = true;
     }
-    if (jdTuDuong(d.ngay, d.thang, d.nam) >= jdNay) return { duong: d, namAm: nam, nhuan };
+    if (jdTuDuong(d.ngay, d.thang, d.nam) >= jdNay) return { duong: d, namAm: nam, nhuan, lui29 };
   }
   // Không tới được: ba năm liền không có tháng ấy là dữ liệu hỏng (tháng > 12) — nơi gọi đã kiểm.
   throw new Error(`gioKeTiep: không quy được ngày ${gio.ngay}/${gio.thang}`);
@@ -207,6 +218,18 @@ export function chuoiAm(g: Gio): string {
   return `ngày ${g.ngay} tháng ${g.thang}${g.nhuan ? ' nhuận' : ''} âm lịch`;
 }
 
+/**
+ * Câu bày MỘT lần giỗ: ngày âm nhà ghi + ngày dương kế tiếp, và nói rõ khi năm nay phải lệch
+ * (không có tháng nhuận · tháng thiếu cúng 29). Không bao giờ để cặp âm–dương lệch nhau mà im.
+ */
+export function cauGio(g: Gio, ke: GioKeTiep): string {
+  const ghiChu = [
+    g.nhuan && !ke.nhuan ? 'năm nay không có tháng nhuận, lấy tháng thường' : null,
+    ke.lui29 ? 'tháng thiếu, cúng ngày 29' : null,
+  ].filter((x): x is string => x !== null);
+  return `giỗ ${chuoiAm(g)} — sắp tới: ${chuoiDuong(ke.duong)}${ghiChu.length ? ` (${ghiChu.join('; ')})` : ''}`;
+}
+
 /** Hôm nay theo giờ Việt Nam — múi cố định, không phụ thuộc máy chủ. */
 export function homNayVN(luc: Date = new Date()): NgayDuong {
   const t = new Date(luc.getTime() + MUI_GIO * 3600 * 1000);
@@ -215,7 +238,8 @@ export function homNayVN(luc: Date = new Date()): NgayDuong {
 
 /** Phân tích chuỗi người gõ: "15/8", "15/8 nhuận", "30-12". `null` khi không hiểu. */
 export function docGio(chuoi: string): Gio | null {
-  const m = chuoi.trim().toLowerCase().match(/^(\d{1,2})\s*[\/\-]\s*(\d{1,2})(\s*(nhuận|nhuan))?$/);
+  // NFC: bàn phím macOS/iOS gõ "nhuận" ở dạng tổ hợp (NFD) — cùng chữ, khác byte (review 7-5).
+  const m = chuoi.normalize('NFC').trim().toLowerCase().match(/^(\d{1,2})\s*[\/\-]\s*(\d{1,2})(\s*(nhuận|nhuan))?$/);
   if (!m) return null;
   const ngay = Number(m[1]);
   const thang = Number(m[2]);

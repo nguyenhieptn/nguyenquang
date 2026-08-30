@@ -206,6 +206,7 @@ const TIEN_TO: Record<string, string[]> = {
   gender: ['giới tính '],
   birth: ['năm sinh '],
   death: ['năm mất '],
+  gio: ['giỗ '],
   'union-partner': ['vợ/chồng với '],
   note: ['ghi chú: '],
 };

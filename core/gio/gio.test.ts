@@ -82,6 +82,20 @@ describe('listGioSapToiOps', () => {
     expect(dong?.valueText).toMatch(/^giỗ ngày 15 tháng 8 âm lịch — sắp tới: \d{2}\/\d{2}\/\d{4}$/);
   });
 
+  it('người có hai giỗ sống ⇒ cả hai vào lịch với cờ mâu thuẫn (DON_TRI.gio) — không tự chọn hộ', async () => {
+    await run(async (tx) => {
+      const r = await addAssertionOp(tx, admin, { personId: N.mat, spec: { kind: 'gio', thang: 9, ngay: 12 }, source: nguon });
+      expect(r.ok).toBe(true);
+    });
+    const lich = await run((tx) => listGioSapToiOps(tx, khach, { soNgay: 400, homNay: { ngay: 29, thang: 8, nam: 2026 } }));
+    expect(lich.ok).toBe(true);
+    if (!lich.ok) return;
+    const cuaMat = lich.value.filter((g) => g.personId === N.mat);
+    expect(cuaMat).toHaveLength(2);
+    expect(cuaMat.every((g) => g.mauThuan)).toBe(true);
+    expect(lich.value.find((g) => g.personId === N.cu)?.mauThuan).toBe(false);
+  });
+
   it('ghi giỗ sai (tháng 13, ngày 0) bị core từ chối', async () => {
     const r1 = await run((tx) => addAssertionOp(tx, admin, { personId: N.cu, spec: { kind: 'gio', thang: 13, ngay: 1 }, source: nguon }));
     const r2 = await run((tx) => addAssertionOp(tx, admin, { personId: N.cu, spec: { kind: 'gio', thang: 1, ngay: 0 }, source: nguon }));

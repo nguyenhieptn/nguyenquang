@@ -25,7 +25,9 @@ function nhomThang(duong: string): string {
 }
 
 export default async function GioPage() {
-  const [ds, thongTin, banLamViec] = await Promise.all([listGioSapToi(365), getClanInfo(), coBanLamViec()]);
+  // 385 ngày, không phải 365: một năm ÂM dài 354–385 ngày dương, nên giỗ vừa qua có lần kế tiếp cách
+  // tới 385 ngày — cắt ở 365 là bỏ rơi một phần ba lịch suốt nhiều tuần (code review 7-5).
+  const [ds, thongTin, banLamViec] = await Promise.all([listGioSapToi(385), getClanInfo(), coBanLamViec()]);
   const tenPha = tenPhaTuThongTin(thongTin.ok ? thongTin.value : null);
   const gio = ds.ok ? ds.value : [];
   const theoThang = new Map<string, typeof gio>();
@@ -42,15 +44,18 @@ export default async function GioPage() {
       <main className={`${KHUNG} flex-1 pt-9 md:pt-16`}>
         <h1 className="font-[family-name:var(--font-pha)] text-[29px] font-semibold leading-tight">Lịch giỗ</h1>
         <p className="mt-3 max-w-[60ch] text-[17px] text-muted-foreground">
-          Ngày giỗ ghi theo âm lịch như nhà vẫn cúng; ngày dương bên cạnh là lần giỗ sắp tới. Một năm,
-          tính từ hôm nay.
+          Ngày giỗ ghi theo âm lịch như nhà vẫn cúng; ngày dương bên cạnh là lần giỗ sắp tới. Trọn một
+          năm âm, tính từ hôm nay.
         </p>
         {!ds.ok ? (
-          <p className="mt-8 text-[17px] text-muted-foreground">Chưa đọc được lịch giỗ. Thử lại sau một lát.</p>
+          <p className="mt-8 text-[17px] text-muted-foreground">
+            {ds.error.code === 'unauthenticated' ? 'Phả chưa được dựng — chưa có lịch giỗ nào để xem.' : 'Chưa đọc được lịch giỗ. Thử lại sau một lát.'}
+          </p>
         ) : gio.length === 0 ? (
           <p className="mt-8 max-w-[60ch] text-[17px] text-muted-foreground">
-            Chưa ghi ngày giỗ của ai. Mở trang một người đã khuất, ở mục <em>Giỗ</em> có chỗ ghi — nếu
-            đã biết ngày mất thì phả gợi ý sẵn ngày âm.
+            Chưa ghi ngày giỗ của ai. Mở <Link href="/gia-pha" className="underline underline-offset-4">Phả quanh mình</Link>,
+            chạm một người đã khuất, ở phiếu có mục <em>Giỗ</em> để ghi — nếu đã biết ngày mất thì phả
+            gợi ý sẵn ngày âm.
           </p>
         ) : (
           <div className="mt-8 flex flex-col gap-8">
@@ -59,7 +64,7 @@ export default async function GioPage() {
                 <TuaMuc>{thang}</TuaMuc>
                 <ul className="mt-4 divide-y divide-border">
                   {ds.map((g) => (
-                    <li key={`${g.personId}-${g.duong}`} className="grid grid-cols-[6.5rem_1fr] gap-x-4 py-3">
+                    <li key={`${g.personId}-${g.ngay}/${g.thang}${g.nhuan ? 'n' : ''}`} className="grid grid-cols-[6.5rem_1fr] gap-x-4 py-3">
                       <p className="text-[17px] tabular-nums">
                         {g.chuoiDuong.slice(0, 5)}
                         <span className="block text-[15px] text-muted-foreground">
@@ -74,8 +79,9 @@ export default async function GioPage() {
                           {g.fullName}
                         </Link>
                         <span className="block text-[15px] text-muted-foreground">
-                          giỗ {g.chuoiAm}
+                          {g.cau.replace(/ — sắp tới: [^(]*/, '')}
                           {g.tier === 'tentative' ? ' · tồn nghi' : ''}
+                          {g.mauThuan ? ' · hai ngày khai khác nhau, ban tu phả đang xem' : ''}
                         </span>
                       </p>
                     </li>

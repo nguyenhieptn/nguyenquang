@@ -13,7 +13,7 @@ import { and, asc, eq, inArray } from 'drizzle-orm';
 import type { Tx } from '@/db';
 import { assertion, revision, source } from '@/db/schema';
 import { giaiNoi } from '@/core/place/ops';
-import { chuoiAm, chuoiDuong, duongSangAm, gioKeTiep, homNayVN } from '@/core/lich/am-lich';
+import { cauGio, duongSangAm, gioKeTiep, homNayVN } from '@/core/lich/am-lich';
 import { gateApprover } from '@/core/assertion/ops';
 import type { AssertionKind, Confidence, Tier } from '@/db/schema';
 import {
@@ -348,8 +348,7 @@ function dungDongKhangDinh(
         // Luôn hiện CẢ HAI lịch (review-culture:677): ngày âm nhà ghi, và ngày dương kế tiếp.
         const g = { ngay: Number(v.ngay), thang: Number(v.thang), nhuan: v.nhuan === true };
         if (!(g.ngay >= 1 && g.ngay <= 30 && g.thang >= 1 && g.thang <= 12)) return 'giỗ (ngày chưa rõ)';
-        const ke = gioKeTiep(g, homNayVN());
-        return `giỗ ${chuoiAm(g)} — sắp tới: ${chuoiDuong(ke.duong)}`;
+        return cauGio(g, gioKeTiep(g, homNayVN()));
       }
       case 'place': {
         const vai = VAI_NOI[(typeof v.role === 'string' ? v.role : '') as keyof typeof VAI_NOI] ?? 'nơi';
@@ -475,7 +474,8 @@ export async function getPersonOps(
     assertions = dungDongKhangDinh(rows, pid, row.fullName, ngu);
     if (row.deathDate && row.deathPrecision === 'exact' && !rows.some((r) => r.kind === 'gio')) {
       const [y, m, d] = row.deathDate.split('-').map(Number);
-      if (y && m && d) {
+      // Dải thuật toán 1900–2199 (Hồ Ngọc Đức); ngoài dải — cụ tổ đời xa — không gợi ý còn hơn gợi sai.
+      if (y && m && d && y >= 1900 && y <= 2199) {
         const am = duongSangAm({ ngay: d, thang: m, nam: y });
         goiYGio = {
           ngay: am.ngay,
