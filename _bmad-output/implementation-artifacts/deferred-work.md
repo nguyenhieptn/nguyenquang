@@ -406,6 +406,21 @@ Bản đầu đo bề mặt B ở **cả 768px**, và ra bốn ca tràn ngang �
 Đo một bề mặt theo một lời hứa **không ai hứa** thì sinh nhiễu, và nhiễu trong một cổng là thứ dạy
 người ta bỏ qua nó. Đã bỏ 768px khỏi bề mặt B.
 
+## Deferred from: code review of story 6-6-do-that-tren-trinh-duyet (2026-08-29)
+
+- **`thuTuongPhan` không nhìn vào chất liệu tồn nghi.** Nó bỏ qua alpha của màu chữ và bỏ qua
+  `background-image` — mà vân chéo `van-ton-nghi` là một `repeating-linear-gradient`. Hôm nay
+  không hụt: vân là `--muted` #efe5cc trên ô #fbf6e9, chữ #3a2f24 đạt ≈ 9:1 trên cả hai. Ghi vì
+  AC 12 của 6-6 gọi đích danh *"kể cả node tồn nghi"*, và một phép đo không nhìn vào chính chất
+  liệu ấy thì đang tin vào số học thay vì đo. [scripts/soi/thu-so.ts:150]
+- **Bộ mặt máy tính của bề mặt A chưa từng được đo.** `EXPERIENCE.md § Responsive` nói bề mặt A
+  *responsive thật* — măng-sét đỉnh và canvas cây từ `md` — nhưng bản đăng ký chỉ đo A ở 390px.
+  Story 6-10 (view "Phả quanh mình") thêm 1280px cho `/gia-pha`; ba màn cây còn lại vẫn nợ.
+  [scripts/soi/dang-ky.ts:56]
+- **AC 18 (RỖNG vs CÓ DỮ LIỆU) chỉ được chú ở bốn màn.** `/gia-pha` (chưa gắn chỗ · đã gắn),
+  `/admin/cay` (`ChuaCoGi` · có cây), `/admin/hop-nhat` (không mảnh rời · có) đều có hai bộ mặt mà
+  bản đăng ký không nói vì sao chỉ đo một. [scripts/soi/dang-ky.ts]
+
 ## Chốt BỎ — 26/08/2026
 
 Ba việc được nêu và chủ dự án chốt **không làm**. Ghi ra để lần sau không ai đề xuất lại như thể

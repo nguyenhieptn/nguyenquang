@@ -304,7 +304,14 @@ function Than({
               {/* PHIẾU. Phân tầng bằng ĐƯỜNG KẺ, không bằng hộp và không bằng bóng —
                   `DESIGN.md § Elevation & Depth`. */}
               {coHang ? (
-                <div className="mt-3 border-t border-ban-vien">
+                /**
+                 * `data-chong` là mốc bám cho bộ đo (code review 6-6). Phép `cot-phai` của
+                 * `scripts/soi` hỏi *"chồng khẳng định có bị đẩy khỏi tầm nhìn không"* (6-7 AC 18)
+                 * — và bản đầu neo vào `section[aria-label]`, tức mép trên của CẢ cột kể cả tên
+                 * và dòng dẫn xuất, nên nó không bao giờ đo được cái nó hứa. Mốc phải là chính
+                 * khối phiếu, và phải sống qua mọi lượt đổi class.
+                 */
+                <div data-chong className="mt-3 border-t border-ban-vien">
                   {thuTu.map((khoa) =>
                     khoa === KHOA_CON ? (
                       <HangChip

@@ -29,6 +29,24 @@ export const NHAN_CAM_BAM: readonly RegExp[] = [
   /Đổi vai/,
   /Gỡ gắn kết/,
   /Xoá/,
+  // ── Thêm sau code review 6-6: bản đầu liệt kê theo trí nhớ, và quét mã nguồn ra thêm mười ────
+  // hai nhãn GHI thật mà danh sách bỏ sót. Mỗi dòng dưới trỏ vào một nút có thật.
+  /Nhận vào phả/, // thao-tac-xin-vao-pha — trao quyền ghi và mở bán kính riêng tư
+  /Xác nhận từ chối/, // cùng panel — từ chối một yêu cầu vào phả
+  /Đây là mình/, // gan-node — gửi lời nhận chỗ (`requestAttachment`)
+  /Gộp —/, // hop-nhat — gộp hai hồ sơ (AD-3, huỷ được nhưng vẫn là một lượt ghi)
+  /Xác nhận gỡ/, // tai-khoan — gỡ gắn kết của người khác
+  /Nâng các dòng/, // hang-cho — nâng hàng loạt lên Tầng chính thức
+  /Ghi vào sổ dòng họ/, // so-dong-ho — đổi tên họ, chữ đệm, đề từ
+  /Lưu vào phả/, // loi-ke/thu — gửi một bản thu lên kho media
+  /Ẩn khỏi phần/, // toi — FR-55, đổi `hiddenFromPublic`
+  /Hiện lại với cả họ/,
+  /Không in tên/, // toi — FR-55, đổi `refusePrint`
+  /Cho in tên/,
+  /Đã xem/, // toi — đánh dấu thông báo (ngoại lệ AD-10, nhưng vẫn là một lượt ghi)
+  /Để nguyên như đang ghi/,
+  /Tạo tài khoản/, // dang-nhap — ghi vào bảng tài khoản
+  /Đăng xuất/, // toi — xoá phiên; không ghi vào phả, nhưng làm hỏng mọi phép đo sau nó
 ];
 
 /**

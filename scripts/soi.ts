@@ -40,23 +40,10 @@ import {
   luatCotPhai,
 } from './soi/luat';
 import { docHoacDung } from './soi/moi-truong';
+import { docThamSo } from './soi/tham-so';
 import { bikChanQuyen, chup, dangNhap, moMan, moTrinhDuyet } from './soi/trinh-duyet';
 import * as thu from './soi/thu-so';
 import { moBangXemTruoc } from './soi/xem-truoc';
-
-function docThamSo(argv: string[]): { loc: string[]; beMat: 'A' | 'B' | null } {
-  const loc: string[] = [];
-  let beMat: 'A' | 'B' | null = null;
-  for (let i = 0; i < argv.length; i++) {
-    if (argv[i] === '--be-mat') {
-      const v = argv[++i];
-      beMat = v === 'A' || v === 'B' ? v : null;
-    } else if (!argv[i].startsWith('--')) {
-      loc.push(argv[i]);
-    }
-  }
-  return { loc, beMat };
-}
 
 /** Bước riêng của từng màn mà bản đăng ký không tự mang được (tải tệp lên chẳng hạn). */
 const BUOC_RIENG: Record<string, (p: import('playwright').Page) => Promise<void>> = {

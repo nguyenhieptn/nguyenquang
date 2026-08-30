@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { type BanKe, demBoQuaNang, demCanMat, demDaBiet, demDo, demManBoQua, luatPhaKhongDoi, veMan, veTongKet } from './ban-ke';
+import { type BanKe, demBoQuaNang, demCanMat, demDaBiet, demDo, demManBoQua, demVuotNo, luatPhaKhongDoi, veMan, veTongKet } from './ban-ke';
 
 const man = (phepDo: BanKe['man'][number]['phepDo'], boQua?: string) => ({
   khoa: 'x',
@@ -83,13 +83,33 @@ describe('nền đã biết trong bản kê', () => {
   it('tổng kết in số nợ kèm chỗ ghi nợ, để đếm tăng lên là nhìn thấy', () => {
     const t = veTongKet(bkNo);
     expect(t).toContain('1 vi phạm MỚI');
-    expect(t).toContain('2 ×');
+    // "đếm / lúc ghi nợ" — con số bên phải là thứ làm "đếm tăng lên" nhìn thấy được.
+    expect(t).toMatch(/2 \/ 185/);
     expect(t).toContain('deferred-work.md');
   });
 
   it('màn có nợ vẫn in rõ MỚI và đã-ghi-nợ tách nhau', () => {
     expect(veMan(bkNo.man[0])).toContain('1 MỚI');
     expect(veMan(bkNo.man[0])).toContain('2 đã ghi nợ');
+  });
+
+  it('nợ đếm VƯỢT lúc ghi nợ thì thành mục cần mắt và in chữ TĂNG — không trông vào người nhớ số cũ', () => {
+    const vp = { loai: 'cham-duoi-san', moTa: '13×60px < 44×44 — a · "React Flow"' };
+    const bk: BanKe = {
+      man: [man([{ phep: 'chạm', soPhanTu: 9, viPham: [vp, vp, vp] }])],
+    };
+    expect(demDo(bk)).toBe(0);
+    expect(demVuotNo(bk)).toBe(1);
+    expect(demCanMat(bk)).toBe(1);
+    expect(veTongKet(bk)).toContain('TĂNG +1');
+  });
+
+  it('nợ theo màn KHÔNG nuốt vi phạm cùng hình ở màn khác', () => {
+    const vp = { loai: 'cham-duoi-san', moTa: '23×120px < 44×44 — a · "Nguyễn"' };
+    const oDungMan: BanKe = { man: [{ ...man([{ phep: 'chạm', soPhanTu: 1, viPham: [vp] }]), khoa: 'hop-nhat' }] };
+    const oManKhac: BanKe = { man: [{ ...man([{ phep: 'chạm', soPhanTu: 1, viPham: [vp] }]), khoa: 'cay' }] };
+    expect(demDo(oDungMan)).toBe(0);
+    expect(demDo(oManKhac)).toBe(1);
   });
 });
 

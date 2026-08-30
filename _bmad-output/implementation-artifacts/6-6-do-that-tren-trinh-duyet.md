@@ -7,7 +7,7 @@ baseline_commit: b3c242d
 
 # Story 6.6: Đo thật trên trình duyệt
 
-Status: review
+Status: done
 
 <!-- Tài liệu dự án viết bằng tiếng Việt (mọi story 5-x, 6-x đều vậy). `document_output_language:
 English` trong _bmad/bmm/config.yaml là giá trị cài đặt mặc định chưa ai sửa — mã và bình luận
@@ -188,6 +188,25 @@ bấm nút ghi" vì thế là hàng rào có răng, không phải lời dặn.
   - [x] Bốn cổng cũ xanh: lint · tsc · 488/488 test · build
   - [x] Bảy khiếm khuyết vào `deferred-work.md § 6-6`, khai trong `da-biet.ts`, đếm riêng từng mục
 
+### Review Findings
+
+Code review 29/08/2026 — ba lượt đọc đối kháng (soi lỗi · soi biên · đối chiếu AC), cùng một
+phiên, mở mã ở từng nơi gọi trước khi chấm. Bốn cổng xanh trước khi vá: lint · tsc · 496/496 · build.
+
+- [x] [Review][Patch] **Phép đo `cot-phai` gác không khí — đúng lớp lỗi story này sinh ra để bắt** — `chonChong: 'aside section[aria-label]'` trỏ vào `<section aria-label="Khẳng định về người đang chọn">`, tức mép trên của CẢ cột kể cả `<h2>` tên và dòng dẫn xuất, luôn nằm ~70px dưới đỉnh. `chongTren >= khungCao` vì thế không bao giờ đúng, và AC 18 của 6-7 (*"khối tóm tắt có đẩy chồng khẳng định khỏi tầm nhìn không"*) — mục nợ số 1, *"thứ đáng nhìn đầu tiên"* — được báo ✓ mà chưa từng được đo. Nay `cot-khang-dinh.tsx` đặt mốc `data-chong` lên chính khối phiếu và bản đăng ký neo vào đó. [scripts/soi/dang-ky.ts:288; components/admin/cot-khang-dinh.tsx:307]
+- [x] [Review][Patch] **`NHAN_CAM_BAM` liệt kê theo trí nhớ, bỏ sót mười sáu nhãn GHI có thật** — quét `type="submit"` và nhãn nút trên `app/` + `components/` ra: *Nhận vào phả* · *Xác nhận từ chối* · *Đây là mình* (gửi lời nhận chỗ) · *Gộp —* · *Xác nhận gỡ* · *Nâng các dòng* · *Ghi vào sổ dòng họ* · *Lưu vào phả* (bản thu) · *Ẩn khỏi phần* · *Hiện lại với cả họ* · *Không in tên* · *Cho in tên* · *Đã xem* · *Để nguyên như đang ghi* · *Tạo tài khoản* · *Đăng xuất*. Một script sau này `getByRole('button', { name: 'Đây là mình' }).click()` sẽ qua cổng mà gửi một yêu cầu vào phả thật. [scripts/soi/cam-bam.ts:20]
+- [x] [Review][Patch] **Nền đã biết không có phạm vi màn và không có trần** — `khop: '23×'` khớp MỌI đích chạm cao 23px trên cả sản phẩm, không chỉ tám liên kết ở hợp nhất mảnh; và lời hứa *"đếm tăng lên là nhìn thấy được"* trông vào người đọc nhớ con số của lượt trước — bản kê chỉ in số, không so với gì. Nay mỗi mục mang `toiDa` (số lúc ghi nợ), mục của một màn mang `man`, `tachDaBiet` nhận khoá màn, và đếm vượt in `👁 TĂNG +n` thành mục cần mắt. Không hạ cổng vì con số phụ thuộc dữ liệu — lý do ghi ở `da-biet.ts § toiDa`. [scripts/soi/da-biet.ts:19; scripts/soi/ban-ke.ts:41]
+- [x] [Review][Patch] **Bảng "Mười bốn mục nợ" khai ✅ cho hai mục không có phép đo nào** — mục 7 (*"Chưa biết cha…"* che thứ đáng nhìn: *"✅ đo giao nhau với vùng nội dung"*) và mục 8 (`Enter`/`Shift+Enter` tới trước nút ghi: *"✅"*) — bản đăng ký không có một bước nào gõ phím. Cùng lớp "tích khống" mà code review 6-1 và 6-7 đã bắt mỗi lượt một lần. Nay: mục 8 có thật — mục `cay-them` chọn người, gõ `Enter`, đo biểu mẫu, dừng trước nút ghi; mục 7 sửa thành ⚠ cần mắt, kèm lý do. [scripts/soi/dang-ky.ts; story § Mười bốn mục nợ]
+- [x] [Review][Patch] **`docs/van-hanh.md` bảng lệnh nói bề mặt B đo ở "1280 + 768px"** — 768 đã bỏ ở T7 cùng lượt, và chính story ghi lý do (`EXPERIENCE.md:498`). Tài liệu vận hành nói khác mã ở đúng chỗ người tiếp quản đọc đầu tiên. Kèm: hai chỗ ghi cứng *"hai mươi bảy màn"* — sai ngay khi bản đăng ký có mục thứ 28. [docs/van-hanh.md:78]
+- [x] [Review][Patch] **`docThamSo` nuốt tham số sai** — `--be-mat C` đổi thành `null` và đo TRỌN BỘ; một cờ gõ nhầm (`--be-mat-a`) bị bỏ qua không một lời. Nay ném, và tách thành module thuần `tham-so.ts` có test (runner tự chạy khi import nên không test được tại chỗ). [scripts/soi.ts:44]
+- [x] [Review][Patch] **`dem-revision.ts` đặt clan context ở phạm vi PHIÊN trên kết nối mượn từ pool** — `set_config(…, false)` sống qua `release()`, nên lượt mượn sau mang sẵn id của dòng họ trước. Hôm nay nơi gọi đặt lại mỗi lượt nên không sai, nhưng đó là thứ chỉ giữ được bằng thói quen — trái nếp `SET LOCAL` mà `db/index.ts` dựng ra để khỏi phải nhớ. Nay `BEGIN` · `set_config(…, true)` · `COMMIT`. [scripts/soi/dem-revision.ts:34]
+
+- [x] [Review][Defer] `thuTuongPhan` bỏ qua alpha của màu chữ và bỏ qua `background-image` — vân chéo `van-ton-nghi` là `--muted` #efe5cc trên ô #fbf6e9, chữ #3a2f24 vẫn ≈ 9:1 trên cả hai nên hôm nay không hụt; ghi nợ vì AC 12 gọi đích danh *"kể cả node tồn nghi"* mà phép đo không nhìn vào chính chất liệu ấy [scripts/soi/thu-so.ts:150] — deferred, pre-existing
+- [x] [Review][Defer] Bề mặt A là *"responsive thật"* (măng-sét + canvas cây từ `md`) nhưng không màn A nào đo trên 390px — bộ mặt máy tính của ba màn cây chưa từng được đo [scripts/soi/dang-ky.ts:56] — deferred; story view "Phả quanh mình" (6-10) thêm 1280px cho `/gia-pha`
+- [x] [Review][Defer] AC 18 (RỖNG vs CÓ DỮ LIỆU) chỉ được chú ở 4 màn; `/gia-pha` (chưa gắn chỗ), `/admin/cay` (`ChuaCoGi`), `/admin/hop-nhat` (không mảnh rời) có hai bộ mặt mà không ghi vì sao chỉ đo một [scripts/soi/dang-ky.ts] — deferred, pre-existing
+
+Ba mục gạt bỏ (không ghi): `luatPhaKhongDoi` trả `null` thành mục cần mắt thay vì ĐỎ (story tự chốt, có lý do); `laMayNay` nhận `localhost` (đúng); `thuCham` không quét `[role=option]` (mọi lựa chọn hiện nay đều là `<button>`).
+
 ---
 
 ## Dev Notes
@@ -295,8 +314,8 @@ Vì thế:
 | 4 | `/admin/cay` cột phải | dòng tóm tắt xuống dòng xấu khi tên chi dài | ✅ đo `flex-wrap` bằng số hàng thật |
 | 5 | `/admin/cay` cột phải | người ngoài bán kính riêng tư: `quanHe` hiện mà `chong` không | ⚠ đo được **có/không**, không đo được *"có đọc ra nghĩa không"* |
 | 6 | `/admin/cay` canvas | chip quan hệ bấm vào dời tâm mượt hay chớp | ⚠ cần mắt |
-| 7 | `/admin/cay` canvas | câu *"Chưa biết cha…"* không tự biến mất — có che thứ đáng nhìn không | ✅ đo giao nhau với vùng nội dung |
-| 8 | `/admin/cay` biểu mẫu | 6-9: `Enter` / `Shift+Enter` — mở được, điền được, **dừng trước nút ghi** | ✅ tới trước nút ghi |
+| 7 | `/admin/cay` canvas | câu *"Chưa biết cha…"* không tự biến mất — có che thứ đáng nhìn không | ⚠ **cần mắt** — *(sửa 29/08 sau code review: bản trước khai ✅ mà không có bước nào bật câu ấy lên; bật nó cần `Shift+Enter` trên một gốc mảnh, phả thật không có gốc nào ở tâm)* |
+| 8 | `/admin/cay` biểu mẫu | 6-9: `Enter` / `Shift+Enter` — mở được, điền được, **dừng trước nút ghi** | ✅ mục `cay-them` của bản đăng ký: chọn người rồi gõ `Enter`, đo biểu mẫu, dừng trước nút ghi — *(thêm 29/08 sau code review: bản trước khai ✅ mà bản đăng ký không có bước nào gõ phím)* |
 | 9 | `/admin/cay` biểu mẫu | 6-9 AC 9/10 đã chốt BỎ dòng chỉ dẫn `<kbd>` ⇒ phím tắt không nơi nào nói ra | ⚠ cần mắt |
 | 10 | `/admin/hang-cho` | chạy lại `soi-hang-cho` phải XANH (lượt đầu 27/08 ĐỎ: 10 đích chạm < 44px, tràn 1239/972) | ✅ |
 | 11 | `/admin/hang-cho` | chưa ai bấm **Duyệt cả nhóm** | ❌ đường ghi — ngoài phạm vi |
@@ -567,12 +586,14 @@ claude-opus-5
 - `scripts/soi/da-biet.ts` · `da-biet.test.ts` — nền đã biết, đếm riêng từng mục
 - `scripts/soi/dem-revision.ts` — hàng rào cuối AD-4, đếm có clan context
 - `scripts/soi/xem-truoc.ts` — bước mở bảng xem trước của bộ nạp khung
+- `scripts/soi/tham-so.ts` · `tham-so.test.ts` — đọc tham số dòng lệnh, ném khi sai (vá review)
 
 **Sửa**
 
 - `package.json` — `soi` · `soi:cay` · `soi:tai-khoan` · `soi:nap-khung` · `soi:hang-cho`
 - `vitest.config.ts` — `include` nhận `scripts/**/*.test.ts`
 - `components/admin/bieu-mau-ghi-them.tsx` — thêm mốc bám `data-cau-se-ghi`
+- `components/admin/cot-khang-dinh.tsx` — mốc bám `data-chong` cho phép đo cột phải (vá review)
 - `docs/van-hanh.md` — § Bộ đo giao diện, kèm § Vì sao không dùng 127.0.0.1
 - `docs/build-contract.md` — khai bộ đo là cổng thứ năm
 - `_bmad-output/implementation-artifacts/deferred-work.md` — § 6-6, bảy mục
@@ -586,4 +607,6 @@ claude-opus-5
 - 28/08 — lượt chạy thật: vá `__name`, luật sàn chữ, hàng rào `revision`, phép giải `/nguoi/[id]`;
   bỏ 768px khỏi bề mặt B; thêm nền đã biết; nới "máy này" ra mọi địa chỉ của máy (IP Tailscale);
   chốt bỏ T11.
+- 29/08 — code review: 7 patch + 3 defer, đã vá hết. Nặng nhất: phép đo AC 18 của 6-7 neo nhầm
+  phần tử nên chưa từng đo gì. Thêm mục `cay-them` (gõ `Enter` mở biểu mẫu, dừng trước nút ghi).
 

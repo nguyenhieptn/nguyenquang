@@ -271,7 +271,12 @@ export const DANG_KY: Man[] = [
     pheDo: [...DO_B, 'nhan-de-ten', 'cot-phai'],
     bay: 'Canvas gia phả + cột phải hồ sơ người',
     chonNhanDeTen: { the: '.react-flow__node', ten: 'p.font-pha' },
-    chonChong: 'aside section[aria-label]',
+    /**
+     * Mốc `[data-chong]` là CHÍNH khối phiếu (`cot-khang-dinh.tsx`), không phải `section[aria-label]`
+     * — cái sau là mép trên của cả cột kể cả tên người, luôn nằm gần đỉnh, nên phép đo AC 18 với
+     * nó xanh vĩnh viễn mà không đo gì (code review 6-6).
+     */
+    chonChong: 'aside [data-chong]',
     toiThieu: { chon: '.react-flow__node', ten: 'thẻ người trên canvas' },
     buoc: async (p) => {
       // Chọn người đầu tiên để cột phải có nội dung. Bấm vào THẺ là điều hướng, không phải ghi.
@@ -289,9 +294,33 @@ export const DANG_KY: Man[] = [
       '6-7 AC 18: khối tóm tắt có đẩy chồng khẳng định khỏi tầm nhìn không',
       '6-7: dòng tóm tắt xuống dòng xấu khi tên chi dài',
       '6-7: chip quan hệ bấm vào dời tâm mượt hay chớp — cần mắt',
-      '6-9: câu "Chưa biết cha…" nổi đè lên canvas',
+      '6-9: câu "Chưa biết cha…" nổi đè lên canvas — cần mắt (cần một gốc mảnh để bật câu ấy bằng Shift+Enter)',
       'Epic 5: nhãn sơn đè lên họ tên trên thẻ người',
     ],
+  },
+  {
+    ...BAN_B,
+    khoa: 'cay-them',
+    duong: '/admin/cay',
+    pheDo: DO_B,
+    bay: 'Biểu mẫu thêm người quanh một mốc — mở bằng phím Enter (story 6-9), DỪNG trước nút ghi',
+    /**
+     * Cùng một `page.tsx` với `cay`, nhưng là một BỘ MẶT khác: cột phải bày biểu mẫu thay cho phiếu.
+     * Mở bằng chính phím tắt của 6-9 chứ không bằng `?them=roi`, để phép đo đi đúng con đường mà
+     * story ấy dựng — chọn một người rồi gõ `Enter` là "thêm con của người ấy". Gõ phím KHÔNG ghi
+     * gì; nút ghi ở cuối biểu mẫu là thứ `cam-bam.test.ts` gác.
+     */
+    toiThieu: { chon: 'aside form', ten: 'biểu mẫu thêm người' },
+    buoc: async (p) => {
+      const the = p.locator('.react-flow__node').first();
+      if (!(await the.count())) return;
+      await the.click();
+      await p.waitForTimeout(600);
+      await p.keyboard.press('Enter');
+      await p.locator('aside form').first().waitFor({ timeout: 5000 }).catch(() => {});
+      await p.waitForTimeout(400);
+    },
+    no: ['6-9: `Shift+Enter` (anh em) chưa đo — cùng đường, khác mốc; đo một phím là đủ chứng biểu mẫu mở được'],
   },
   {
     ...BAN_B,

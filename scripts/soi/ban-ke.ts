@@ -38,9 +38,23 @@ export type BanKe = {
 
 const DAU = { do: '✗', xanh: '✓', mat: '👁', no: '≡' };
 
-/** Mọi vi phạm làm đỏ cổng, trước khi trừ nền đã biết. */
-function moiViPhamDo(bk: BanKe): ViPham[] {
-  return bk.man.flatMap((m) => m.phepDo.flatMap((p) => chiCaiLamDo(p.viPham)));
+/** Mọi vi phạm làm đỏ cổng, trước khi trừ nền đã biết — KÈM khoá màn, vì nền có mục theo màn. */
+function moiViPhamDo(bk: BanKe): { vp: ViPham; khoa: string }[] {
+  return bk.man.flatMap((m) => m.phepDo.flatMap((p) => chiCaiLamDo(p.viPham).map((vp) => ({ vp, khoa: m.khoa }))));
+}
+
+/** Tách theo TỪNG màn rồi gộp — `tachDaBiet` cần khoá màn để nợ theo màn khớp đúng chỗ. */
+function tachTheoMan(bk: BanKe): { moi: ViPham[]; daBiet: { vp: ViPham; muc: (typeof DA_BIET)[number] }[] } {
+  const moi: ViPham[] = [];
+  const daBiet: { vp: ViPham; muc: (typeof DA_BIET)[number] }[] = [];
+  const theoKhoa = new Map<string, ViPham[]>();
+  for (const { vp, khoa } of moiViPhamDo(bk)) theoKhoa.set(khoa, [...(theoKhoa.get(khoa) ?? []), vp]);
+  for (const [khoa, ds] of theoKhoa) {
+    const t = tachDaBiet(ds, khoa);
+    moi.push(...t.moi);
+    daBiet.push(...t.daBiet);
+  }
+  return { moi, daBiet };
 }
 
 /**
@@ -56,19 +70,32 @@ export function demBoQuaNang(bk: BanKe): number {
 
 /** Vi phạm MỚI — cái thật sự hạ cổng. Màn bỏ qua vì hạ tầng cũng tính. */
 export function demDo(bk: BanKe): number {
-  return tachDaBiet(moiViPhamDo(bk)).moi.length + demBoQuaNang(bk);
+  return tachTheoMan(bk).moi.length + demBoQuaNang(bk);
 }
 
-/** Vi phạm đã ghi nợ, đếm theo từng mục của nền. */
-export function demDaBiet(bk: BanKe): { muc: (typeof DA_BIET)[number]; so: number }[] {
-  const { daBiet } = tachDaBiet(moiViPhamDo(bk));
-  return DA_BIET.map((muc) => ({ muc, so: daBiet.filter((d) => d.muc === muc).length }));
+/** Vi phạm đã ghi nợ, đếm theo từng mục của nền — kèm số VƯỢT so với lúc ghi nợ. */
+export function demDaBiet(bk: BanKe): { muc: (typeof DA_BIET)[number]; so: number; vuot: number }[] {
+  const { daBiet } = tachTheoMan(bk);
+  return DA_BIET.map((muc) => {
+    const so = daBiet.filter((d) => d.muc === muc).length;
+    return { muc, so, vuot: Math.max(0, so - muc.toiDa) };
+  });
+}
+
+/**
+ * Nợ đếm VƯỢT mức ghi nợ — mỗi mục vượt là một mục cần mắt người (không hạ cổng, xem
+ * `da-biet.ts § toiDa` vì sao). Bản trước chỉ in con số và trông vào người đọc nhớ số lần trước.
+ */
+export function demVuotNo(bk: BanKe): number {
+  return demDaBiet(bk).filter((d) => d.vuot > 0).length;
 }
 
 export function demCanMat(bk: BanKe): number {
-  return bk.man.reduce(
-    (t, m) => t + m.phepDo.reduce((s, p) => s + p.viPham.filter((v) => v.canMatNguoi).length, 0),
-    0,
+  return (
+    bk.man.reduce(
+      (t, m) => t + m.phepDo.reduce((s, p) => s + p.viPham.filter((v) => v.canMatNguoi).length, 0),
+      0,
+    ) + demVuotNo(bk)
   );
 }
 
@@ -106,7 +133,7 @@ export function veMan(m: KetQuaMan): string {
     return dong.join('\n');
   }
   for (const p of m.phepDo) {
-    const { moi, daBiet } = tachDaBiet(chiCaiLamDo(p.viPham));
+    const { moi, daBiet } = tachDaBiet(chiCaiLamDo(p.viPham), m.khoa);
     const mat = p.viPham.filter((v) => v.canMatNguoi);
     const phan = [
       moi.length ? `${DAU.do} ${moi.length} MỚI` : null,
@@ -143,8 +170,11 @@ export function veTongKet(bk: BanKe): string {
    */
   const no = demDaBiet(bk).filter((d) => d.so > 0);
   if (no.length) {
-    dong.push(`${DAU.no} nợ đã ghi — KHÔNG hạ cổng, nhưng đếm phải đứng yên:`);
-    for (const d of no) dong.push(`    ${String(d.so).padStart(4)} × ${d.muc.moTa}  → ${d.muc.theoDoi}`);
+    dong.push(`${DAU.no} nợ đã ghi — KHÔNG hạ cổng, nhưng đếm phải đứng yên (đếm / lúc ghi nợ):`);
+    for (const d of no) {
+      const dau = d.vuot > 0 ? `${DAU.mat} TĂNG +${d.vuot}` : '   ';
+      dong.push(`    ${String(d.so).padStart(4)} / ${String(d.muc.toiDa).padEnd(4)} ${dau} ${d.muc.moTa}  → ${d.muc.theoDoi}`);
+    }
   }
   if (bk.revisionTruoc != null && bk.revisionSau != null) {
     const doi = bk.revisionTruoc !== bk.revisionSau;

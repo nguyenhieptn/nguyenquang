@@ -35,8 +35,17 @@ export async function demRevision(): Promise<number | null> {
     for (const { id } of ds.rows) {
       const cl = await pool.connect();
       try {
-        await cl.query('select set_config($1, $2, false)', ['app.clan_id', id]);
+        /**
+         * `SET LOCAL` trong một transaction, đúng nếp `db/index.ts § withClanContext`. Bản đầu
+         * dùng `set_config(…, false)` — phạm vi PHIÊN — trên một kết nối đi mượn từ pool, nên id
+         * dòng họ ở lại trên kết nối ấy sau khi trả về, và lượt mượn sau đọc `revision` của dòng
+         * họ trước nếu quên đặt lại. Hôm nay không ai quên, nhưng đó là thứ chỉ giữ được bằng
+         * thói quen (code review 6-6).
+         */
+        await cl.query('BEGIN');
+        await cl.query('select set_config($1, $2, true)', ['app.clan_id', id]);
         const kq = await cl.query<{ n: number }>('select count(*)::int as n from revision');
+        await cl.query('COMMIT');
         const n = kq.rows[0]?.n;
         if (typeof n !== 'number') return null;
         tong += n;

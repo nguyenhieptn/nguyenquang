@@ -28,4 +28,26 @@ describe('nền đã biết', () => {
     const { moi } = tachDaBiet([{ loai: 'cham-duoi-san', moTa: '4.42:1 gì đó' }]);
     expect(moi).toHaveLength(1);
   });
+
+  it('nợ khai `man` chỉ khớp trên ĐÚNG màn ấy — `23×` ở màn khác là vi phạm MỚI', () => {
+    const vp = { loai: 'cham-duoi-san', moTa: '23×120px < 44×44 — a · "Nguyễn"' };
+    expect(tachDaBiet([vp], 'hop-nhat').daBiet).toHaveLength(1);
+    expect(tachDaBiet([vp], 'cay').moi).toHaveLength(1);
+    // Không biết đang ở màn nào thì nghiêng về ĐỎ, không nghiêng về miễn trừ.
+    expect(tachDaBiet([vp]).moi).toHaveLength(1);
+  });
+
+  it('nợ ở tầng token (không `man`) khớp ở mọi màn', () => {
+    const vp = { loai: 'tuong-phan-thap', moTa: '4.42:1 < 4.5:1 — p · "x"' };
+    expect(tachDaBiet([vp], 'bat-ky').daBiet).toHaveLength(1);
+  });
+
+  it('mỗi mục ghi số lúc ghi nợ — không có trần thì "đếm tăng lên" không có gì để so', () => {
+    for (const m of DA_BIET) expect(m.toiDa, m.moTa).toBeGreaterThan(0);
+  });
+
+  it('nợ của MỘT màn phải khai `man` — nợ theo màn mà không khai là nuốt vi phạm của màn khác', () => {
+    const theoMan = DA_BIET.filter((m) => /hàng chờ|hợp nhất/.test(m.moTa));
+    for (const m of theoMan) expect(m.man, m.moTa).toBeDefined();
+  });
 });

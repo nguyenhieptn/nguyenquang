@@ -34,7 +34,7 @@ Log web: `var/log/giapha.log`. PID: `var/run/giapha.pid`.
 ## Bộ đo giao diện — cổng thứ năm
 
 Bốn cổng `npm run lint` · `npx tsc --noEmit` · `npm test` · `npm run build` chạy trên **mã nguồn**.
-Cổng thứ năm chạy trên một **hệ đang sống**: nó mở trình duyệt thật, đi hết hai mươi bảy màn và đo
+Cổng thứ năm chạy trên một **hệ đang sống**: nó mở trình duyệt thật, đi hết mọi màn trong bản đăng ký và đo
 các sàn đã cam kết ở `EXPERIENCE.md § Accessibility Floor`.
 
 Nó tồn tại vì bốn cổng kia xanh với gần như mọi lỗi giao diện. Hai lỗi nặng nhất của Đợt 2 — nhãn
@@ -77,10 +77,10 @@ SOI_GOC="http://$(tailscale ip -4):3100" SOI_TEN=<tên đăng nhập> SOI_MK='<m
 
 | Việc | Lệnh |
 |---|---|
-| Cả hai mươi bảy màn | `npm run soi` |
+| Cả bản đăng ký | `npm run soi` |
 | Một màn | `npm run soi -- hang-cho` |
 | Chỉ bề mặt điện thoại (390px) | `npm run soi -- --be-mat A` |
-| Chỉ bàn làm việc (1280 + 768px) | `npm run soi -- --be-mat B` |
+| Chỉ bàn làm việc (1280px — bề mặt B là desktop-only, `EXPERIENCE.md:498`) | `npm run soi -- --be-mat B` |
 | Xem danh sách khoá màn | `npm run soi -- khoa-khong-co-that` |
 
 ### Biến môi trường
