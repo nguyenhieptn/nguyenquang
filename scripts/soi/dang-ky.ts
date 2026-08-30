@@ -285,6 +285,15 @@ export const DANG_KY: Man[] = [
   },
   {
     ...BAN_B,
+    khoa: 'nhat-ky',
+    duong: '/admin/nhat-ky',
+    pheDo: DO_B,
+    bay: 'Sổ nhật ký chung — mọi việc đã làm, mới nhất trước, lọc GET (story 7-4)',
+    toiThieu: { chon: 'main ol li', ten: 'hàng nhật ký' },
+    ghiChu: 'Dòng họ thử luôn có hàng (dựng bằng đường ghi). Phả rỗng thì một câu.',
+  },
+  {
+    ...BAN_B,
     khoa: 'mau-thuan',
     duong: '/admin/mau-thuan',
     pheDo: DO_B,

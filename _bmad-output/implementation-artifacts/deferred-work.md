@@ -463,7 +463,7 @@ dù chú thích nói chặn; `FOR UPDATE` cho hai lượt gộp cùng lúc; `add
 trùng tên cũ; câu xác nhận nằm trong hàng bị gỡ ngay lúc gộp. Có thêm tầng test adapter
 `app/admin/noi-chon/actions.test.ts`.
 
-- **Nhật ký nơi chốn chưa có người đọc.** Màn hứa *"Tên cũ nằm trong nhật ký"* — đúng ở tầng dữ liệu
+- ~~**Nhật ký nơi chốn chưa có người đọc.**~~ **ĐÃ LÀM — story 7-4 (29/08/2026)**: `/admin/nhat-ky` đọc mọi thực thể, `place` có câu "sửa nơi … → …", "gộp nơi … vào …"; màn Nơi chốn trỏ vào sổ với `?loai=place`. Nguyên văn: Màn hứa *"Tên cũ nằm trong nhật ký"* — đúng ở tầng dữ liệu
   (`revision` ghi `entity: 'place'`, action `update/merge/unmerge`), nhưng `core/audit` chưa đọc
   `entity='place'`, nên lời hứa chưa có màn nào trả. Việc riêng: một khu "Lịch sử" ở màn Nơi chốn,
   hoặc một bộ lọc ở sổ nhật ký chung khi nó ra đời.

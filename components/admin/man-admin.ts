@@ -38,6 +38,7 @@ export type KhoaMan =
   | 'hop-nhat'
   | 'noi-chon'
   | 'so-dong-ho'
+  | 'nhat-ky'
   | 'tai-khoan'
   | 'nap-khung';
 
@@ -150,6 +151,15 @@ export const MAN: ManAdmin[] = [
     duong: '/admin/so-dong-ho',
     nhan: 'Tên họ & đề từ',
     tieuDe: 'Sổ dòng họ',
+    nhom: 'so-ho',
+    coSo: false,
+  },
+  {
+    /** Story 7-4 — sổ nhật ký chung (FR-39). Dữ liệu nền, không phải hàng chờ: không số. */
+    khoa: 'nhat-ky',
+    duong: '/admin/nhat-ky',
+    nhan: 'Nhật ký',
+    tieuDe: 'Sổ nhật ký',
     nhom: 'so-ho',
     coSo: false,
   },

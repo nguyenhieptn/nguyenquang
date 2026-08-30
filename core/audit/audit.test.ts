@@ -37,6 +37,8 @@ const aBirth = uuidv7(); // birth assertion on pDead (create → promote → hid
 const aNameFather = uuidv7();
 const aNameChild = uuidv7();
 const aEdgeReplay = uuidv7(); // parent-child assertion whose removal getTreeAt must survive
+const pNoiA = uuidv7(); // place ids for the journal (story 7-4) — rows only in `revision`, no place row needed
+const pNoiB = uuidv7();
 
 const guest: GuestContext = { accountId: null, clanId, personId: null, role: 'guest' };
 // Vai `admin` đến từ một gắn kết ĐANG HOẠT ĐỘNG, nên quản trị luôn có `personId` — ngữ cảnh
@@ -124,9 +126,9 @@ beforeAll(async () => {
 
     const rev = (row: {
       accountId: string;
-      entity: 'person' | 'assertion' | 'merge';
+      entity: 'person' | 'assertion' | 'merge' | 'place';
       entityId: string;
-      action: 'create' | 'promote' | 'hide' | 'remove';
+      action: 'create' | 'promote' | 'hide' | 'remove' | 'update' | 'merge';
       before?: unknown;
       after?: unknown;
       note?: string;
@@ -174,6 +176,10 @@ beforeAll(async () => {
 
       // Later duplicate 'create' for pFather — attributionFor must keep the EARLIEST.
       rev({ accountId: accB, entity: 'person', entityId: pFather, action: 'create', after: { id: pFather, clanId }, at: '2026-03-05T00:00:00Z' }),
+
+      // ── Story 7-4: hàng NƠI CHỐN — sổ chung phải đọc được (nợ 6-4) ──
+      rev({ accountId: accB, entity: 'place', entityId: pNoiA, action: 'update', before: { name: '1-6 Dinh Hoa', parentUnit: '' }, after: { name: '1-6 Định Hoá', parentUnit: 'Thái Nguyên' }, at: '2026-04-01T00:00:00Z' }),
+      rev({ accountId: accB, entity: 'place', entityId: pNoiB, action: 'merge', before: { mergedInto: null, nhan: '1-6 Quang Trung, Vũng Tàu' }, after: { mergedInto: pNoiA, winnerId: pNoiA, nhanThang: '1-6 Định Hoá, Thái Nguyên' }, at: '2026-04-02T00:00:00Z' }),
     ]);
   });
 });
@@ -356,5 +362,62 @@ describe('malformed ids (Postgres 22P02)', () => {
     );
     expect(res.ok).toBe(true);
     if (res.ok) expect(Object.keys(res.value)).toEqual([pChild]);
+  });
+});
+
+describe('listJournalOps — sổ nhật ký chung (story 7-4, FR-39)', () => {
+  it('quản trị đọc được mọi thực thể, mới nhất trước; hàng nơi chốn có câu đọc được', async () => {
+    const r = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, {}));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    const at = r.value.entries.map((e) => e.at);
+    expect([...at].sort().reverse()).toEqual(at);
+    const noi = r.value.entries.filter((e) => e.entity === 'place');
+    expect(noi.map((e) => e.summary)).toEqual([
+      'gộp nơi "1-6 Quang Trung, Vũng Tàu" vào "1-6 Định Hoá, Thái Nguyên"',
+      'sửa nơi "1-6 Dinh Hoa" → "1-6 Định Hoá, Thái Nguyên"',
+    ]);
+    // Giá trị bị loại đọc lại được, kèm lý do nguyên văn (AD-4).
+    const go = r.value.entries.find((e) => e.action === 'remove' && e.entity === 'assertion');
+    expect(go?.summary).toContain('gỡ quan hệ cha mẹ – con');
+    expect(go?.note).toBe('nhầm đời');
+    expect(go?.nguoi?.fullName).toBe('1-6 Nguyễn Văn Trai');
+  });
+
+  it('lọc theo loại và hành động đi xuống SQL; lọc theo người dùng CHUNG phép của getPersonHistory', async () => {
+    const noi = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { loai: 'place' }));
+    expect(noi.ok && noi.value.entries.every((e) => e.entity === 'place') && noi.value.entries.length === 2).toBe(true);
+    const go = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { hanh: 'remove' }));
+    expect(go.ok && go.value.entries.every((e) => e.action === 'remove')).toBe(true);
+
+    const soChung = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { nguoi: pDead }));
+    const motNguoi = await withClanContext(clanId, (tx) => ops.getPersonHistory(tx, admin, pDead));
+    expect(soChung.ok && motNguoi.ok).toBe(true);
+    if (!soChung.ok || !motNguoi.ok) return;
+    expect(soChung.value.entries.map((e) => e.summary)).toEqual(motNguoi.value.map((h) => h.summary));
+  });
+
+  it('con trỏ trang: hai trang không chồng nhau, không bỏ sót; hết thì `tiep` null', async () => {
+    const t1 = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { limit: 3 }));
+    expect(t1.ok && t1.value.entries.length === 3 && t1.value.tiep !== null).toBe(true);
+    if (!t1.ok || !t1.value.tiep) return;
+    const t2 = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { limit: 100, truoc: t1.value.tiep! }));
+    expect(t2.ok).toBe(true);
+    if (!t2.ok) return;
+    const tatCa = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, {}));
+    if (!tatCa.ok) return;
+    const ids1 = new Set(t1.value.entries.map((e) => e.id));
+    expect(t2.value.entries.some((e) => ids1.has(e.id))).toBe(false);
+    expect(t1.value.entries.length + t2.value.entries.length).toBe(tatCa.value.entries.length);
+    expect(t2.value.tiep).toBeNull();
+  });
+
+  it('thành viên ⇒ forbidden; khách ⇒ unauthenticated (qua gateApprover); id người không phải uuid ⇒ rỗng, không ném', async () => {
+    const tv = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, stranger, {}));
+    expect(!tv.ok && tv.error.code === 'forbidden').toBe(true);
+    const kh = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, guest, {}));
+    expect(!kh.ok && kh.error.code === 'unauthenticated').toBe(true);
+    const xau = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { nguoi: 'không-phải-uuid' }));
+    expect(xau.ok && xau.value.entries.length === 0).toBe(true);
   });
 });

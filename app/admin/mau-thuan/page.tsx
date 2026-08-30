@@ -69,7 +69,14 @@ export default async function MauThuanPage() {
       {ds.value.length > 0 ? (
         <p className="mt-1.5 max-w-[70ch] text-[17px] text-muted-foreground">
           Chọn một là việc trên phiếu ở màn cây, nơi có đủ quan hệ và nguồn của từng dòng — ở đây chỉ
-          liệt kê. Giá trị bị loại rời khỏi phả nhưng vẫn nằm trong nhật ký.
+          liệt kê. Giá trị bị loại rời khỏi phả nhưng vẫn nằm trong{' '}
+          <Link
+            href="/admin/nhat-ky?loai=assertion&hanh=remove"
+            className="inline-flex min-h-11 items-center underline underline-offset-4"
+          >
+            sổ nhật ký
+          </Link>
+          .
         </p>
       ) : null}
 

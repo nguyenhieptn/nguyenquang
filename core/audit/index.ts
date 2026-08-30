@@ -16,7 +16,7 @@ import { resolveSession, resolveViewer } from '@/core/identity/session';
 import { withClanContext } from '@/db';
 import * as ops from './ops';
 
-export type { Attribution, HistoryEntry, RecentAddition, RevisionAction, TreeSnapshot } from './ops';
+export type { Attribution, HistoryEntry, JournalArgs, JournalEntity, JournalEntry, JournalPage, RecentAddition, RevisionAction, TreeSnapshot } from './ops';
 
 /**
  * All revisions touching one person — person rows, every revision of every assertion about
@@ -63,4 +63,11 @@ export async function attributionFor(
   const viewer = await resolveViewer();
   if (!viewer) return ok({});
   return withClanContext(viewer.clanId, (tx) => ops.attributionFor(tx, viewer, personIds));
+}
+
+/** Sổ nhật ký chung (story 7-4, FR-39) — quyền duyệt; cổng nằm trong ops. */
+export async function listJournal(args: ops.JournalArgs = {}): Promise<Result<ops.JournalPage>> {
+  const viewer = await resolveViewer();
+  if (!viewer) return err('unauthenticated', 'no session and no clan to view');
+  return withClanContext(viewer.clanId, (tx) => ops.listJournalOps(tx, viewer, args));
 }

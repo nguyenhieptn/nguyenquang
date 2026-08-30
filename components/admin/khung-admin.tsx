@@ -39,6 +39,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
   Crosshair,
+  History,
   Inbox,
   LayoutDashboard,
   MapPin,
@@ -67,6 +68,7 @@ const ICON: Record<KhoaMan, LucideIcon> = {
   'hop-nhat': Unlink,
   'noi-chon': MapPin,
   'so-dong-ho': ScrollText,
+  'nhat-ky': History,
   'tai-khoan': UsersRound,
   'nap-khung': Upload,
 };

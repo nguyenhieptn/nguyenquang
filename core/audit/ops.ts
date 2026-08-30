@@ -182,6 +182,50 @@ function summarize(rev: RevisionRow, assertionInfo?: Img | null): string {
   if (rev.entity === 'merge') {
     return rev.action === 'unmerge' ? 'tách lại bản ghi đã hợp nhất' : 'hợp nhất bản ghi trùng';
   }
+  // ── Các thực thể còn lại — thêm ở story 7-4 (sổ nhật ký chung). Trước đó sổ chỉ có một người
+  // đọc (trang một người) nên `place`/`clan`/`attachment`… chưa từng cần câu.
+  if (rev.entity === 'place') {
+    const truoc = asImg(rev.before);
+    const sau = asImg(rev.after);
+    const nhan = (i: Img | null) => {
+      const n = str(i?.name);
+      const dv = str(i?.parentUnit);
+      return n ? (dv ? `${n}, ${dv}` : n) : null;
+    };
+    switch (rev.action) {
+      case 'create':
+        return `thêm nơi "${nhan(sau) ?? '?'}" vào danh mục`;
+      case 'update':
+        return `sửa nơi "${nhan(truoc) ?? '?'}" → "${nhan(sau) ?? '?'}"`;
+      case 'merge':
+        return `gộp nơi "${str(truoc?.nhan) ?? '?'}" vào "${str(sau?.nhanThang) ?? '?'}"`;
+      case 'unmerge':
+        return 'tách lại một nơi đã gộp — nguyên trạng trở về';
+      default:
+        break;
+    }
+  }
+  if (rev.entity === 'clan') {
+    const truoc = str(asImg(rev.before)?.name);
+    const sau = str(asImg(rev.after)?.name);
+    return truoc && sau && truoc !== sau ? `sửa sổ dòng họ — tên họ "${truoc}" → "${sau}"` : 'sửa sổ dòng họ (tên họ, chữ đệm, đề từ)';
+  }
+  if (rev.entity === 'attachment') {
+    // Việc của gắn kết nói bằng chính ghi chú của nó ("duyệt gắn node", "đổi vai", …).
+    switch (rev.action) {
+      case 'create':
+        return 'xin gắn vào một người trong phả';
+      case 'remove':
+        return rev.note ? `gỡ gắn kết — ${rev.note}` : 'gỡ gắn kết';
+      default:
+        return rev.note ? `gắn kết: ${rev.note}` : 'cập nhật gắn kết';
+    }
+  }
+  if (rev.entity === 'source') return 'ghi một nguồn cho lời khai';
+  if (rev.entity === 'union') return rev.action === 'remove' ? 'gỡ một cặp vợ chồng' : 'ghi một cặp vợ chồng';
+  if (rev.entity === 'recording') {
+    return rev.action === 'withdraw' ? 'rút lại một lời kể' : rev.action === 'update' ? 'đổi mức tiếp cận một lời kể' : 'lưu một lời kể';
+  }
   return `${rev.action} ${rev.entity}`;
 }
 
@@ -207,50 +251,15 @@ async function viewerDistances(
   };
 }
 
-// ── getPersonHistory ──────────────────────────────────────────────────────────
+// ── Gom hàng nhật ký về MỘT người — dùng chung cho trang một người và sổ chung (story 7-4) ──
 
 /**
- * All revisions touching one person, newest first: entity 'person' rows for them, every
- * revision of every assertion about them (found via full-row images and the live assertion
- * table — see the image-shape table in the file header), and 'merge' rows where they are
- * winner or loser.
- *
- * AD-21: requires FULL visibility of the person — anything less and the log would leak what
- * the person view withholds (withdrawn values included).
+ * Mọi revision chạm tới một người, mới nhất trước: hàng `person` của họ, mọi revision của mọi
+ * khẳng định về họ (tìm qua ảnh đầy đủ và bảng sống — xem bảng hình ảnh ở đầu file), và hàng
+ * `merge` mà họ là bên thắng hay bên thua. MỘT phép cho hai chỗ đọc: bộ lọc "theo người" của sổ
+ * chung mà gom bằng phép khác là hai sổ nói hai điều về cùng một người.
  */
-export async function getPersonHistory(
-  tx: Tx,
-  ctx: ViewerContext,
-  personId: string,
-): Promise<Result<HistoryEntry[]>> {
-  // Route params arrive as raw strings: a non-uuid would make Postgres throw 22P02 instead of
-  // returning nothing. An id nobody holds and an id nobody could hold read the same here.
-  if (!isUuid(personId)) return err('not-found', 'person not found');
-
-  const [subject] = await tx
-    .select({
-      isLiving: person.isLiving,
-      birthDate: person.birthDate,
-      hiddenFromPublic: person.hiddenFromPublic,
-    })
-    .from(person)
-    .where(eq(person.id, personId));
-  if (!subject) return err('not-found', 'person not found');
-
-  let distance: number | null = null;
-  const privileged = coQuyenDuyet(ctx);
-  if (subject.isLiving && !privileged && ctx.personId !== null && ctx.personId !== personId) {
-    distance = (await viewerDistances(tx, ctx.personId)).get(personId);
-  }
-  const vis = visibilityFor(
-    { role: ctx.role, personId: ctx.personId },
-    { personId, ...subject },
-    distance,
-  );
-  if (vis !== 'full') {
-    return err('forbidden', 'history requires full visibility of the person (AD-21)');
-  }
-
+async function revisionsVePerson(tx: Tx, personId: string): Promise<RevisionRow[]> {
   // Step 1 — rows that name the person directly (person rows, full-image assertion rows, merges).
   const direct = await tx
     .select()
@@ -297,11 +306,13 @@ export async function getPersonHistory(
 
   const byId = new Map<string, RevisionRow>();
   for (const r of [...direct, ...lifecycle]) byId.set(r.id, r);
-  const rows = [...byId.values()].sort(
+  return [...byId.values()].sort(
     (a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id),
   );
+}
 
-  // Full-row images (create/remove) describe the status-only revisions of the same assertion.
+/** Full-row images (create/remove) describe the status-only revisions of the same assertion. */
+function anhDayDuTheoKhangDinh(rows: readonly RevisionRow[]): Map<string, Img> {
   const infoByAssertion = new Map<string, Img>();
   for (const r of rows) {
     if (r.entity !== 'assertion' || infoByAssertion.has(r.entityId)) continue;
@@ -312,6 +323,55 @@ export async function getPersonHistory(
       }
     }
   }
+  return infoByAssertion;
+}
+
+// ── getPersonHistory ──────────────────────────────────────────────────────────
+
+/**
+ * All revisions touching one person, newest first: entity 'person' rows for them, every
+ * revision of every assertion about them (found via full-row images and the live assertion
+ * table — see the image-shape table in the file header), and 'merge' rows where they are
+ * winner or loser.
+ *
+ * AD-21: requires FULL visibility of the person — anything less and the log would leak what
+ * the person view withholds (withdrawn values included).
+ */
+export async function getPersonHistory(
+  tx: Tx,
+  ctx: ViewerContext,
+  personId: string,
+): Promise<Result<HistoryEntry[]>> {
+  // Route params arrive as raw strings: a non-uuid would make Postgres throw 22P02 instead of
+  // returning nothing. An id nobody holds and an id nobody could hold read the same here.
+  if (!isUuid(personId)) return err('not-found', 'person not found');
+
+  const [subject] = await tx
+    .select({
+      isLiving: person.isLiving,
+      birthDate: person.birthDate,
+      hiddenFromPublic: person.hiddenFromPublic,
+    })
+    .from(person)
+    .where(eq(person.id, personId));
+  if (!subject) return err('not-found', 'person not found');
+
+  let distance: number | null = null;
+  const privileged = coQuyenDuyet(ctx);
+  if (subject.isLiving && !privileged && ctx.personId !== null && ctx.personId !== personId) {
+    distance = (await viewerDistances(tx, ctx.personId)).get(personId);
+  }
+  const vis = visibilityFor(
+    { role: ctx.role, personId: ctx.personId },
+    { personId, ...subject },
+    distance,
+  );
+  if (vis !== 'full') {
+    return err('forbidden', 'history requires full visibility of the person (AD-21)');
+  }
+
+  const rows = await revisionsVePerson(tx, personId);
+  const infoByAssertion = anhDayDuTheoKhangDinh(rows);
 
   const names = await lookupAccountNames(rows.map((r) => r.accountId));
   return ok(
@@ -322,6 +382,119 @@ export async function getPersonHistory(
       summary: summarize(r, infoByAssertion.get(r.entityId)),
     })),
   );
+}
+
+// ── Sổ nhật ký chung (story 7-4, FR-39) ────────────────────────────────────────────────────
+
+export type JournalEntity = RevisionRow['entity'];
+
+export type JournalEntry = {
+  id: string;
+  at: string; // ISO
+  byName: string;
+  entity: JournalEntity;
+  action: RevisionAction;
+  summary: string;
+  /** Lý do loại / ẩn / từ chối — nguyên văn, ở lại đây (AD-4). */
+  note: string;
+  /** Người mà hàng này nói về (chủ thể khẳng định, người được thêm, bên thắng khi gộp) — để mở trên cây. */
+  nguoi?: { personId: string; fullName: string };
+};
+
+export type JournalArgs = {
+  loai?: JournalEntity;
+  hanh?: RevisionAction;
+  nguoi?: string;
+  /** Con trỏ trang sau: `at` ISO + `id` của hàng cuối trang trước. */
+  truoc?: { at: string; id: string };
+  limit?: number;
+};
+
+export type JournalPage = { entries: JournalEntry[]; tiep: { at: string; id: string } | null };
+
+const TRANG_NHAT_KY = 100;
+
+/** Người mà một hàng nhật ký nói về — id, chưa tên. */
+function chuTheCua(r: RevisionRow, info: Img | undefined): string | null {
+  if (r.entity === 'person') return r.entityId;
+  if (r.entity === 'assertion') {
+    const own = asImg(r.after) ?? asImg(r.before);
+    return str(own?.subjectPersonId) ?? str(info?.subjectPersonId);
+  }
+  if (r.entity === 'merge') return str(asImg(r.after)?.winnerId) ?? str(asImg(r.before)?.winnerId);
+  return null;
+}
+
+/**
+ * Sổ nhật ký của cả dòng họ — quyền duyệt (AD-21: sổ giữ cả giá trị đã rút, chỉ người thấy trọn).
+ * Lọc theo người dùng CHUNG `revisionsVePerson` với trang một người; lọc loại/hành động và con trỏ
+ * đi thẳng xuống SQL khi không lọc theo người (chỉ mục `(clan_id, created_at)`).
+ */
+export async function listJournalOps(tx: Tx, ctx: ViewerContext, args: JournalArgs = {}): Promise<Result<JournalPage>> {
+  const gate = gateApprover(ctx);
+  if (!gate.ok) return gate;
+  const limit = Math.min(Math.max(args.limit ?? TRANG_NHAT_KY, 1), TRANG_NHAT_KY);
+
+  let rows: RevisionRow[];
+  if (args.nguoi !== undefined) {
+    if (!isUuid(args.nguoi)) return ok({ entries: [], tiep: null });
+    rows = (await revisionsVePerson(tx, args.nguoi)).filter(
+      (r) => (args.loai === undefined || r.entity === args.loai) && (args.hanh === undefined || r.action === args.hanh),
+    );
+    if (args.truoc) {
+      const moc = new Date(args.truoc.at).getTime();
+      const { id } = args.truoc;
+      rows = rows.filter((r) => r.createdAt.getTime() < moc || (r.createdAt.getTime() === moc && r.id < id));
+    }
+    rows = rows.slice(0, limit + 1);
+  } else {
+    const dk = [];
+    if (args.loai !== undefined) dk.push(eq(revision.entity, args.loai));
+    if (args.hanh !== undefined) dk.push(eq(revision.action, args.hanh));
+    if (args.truoc) {
+      const moc = new Date(args.truoc.at);
+      if (Number.isNaN(moc.getTime())) return err('invalid', 'Con trỏ trang không hợp lệ.');
+      dk.push(
+        or(
+          sql`${revision.createdAt} < ${moc.toISOString()}::timestamptz`,
+          and(sql`${revision.createdAt} = ${moc.toISOString()}::timestamptz`, sql`${revision.id} < ${args.truoc.id}`),
+        )!,
+      );
+    }
+    rows = await tx
+      .select()
+      .from(revision)
+      .where(dk.length > 0 ? and(...dk) : undefined)
+      .orderBy(desc(revision.createdAt), desc(revision.id))
+      .limit(limit + 1);
+  }
+
+  const conNua = rows.length > limit;
+  const trang = rows.slice(0, limit);
+  const info = anhDayDuTheoKhangDinh(trang);
+  const nguoiIds = [...new Set(trang.map((r) => chuTheCua(r, info.get(r.entityId))).filter((x): x is string => x !== null && isUuid(x)))];
+  const tenNguoi = new Map<string, string>();
+  if (nguoiIds.length > 0) {
+    const ds = await tx.select({ id: person.id, fullName: person.fullName }).from(person).where(inArray(person.id, nguoiIds));
+    for (const n of ds) tenNguoi.set(n.id, n.fullName);
+  }
+  const names = await lookupAccountNames(trang.map((r) => r.accountId));
+  const entries: JournalEntry[] = trang.map((r) => {
+    const pid = chuTheCua(r, info.get(r.entityId));
+    const ten = pid ? tenNguoi.get(pid) : undefined;
+    return {
+      id: r.id,
+      at: r.createdAt.toISOString(),
+      byName: names.get(r.accountId) ?? UNKNOWN_BY,
+      entity: r.entity,
+      action: r.action,
+      summary: summarize(r, info.get(r.entityId)),
+      note: r.note,
+      ...(pid && ten !== undefined ? { nguoi: { personId: pid, fullName: ten.trim() || 'Chưa rõ tên' } } : {}),
+    };
+  });
+  const cuoi = trang[trang.length - 1];
+  return ok({ entries, tiep: conNua && cuoi ? { at: cuoi.createdAt.toISOString(), id: cuoi.id } : null });
 }
 
 // ── getTreeAt ─────────────────────────────────────────────────────────────────

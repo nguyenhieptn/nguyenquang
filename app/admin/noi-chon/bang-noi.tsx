@@ -17,6 +17,7 @@
  * trang qua props, hàm ghi là server action của chính màn.
  */
 import { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -210,7 +211,11 @@ function MotNoi({
             </Button>
           </div>
           <p className="max-w-[70ch] text-[15px] text-muted-foreground md:col-span-2">
-            Mọi khẳng định đang trỏ vào nơi này hiện tên mới ngay. Tên cũ nằm trong nhật ký.
+            Mọi khẳng định đang trỏ vào nơi này hiện tên mới ngay. Tên cũ nằm trong{' '}
+            <Link href="/admin/nhat-ky?loai=place" className="inline-flex min-h-11 items-center underline underline-offset-4">
+              sổ nhật ký
+            </Link>
+            .
           </p>
         </form>
       ) : null}
