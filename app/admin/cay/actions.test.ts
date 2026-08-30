@@ -375,5 +375,7 @@ describe('màn duyệt vào phả biết AI đang xin (nợ 5-5, đóng ở stor
     const dong = ds.value.find((r) => r.personId === d.nguoi.moCoi);
     expect(dong?.accountName).toBeTruthy();
     expect(dong?.accountName).not.toBe(dong?.accountId);
+    // Không chỉ tên hiển thị: có cả TÊN ĐĂNG NHẬP trong ngoặc (`docNhanTaiKhoan`) — thứ phân biệt hai người trùng tên.
+    expect(dong?.accountName).toContain(d.chuaGan.tenDangNhap);
   });
 });

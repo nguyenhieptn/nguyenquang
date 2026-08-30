@@ -23,6 +23,8 @@ import {
   gateWriter,
   invalidGenealogicalDate,
   loadPerson,
+  LOI_AN_DANH,
+  thayDuocNguoi,
   type AddedAssertions,
 } from '@/core/assertion/ops';
 
@@ -58,6 +60,8 @@ export async function createPersonOp(
     const row = await loadPerson(tx, id);
     if (!row) return err('not-found', `${label} not found in this clan`);
     if (row.mergedInto) return err('conflict', `${label} was merged into another person`);
+    // Không thấy tên thì không nối vào (story 7-6): mốc cha/con/bạn đời phải trong tầm nhìn.
+    if (!(await thayDuocNguoi(tx, ctx, id))) return err('forbidden', LOI_AN_DANH);
   }
 
   // ── Person row (projected columns stay at their defaults until projection fills them) ──

@@ -203,10 +203,12 @@ Chạy tay trước mỗi lần phát hành.
 
 Mã và nút đã sẵn; chỉ thiếu ba biến trong `.env` (mẫu ở `.env.example § Đăng nhập Google`):
 
+0. **Điều kiện trước**: Google chỉ nhận redirect URI `https://` (trừ `http://localhost`). Bản đang
+   chạy trên IP Tailscale `http://` nên **chưa bật được** — việc này đứng SAU nợ "tên miền + TLS"
+   trong bảng dưới. Có tên miền rồi mới làm ba bước sau.
 1. Vào Google Cloud Console → *APIs & Services* → *Credentials* → *Create credentials* → *OAuth
    client ID* → loại *Web application*. Authorized redirect URI:
-   `http://<tailscale-ip>:3000/api/auth/callback/google` (đúng `BETTER_AUTH_URL` + đường ấy; có tên
-   miền thì thêm một dòng nữa).
+   `https://<tên-miền>/api/auth/callback/google` (đúng `BETTER_AUTH_URL` + đường ấy).
 2. Chép `Client ID` / `Client secret` vào `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET`; đặt
    `NEXT_PUBLIC_GOOGLE_SIGNIN=1`.
 3. `./scripts/deploy.sh` (biến `NEXT_PUBLIC_*` nướng vào bó lúc BUILD — restart không đủ).
@@ -229,7 +231,7 @@ phả là gắn kết, và gắn kết vẫn cần ban tu phả duyệt.
 |---|---|---|
 | ~~Bản sao lưu nằm cùng máy với production~~ | **CHỐT BỎ 26/08/2026** — miễn trừ phần off-host của AD-25, xem ARCHITECTURE-SPINE § AD-25. Sao lưu vẫn chạy hằng ngày, vẫn 90 ngày, `--restore` vẫn bắt buộc. Cái mất: không đỡ được **mất máy**, mà phả nay đã có dữ liệu chỉ tồn tại trong database | — |
 | ~~Media trên đĩa local, chưa off-host~~ | Cùng miễn trừ trên | — |
-| Google login chưa bật | Chỉ đăng nhập bằng tài khoản riêng | Xem § Đăng nhập Google — ba biến, một lần restart (story 7-6). Facebook: không làm |
+| Google login chưa bật | Chỉ đăng nhập bằng tài khoản riêng | Xem § Đăng nhập Google — ba biến, một lần **build** (`deploy.sh`). **Đứng sau nợ TLS/tên miền**: Google không nhận redirect `http://` trên IP (chỉ `localhost`) |
 | Chưa có TLS / tên miền | Chỉ truy cập qua VPN Tailscale (mã hoá sẵn trong tailnet) | Khi chốt tên miền (PRD Q6): Caddy/Cloudflare Tunnel trước app |
 | Huy hiệu React Flow trên màn cây | Thẩm mỹ | Mua React Flow Pro nếu muốn gỡ |
 

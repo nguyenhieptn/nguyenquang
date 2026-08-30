@@ -546,3 +546,14 @@ Ba lớp: 22 phát hiện sau gộp → 17 patch · 2 defer · 3 dismiss. Thuậ
 - **"Kèm nguồn" trên lịch giỗ** (`review-culture:677`): `/gio` và ô trang chủ bày tầng (tồn nghi) mà
   chưa bày *nguồn* của khẳng định giỗ ("theo lời cụ Bảng"). Phiếu có; lịch chưa. Một cột nữa ở
   `GioSapToi` khi có người thật hỏi "ai bảo thế".
+
+## Deferred from: code review of story 7-6-mo-cua (2026-08-29)
+
+Ba lớp: 24 phát hiện sau gộp → 18 patch · 2 defer · 4 dismiss. Patch lớn nhất: rào "không thấy tên
+thì không ghi lên" chuyển xuống core (`thayDuocNguoi`) — bản đầu chỉ ở một nút, và một khẳng định
+`death` tồn nghi là đủ gỡ bỏ bán kính đang giữ một người kín.
+
+- **Tài khoản tạo bằng Google gõ ô mật khẩu** (không có mật khẩu) nhận "sai mật khẩu". Khi Google
+  thật bật (sau tên miền + TLS), thêm nhánh: *"Tài khoản này vào bằng Google — dùng nút Google."*
+- **Đăng nhập Google đứng sau nợ tên miền + TLS** — Google không nhận redirect `http://` trên IP.
+  Mã và tài liệu sẵn; việc còn lại là của chủ dự án (action item ở `sprint-status`).

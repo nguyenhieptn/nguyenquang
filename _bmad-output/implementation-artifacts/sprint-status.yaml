@@ -199,13 +199,13 @@ development_status:
   # thứ chưa có là người: cửa cho thành viên, sổ nhật ký mà ba màn đang hứa, nút ẩn AD-17 cho
   # phép từ Đợt 1, và ngày giỗ (SHOULD từ Đợt 2, hoãn hai lần). Mở bằng hàng rào (7-1) vì hai
   # lỗi lọt năm cổng ở cuối Đợt 3. Thứ tự: 7-1 → 7-2 → 7-3 → 7-4 → 7-5 → 7-6.
-  epic-7: in-progress
+  epic-7: done
   7-1-hang-rao-tu-retro: done
   7-2-tra-no-san: done
   7-3-an-theo-bao-cao: done
   7-4-so-nhat-ky: done
   7-5-ngay-gio-am-lich: done
-  7-6-mo-cua: review
+  7-6-mo-cua: done
   epic-7-retrospective: optional
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──
@@ -267,3 +267,8 @@ action_items:
     action: "Nhật ký nơi chốn có người đọc (core/audit chưa đọc entity='place')"
     owner: "Đợt 4 → 7-4-so-nhat-ky"
     status: in-progress
+  # Story 7-6 (29/08/2026): mã và tài liệu sẵn, việc còn lại cần tài khoản Google của dòng họ + tên miền.
+  - epic: 7
+    action: "Bật đăng nhập Google: cần tên miền + HTTPS trước (Google không nhận http trên IP), rồi ba biến trong .env và một lần deploy.sh"
+    owner: "Hiệp"
+    status: open

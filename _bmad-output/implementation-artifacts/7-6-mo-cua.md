@@ -4,7 +4,7 @@ baseline_commit: 355d882
 
 # Story 7.6: Mở cửa cho người trong họ — ba việc nhỏ trước khi người thật bước vào
 
-Status: review
+Status: done
 
 ## Story
 
@@ -89,3 +89,34 @@ Claude Fable 5 · 29/08/2026.
 - `app/(pha)/gia-pha/loading.tsx` · `app/dang-nhap/form-dang-nhap.tsx` (nút Google theo cờ)
 - `.env.example` · `docs/van-hanh.md § Đăng nhập Google` + bảng nợ
 - `app/admin/cay/actions.test.ts` (+1) · `deferred-work.md` (✅ 5-5 · 6-10 ×2)
+- `scripts/bam-thu/kich-ban.ts` (K1 neo thẻ quản trị, năm mang dấu lượt) · `components/admin/cot-khang-dinh.tsx` (nút ghi thêm trên chồng mâu thuẫn)
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 17 · Edge Case 14 · Acceptance Auditor 16 → 24 sau gộp trùng → **18 patch · 2 defer · 4 dismiss**.
+Cả ba lớp cùng bắt một điều: rào "không thấy tên thì không ghi lên" bản đầu chỉ ở MỘT nút của phiếu.
+
+Patch:
+1. **Rào ở CORE**: `thayDuocNguoi(tx, ctx, personId)` — `addAssertionOp` và ba mốc của
+   `createPersonOp` từ chối (`forbidden`) khi người ghi (không quyền duyệt) thấy người ấy là
+   `'anonymous'`. Lý do không chỉ là mô hình: một khẳng định `death` tồn nghi là đủ để cột chiếu lật
+   người giữ kín thành "đã khuất" ⇒ `'full'` với cả họ. Test: người giữ kín (FR-55) ⇒ thành viên
+   forbidden, quản trị được, người đã khuất ai cũng ghi được.
+2. **Cửa thứ hai** (thanh công cụ canvas, `onMoThem`) cùng rào; nút phiếu chỉ mọc khi hồ sơ ĐÃ về
+   (lúc tải `hoSoHienHanh` là null, rào mở toang); biểu mẫu đang mở tự đóng khi người hoá ẩn danh.
+3. **Khung chờ**: phục vụ BỐN màn `/gia-pha/**` — hàng đầu trang trong `KHUNG`, cây trong `RONG`
+   (skeleton hẹp `max-w-5xl` còn canvas thật tràn), điện thoại thẻ xếp DỌC trọn bề ngang (bản đầu
+   vẽ dải ngang — ngược hình thật), clamp đúng 520/−13rem, `aria-label` chung "Đang mở cây".
+4. **Google về `/sau-dang-nhap`** (server gọi `dichSauDangNhap`, `?tiep=` đi theo) thay `'/'` — chưa
+   gắn thì tới `/gan-node` như lời hứa dưới nút; lỗi `signIn.social` nói ra; khoá nút khi đang chuyển.
+5. **Tài liệu nói thật**: Google chỉ nhận redirect `https://` (trừ localhost) ⇒ việc này ĐỨNG SAU nợ
+   tên miền + TLS; bảng nợ hết mâu thuẫn "restart" ⇄ "build". Action item cho chủ dự án ghi ở
+   `sprint-status`.
+6. Nút trên chồng mâu thuẫn: chữ thấy = tên đọc ("Ghi thêm năm sinh khác"); K1 neo theo tên đọc,
+   kiểm năm trùng, đọc riêng khối Sinh; test màn duyệt kiểm cả tên đăng nhập; đoạn ẩn danh không
+   lặp với đoạn "ngoài bán kính"; voice sửa ("mình"/"người xem" → "vòng ruột thịt").
+
+Defer (→ `deferred-work.md § 7-6`): tài khoản tạo bằng Google gõ vào ô mật khẩu (không có mật khẩu)
+nhận câu "sai mật khẩu" — cần một nhánh lỗi riêng khi có Google thật; `/sau-dang-nhap` đăng ký với
+`soi` như một điểm chuyển hướng. Dismiss: "hai đoạn cho ẩn danh" (đã gộp); "`!hoSo.anDanh` thừa"
+(giữ cho rõ ý); Facebook (không có trong PRD).

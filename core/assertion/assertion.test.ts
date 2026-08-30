@@ -551,3 +551,27 @@ describe('story 7-3 — ba giới hạn của ẩn theo báo cáo, và cặp uni
     });
   });
 });
+
+describe('story 7-6 — không thấy tên thì không ghi lên (rào ở core, không chỉ ở nút)', () => {
+  it('thành viên ghi lên người còn sống ngoài bán kính ⇒ forbidden; quản trị ghi được; người đã khuất ai cũng ghi được', async () => {
+    // Ẩn danh = ngoài bán kính VÀ (giữ kín theo FR-55 hoặc vị thành niên) — ngoài bán kính mà không
+    // giữ kín thì 'limited': tên vẫn hiện, ghi lên được. Ở đây: mảnh rời + `hiddenFromPublic`.
+    const xa = await makePerson('S76 Người Xa Giữ Kín');
+    await withClanContext(clanId, (tx) => tx.update(person).set({ hiddenFromPublic: true }).where(eq(person.id, xa)));
+    const r1 = await withClanContext(clanId, (tx) =>
+      addAssertionOp(tx, member, { personId: xa, spec: { kind: 'note', text: 'S76 thử' }, source: { kind: 'self' } }),
+    );
+    expect(!r1.ok && r1.error.code === 'forbidden').toBe(true);
+    const r2 = await withClanContext(clanId, (tx) =>
+      addAssertionOp(tx, admin, { personId: xa, spec: { kind: 'note', text: 'S76 quản trị' }, source: { kind: 'self' } }),
+    );
+    expect(r2.ok).toBe(true);
+    // Cụ đã khuất là 'full' với mọi người (AD-13) ⇒ thành viên ghi được.
+    const cu = await makePerson('S76 Cụ Đã Khuất');
+    await withClanContext(clanId, (tx) => addAssertionOp(tx, admin, { personId: cu, spec: { kind: 'death', value: { date: '1990-01-01', precision: 'year' } }, source: { kind: 'self' } }));
+    const r3 = await withClanContext(clanId, (tx) =>
+      addAssertionOp(tx, member, { personId: cu, spec: { kind: 'note', text: 'S76 thử' }, source: { kind: 'self' } }),
+    );
+    expect(r3.ok).toBe(true);
+  });
+});

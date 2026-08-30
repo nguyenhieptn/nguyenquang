@@ -330,10 +330,10 @@ function Than({
             </p>
           ) : (
             <>
-              {chong === null ? (
+              {chong === null && !hoSo.anDanh ? (
                 /* Ngoài bán kính riêng tư. Nói thẳng là KHÔNG XEM ĐƯỢC, không giả vờ là chưa có
                    gì — hai chuyện ấy khác nhau, và người vận hành cần phân biệt được. Nói xong
-                   thì VẪN bày những quan hệ xem được ở dưới. */
+                   thì VẪN bày những quan hệ xem được ở dưới. Người ẨN DANH có đoạn riêng (7-6). */
                 <p className="mt-4 max-w-[46ch] text-[17px] text-muted-foreground">
                   {beMat === 'B'
                     ? 'Người này nằm ngoài phần phả xem được, nên không mở chồng khẳng định ra ở đây.'
@@ -462,8 +462,8 @@ function Than({
 
           {hoSo.anDanh ? (
             <p className="mt-4 max-w-[46ch] text-[17px] text-muted-foreground">
-              Người này được giữ kín với người xem — phả không ghi thêm lên một người mình không thấy
-              tên. Muốn ghi, tìm họ qua người thân trong bán kính của mình, hoặc nhờ ban tu phả.
+              Người này còn sống và ở ngoài vòng ruột thịt, nên tên được giữ kín — phả không ghi thêm
+              lên một người chưa hiện tên. Muốn ghi, nhờ ban tu phả.
             </p>
           ) : null}
 
@@ -832,14 +832,9 @@ function MotChong({
           {khoiGhiThem ? (
             <div className="mt-1">{khoiGhiThem}</div>
           ) : loaiGhi ? (
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={onMoGhi}
-              aria-label={`Ghi thêm ${NHAN_LOAI[loaiGhi].toLowerCase()}`}
-              className="mt-1 h-11 text-[17px]"
-            >
-              Ghi thêm một lời khai khác
+            <Button type="button" variant="ghost" onClick={onMoGhi} className="mt-1 h-11 text-[17px]">
+              {/* Chữ thấy = tên đọc (voice control bấm bằng đúng chữ trên nút — review 7-6). */}
+              Ghi thêm {NHAN_LOAI[loaiGhi].toLowerCase()} khác
             </Button>
           ) : null}
         </div>

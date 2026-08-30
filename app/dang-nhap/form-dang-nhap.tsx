@@ -304,12 +304,25 @@ export function FormDangNhap({
             type="button"
             variant="outline"
             disabled={dangGui}
-            onClick={() => {
-              void authClient.signIn.social({ provider: 'google', callbackURL: '/' });
+            onClick={async () => {
+              if (dangGui) return;
+              setDangGui(true);
+              // Về `/sau-dang-nhap`: chỉ server biết tài khoản Google này đã có chỗ trong phả chưa
+              // (cùng `dichSauDangNhap` với biểu mẫu). Chỗ đang dở (`?tiep=`) đi theo.
+              const ve =
+                tiep && tiep.startsWith('/') && !tiep.startsWith('//')
+                  ? `/sau-dang-nhap?tiep=${encodeURIComponent(tiep)}`
+                  : '/sau-dang-nhap';
+              const r = await authClient.signIn.social({ provider: 'google', callbackURL: ve, errorCallbackURL: '/dang-nhap' });
+              if (r?.error) {
+                // Cờ bật mà mã Google thiếu ở máy chủ: nói ra, không phải một nút chết.
+                setLoi('Chưa vào được bằng Google — máy chủ chưa bật lối này. Vào bằng tên đăng nhập, hoặc báo ban tu phả.');
+                setDangGui(false);
+              }
             }}
             className="h-12 w-full text-[17px]"
           >
-            Vào bằng tài khoản Google
+            {dangGui ? 'Đang chuyển sang Google…' : 'Vào bằng tài khoản Google'}
           </Button>
           <p className="mt-2 text-[15px] text-muted-foreground">
             Lần đầu vào bằng Google thì cũng tới bước nhận chỗ của mình trong phả như tạo tài khoản.

@@ -195,6 +195,11 @@ export function QuanhMinhClient({
   }, []);
 
   const hoSoHienHanh = hoSo && hoSo.personId === chonId ? hoSo : null;
+  // Biểu mẫu mở trên A rồi A hoá ẩn danh sau một lượt nạp lại (bán kính đổi vì một lượt ẩn): đóng —
+  // không giữ một biểu mẫu ghi sống trên người đã được giữ kín (review 7-6).
+  useEffect(() => {
+    if (hoSoHienHanh?.anDanh && them && them.mocId === hoSoHienHanh.personId) setThem(null);
+  }, [hoSoHienHanh?.anDanh, hoSoHienHanh?.personId, them]);
   /**
    * Tên mốc: từ canvas, và nếu mốc KHÔNG có trên hình (chọn qua chip quan hệ một người ngoài bán
    * kính đang bày) thì từ chính hồ sơ đang mở. Bản đầu chỉ tra canvas, nên ca ấy `tenMoc` là
@@ -249,7 +254,9 @@ export function QuanhMinhClient({
         <div className="flex flex-wrap gap-2 border-b border-border px-5 py-3">
           {/* Người ẩn danh (FR-55) không có nút thêm: ghi là hành vi có địa chỉ, mà địa chỉ đang
               được giữ kín (story 7-6, nợ 6-10). Phiếu nói lý do ngay dưới. */}
-          {!hoSoHienHanh?.anDanh ? (
+          {/* Chỉ khi hồ sơ ĐÃ về và không ẩn danh: lúc đang tải `hoSoHienHanh` là null, rào mở toang
+              (review 7-6) — không có nút còn hơn một nút mở lên người mình chưa biết là ai. */}
+          {hoSoHienHanh && !hoSoHienHanh.anDanh ? (
             <button
               type="button"
               onClick={() => chonId && setThem({ mocId: chonId, huong: 'con', hoTen: '' })}
@@ -344,7 +351,13 @@ export function QuanhMinhClient({
           onDoiNeo={doiNeo}
           onDoiBanKinh={doiBanKinh}
           themVao={them}
-          onMoThem={() => chonId && setThem({ mocId: chonId, huong: 'con', hoTen: '' })}
+          // Cửa THỨ HAI vào biểu mẫu (thanh công cụ canvas) — cùng rào với cửa ở phiếu (review 7-6):
+          // không truyền handler thì khung không mọc nút. Hồ sơ chưa về cũng không mọc.
+          onMoThem={
+            hoSoHienHanh && !hoSoHienHanh.anDanh
+              ? () => chonId && setThem({ mocId: chonId, huong: 'con', hoTen: '' })
+              : undefined
+          }
         />
         {manRong !== false ? (
           <aside

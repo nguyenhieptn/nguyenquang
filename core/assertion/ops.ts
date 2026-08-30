@@ -39,9 +39,36 @@ import type { AssertionSpec, GenealogicalDate, SourceSpec } from './index';
 
 // ── Context gates — sống ở `core/identity/gates.ts` (story 7-1), re-export cho nơi gọi cũ ──
 import { gateApprover, gateWriter, type AttachedContext } from '@/core/identity/gates';
-import { coQuyenDuyet } from '@/core/identity/privacy';
+import { coQuyenDuyet, PRIVACY_RADIUS, visibilityFor } from '@/core/identity/privacy';
+import { bfsDistances, loadTreeData } from '@/core/tree/ops';
 import { chuoiAm } from '@/core/lich/am-lich';
 export { gateWriter, gateApprover, type AttachedContext };
+
+// ── Không thấy tên thì không ghi lên (story 7-6, code review) ────────────────────────────────
+
+/**
+ * Người ghi (không có quyền duyệt) có THẤY TÊN người này không — tức `visibilityFor` khác
+ * `'anonymous'`. Rào ở giao diện (không mọc nút) là mô hình; rào ở đây là hàng rào: một POST tự
+ * dựng vẫn ghi được lên người ngoài bán kính, và một khẳng định `death` tồn nghi là đủ để cột
+ * chiếu (AD-19) lật người ấy thành "đã khuất" ⇒ `'full'` với cả họ — một dòng ghi gỡ bỏ chính cái
+ * bán kính đang giữ họ kín. Người duyệt không bị rào (họ thấy trọn).
+ *
+ * Giá: một `loadTreeData` + BFS mỗi lượt ghi của thành viên thường — ghi thưa, đọc dày; chấp nhận.
+ */
+export async function thayDuocNguoi(tx: Tx, ctx: AttachedContext, personId: string): Promise<boolean> {
+  if (coQuyenDuyet(ctx)) return true;
+  const data = await loadTreeData(tx);
+  const pid = data.redirect(personId);
+  if (!pid) return true; // không có người ⇒ nơi gọi tự trả not-found, không phải việc của rào này
+  const row = data.persons.get(pid);
+  if (!row) return true;
+  const from = data.redirect(ctx.personId);
+  const dist = from ? (bfsDistances(data, from, PRIVACY_RADIUS).get(pid) ?? null) : null;
+  return visibilityFor({ role: ctx.role, personId: ctx.personId }, { personId: pid, ...row }, dist) !== 'anonymous';
+}
+
+const LOI_AN_DANH = 'Người này còn sống và ở ngoài vòng ruột thịt, tên được giữ kín — phả không ghi thêm lên một người chưa hiện tên. Muốn ghi, nhờ ban tu phả.';
+export { LOI_AN_DANH };
 
 // ── Validation helpers ───────────────────────────────────────────────────────
 
@@ -309,6 +336,7 @@ export async function addAssertionOp(
 
   const subject = await requireLivePersonRow(tx, args.personId, 'person');
   if (!subject.ok) return subject;
+  if (!(await thayDuocNguoi(tx, ctx, args.personId))) return err('forbidden', LOI_AN_DANH);
 
   const spec = args.spec;
 

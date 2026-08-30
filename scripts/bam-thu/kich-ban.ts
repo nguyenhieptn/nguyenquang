@@ -45,11 +45,14 @@ export const KICH_BAN: readonly KichBan[] = [
       await p.goto(`${goc}/admin/cay`, { waitUntil: 'networkidle' });
       // Thẻ CỐ ĐỊNH của dòng họ thử (người quản trị, sinh 1975) — `.first()` trôi sau khi K3 thêm
       // người không năm sinh vào cùng vùng (lượt chạy lại 29/08).
-      await p.locator('.react-flow__node', { hasText: 'Thử Quản Trị' }).first().click();
+      const the = p.locator('.react-flow__node', { hasText: 'Thử Quản Trị' });
+      if (!(await the.count())) throw new Error('không thấy thẻ "Thử Quản Trị" trên canvas — dòng họ thử đổi hình?');
+      await the.first().click();
       await p.waitForTimeout(1200);
       // Tiền kiểm: thẻ đã chọn phải CÓ năm sinh — không thì không dựng được mâu thuẫn, và ✗ sẽ nói
-      // sai lý do (review 7-1).
-      const nutSinh = p.locator('aside button[aria-label^="Ghi thêm năm sinh"]').first();
+      // sai lý do (review 7-1). Neo theo TÊN ĐỌC: nút giá trị (aria-label) ở chồng thường, nút chữ
+      // "Ghi thêm năm sinh khác" ở chồng mâu thuẫn — cùng một tên đọc.
+      const nutSinh = p.locator('aside').getByRole('button', { name: /^Ghi thêm năm sinh/ }).first();
       if (!(await nutSinh.count())) throw new Error('thẻ đã chọn chưa có năm sinh — K1 không dựng được mâu thuẫn từ đây');
       await nutSinh.click();
       // Biểu mẫu ghi thêm là một KHỐI trong phiếu, không phải `<form>` — neo vào ô giá trị.
@@ -57,16 +60,20 @@ export const KICH_BAN: readonly KichBan[] = [
       await oGiaTri.waitFor({ timeout: 5000 });
       // Năm mang dấu lượt (như K4) — chạy lại trên cùng dòng họ thử thì vẫn là một giá trị MỚI.
       const nam = `1${dauLuot.slice(-3)}`;
+      // Dấu lượt chỉ có 600 giá trị: năm đã có trên phiếu thì dừng, không ghi trùng (review 7-6).
+      if ((await p.locator('aside li').filter({ hasText: nam }).count()) > 0) throw new Error(`năm ${nam} đã có trên phiếu — chạy lại sau một phút`);
       await oGiaTri.fill(nam);
       await p.locator('aside input[id$="-nguon"]').first().fill('kịch bản ghi 7-1');
       await p.locator('aside').getByRole('button', { name: 'Ghi vào phả' }).click();
-      const chu = await doiRoiDoc(p, 'aside', 2000);
-      // Chồng đơn trị hoá mâu thuẫn ⇒ câu của CHỒNG (`cauMauThuan`): "Hai giá trị không thể cùng
-      // đúng" ở lượt đầu, "N lời khai, không thể cùng đúng" từ lượt thứ hai trên cùng dòng họ thử.
-      // Không neo cụm "không thể cùng đúng" trần — chú thích biểu mẫu cũng có nó (review 7-1).
+      await p.waitForTimeout(2000);
+      // Đọc RIÊNG khối Sinh (h3 → section cha), không cả phiếu: chồng khác cũng có thể mang câu mâu
+      // thuẫn (review 7-6). Câu của CHỒNG (`cauMauThuan`): "Hai giá trị không thể cùng đúng" ở lượt
+      // đầu, "N lời khai, không thể cùng đúng" từ lượt thứ hai trên cùng dòng họ thử.
+      const khoiSinh = p.locator('aside h3', { hasText: /^Sinh$/ }).first().locator('xpath=..');
+      const chu = (await khoiSinh.innerText()).replace(/\s+/g, ' ');
       phaiCo(chu, nam);
       if (!/(Hai giá trị|\d+ lời khai)[^.]*không thể cùng đúng/.test(chu)) {
-        throw new Error(`cột phải không bày câu mâu thuẫn của chồng — đang nói: "${chu.slice(0, 240)}…"`);
+        throw new Error(`khối Sinh không bày câu mâu thuẫn của chồng — đang nói: "${chu.slice(0, 240)}…"`);
       }
       return `cột phải bày ${nam} và câu mâu thuẫn của chồng Sinh`;
     },

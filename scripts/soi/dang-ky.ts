@@ -143,6 +143,14 @@ export const DANG_KY: Man[] = [
   },
   {
     ...KHACH_A,
+    khoa: 'sau-dang-nhap',
+    duong: '/sau-dang-nhap',
+    pheDo: DO_CHUNG,
+    bay: 'Điểm về sau đăng nhập Google — chỉ CHUYỂN HƯỚNG (story 7-6); khách đo tới trang chủ',
+    ghiChu: 'Không có giao diện riêng: có phiên chưa gắn ⇒ /gan-node, đã gắn ⇒ /, không phiên ⇒ /.',
+  },
+  {
+    ...KHACH_A,
     khoa: 'gio',
     duong: '/gio',
     pheDo: DO_CHUNG,
