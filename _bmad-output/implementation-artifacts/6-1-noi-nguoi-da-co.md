@@ -3,7 +3,7 @@ baseline_commit: 607f9a27ffa8f983d628f53fada3657bf54c7e6a
 ---
 # Story 6.1: Nối hai người đã có trong phả
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -270,17 +270,29 @@ Nên bài test đầu tiên phải khẳng định **chiều**, không chỉ kh�
 - [x] `searchPersons` trả `err` ⇒ trạng thái "chưa đọc được", KHÔNG phải "không có ai"
 - [x] **chiều** `parent-child`: `dungLoiGoiQuanHe` trả đúng `{ personId: con, spec.parentId: cha }`
       (bài thuần; nửa còn lại — hình ấy rơi vào DB đúng chỗ — do `assertion.test.ts` ghim từ 1-2)
-- [ ] ~~năm ô dưới đây đòi test cho `ghiThemQuanHe`~~ — **`ghiThemQuanHe` KHÔNG có bài test nào.**
-      Bản đầu tích cả năm ô; lượt code review 26/08 bắt được. Server action là `'use server'`, cần
-      một phiên thật, và repo chưa có tầng test nào cho adapter (`chrome.test.ts` chỉ quét mã
-      nguồn). Để TRỐNG chứ không tích — story 6-6 (`do-that-tren-trinh-duyet`) là chỗ đúng của nó.
-- [ ] hướng *"là con của"* ⇒ đảo lại đúng
-- [ ] `relation` mặc định `'blood'`; chọn `'adopted'` ⇒ ghi đúng
-- [ ] tự làm cha mình ⇒ `invalid` (core đã chặn — test khẳng định adapter không nuốt lỗi)
-- [ ] `union-partner` với chính mình ⇒ `invalid`
-- [ ] `xuatXu` rỗng / toàn khoảng trắng ⇒ `invalid`
-- [ ] vai không đủ quyền ⇒ `forbidden` (`gateWriter`)
-- [ ] loại một khẳng định quan hệ ⇒ cạnh biến khỏi cây, **người vẫn còn** trong danh sách node
+- [x] ~~năm ô dưới đây đòi test cho `ghiThemQuanHe`~~ — **ĐÓNG 29/08/2026** bằng tầng test adapter
+      đầu tiên của repo: `app/admin/cay/actions.test.ts` (13 bài) gọi thẳng server action với một
+      PHIÊN THẬT trên một DÒNG HỌ THỬ (`core/gates/dong-ho-thu.ts`). Chỉ hai mock: `next/headers`
+      (trả cookie) và `next/cache`; từ đó xuống là Better Auth, `soleClanId`, RLS thật. Đây là
+      quyết định mà 6-6 § AC 23 để trống: *"Cần một dòng họ THỬ, và cần một quyết định riêng."*
+      Lịch sử: bản đầu tích cả năm ô; lượt code review 26/08 bắt được; để trống tới 29/08.
+- [x] hướng *"là con của"* ⇒ đảo lại đúng — khẳng định treo trên NGƯỜI KIA, `relation: adopted` giữ nguyên
+- [x] `relation` `'blood'` ⇒ *"con ruột"*; `'adopted'` ⇒ *"con nuôi"* — đọc lại qua `getPerson`
+- [x] tự làm cha mình ⇒ `invalid`, adapter nói tiếng Việt (*"chính mình"*) chứ không nuốt lỗi core
+- [x] `union-partner` với chính mình ⇒ `invalid`
+- [x] `xuatXu` rỗng / toàn khoảng trắng ⇒ `invalid`, và chưa ghi gì
+- [x] ~~vai không đủ quyền ⇒ `forbidden` (`gateWriter`)~~ — **ô viết sai mã lỗi.** `gateWriter` không
+      có nhánh `forbidden`: thành viên thường GHI ĐƯỢC (FR-3/AD-9 — mọi thứ vào tồn nghi). Cái bị
+      chặn là khách (`unauthenticated`) và tài khoản CHƯA GẮN CHỖ (`unattached`). Và bài test bắt
+      thêm: nhánh `unattached` từng là MÃ CHẾT qua phiên thật — `resolveSessionImpl` trả
+      `role: 'guest'` cho tài khoản chưa gắn, mà `gateWriter` kiểm `role === 'guest'` trước
+      `personId === null`. Đã sửa ở `core/assertion/ops.ts § gateWriter`.
+- [x] loại một khẳng định quan hệ ⇒ cạnh biến khỏi cây (`getNeighborhood`), **người vẫn còn**
+      (`searchPersons` tìm ra, hồ sơ mở được); thành viên bị `forbidden`, quản trị loại được, và
+      `doiTuongId` trả về đúng người đầu kia
+- [x] thêm ngoài bảy ô: vòng huyết thống ⇒ `conflict` trước khi ghi · vợ chồng đã có ⇒ `alreadyLinked`
+      · bán kính riêng tư gác ngay tại adapter (thành viên đọc người sống cách 4 bậc ⇒ `limited`,
+      `assertions` vắng)
 - [x] `chrome.test.ts` vẫn xanh không phải sửa (story không sinh màn mới)
 
 ### Project Structure Notes
@@ -345,9 +357,14 @@ Xem § Completion Notes bên dưới.
   câu sẽ ghi, luật nút "Loại"
 - `components/admin/quan-he-ghi-them.test.ts` — 16 bài
 
+**Mới (29/08 — đóng bảy ô test)**
+- `core/gates/dong-ho-thu.ts` — dòng họ thử: dựng · dọn · liệt kê; tài khoản thật, cookie thật
+- `app/admin/cay/actions.test.ts` — 13 bài, tầng test adapter đầu tiên
+
 **Sửa — `core/`**
 - `core/assertion/ops.ts` — `rejectAssertionOp` giải tán trọn union + trả `doiTuongId`;
-  `addAssertionOp` dùng lại union đã có (`alreadyLinked`)
+  `addAssertionOp` dùng lại union đã có (`alreadyLinked`); **29/08:** `gateWriter` trả
+  `unattached` cho tài khoản chưa gắn chỗ (trước đó nhánh ấy chết qua phiên thật)
 - `core/assertion/index.ts` — `alreadyLinked` và `doiTuongId` đi ra tới adapter
 - `core/identity/bootstrap.ts` — `birthYear`, và áp được cả trên đường idempotent
 - `core/assertion/assertion.test.ts` — 2 bài hồi quy (giải tán union · cặp trùng)
@@ -365,6 +382,26 @@ Xem § Completion Notes bên dưới.
 - `app/admin/cay/cay-client.tsx` — nối `ghiThemQuanHe` + dùng lại `timNguoi` của thanh trên
 
 ## Completion Notes
+
+### Đóng 29/08/2026 — bảy ô test, và cái nó phơi ra
+
+Story này đứng `in-progress` ba ngày sau khi mọi AC đã đạt, chỉ vì bảy ô test cho `ghiThemQuanHe`
+không có chỗ chạy. Lối ra không phải mock `resolveSession` — giả phiên là bỏ qua đúng tầng AD-24
+dựng ra để gác — mà là một **dòng họ thử** dựng bằng chính `createAdmin` + Better Auth + ops của
+core, rồi đưa cookie thật vào `next/headers`. `identity.test.ts` đã làm y thế cho riêng nó từ 1-4;
+`core/gates/dong-ho-thu.ts` chỉ gói lại để dùng chung — và để `scripts/dong-ho-thu.ts` dựng được
+một dòng họ mở trình duyệt xem (bề mặt thành viên của 6-10 cần nó).
+
+Bài test chạy lượt đầu 11/13 và hai chỗ hỏng đều là **phát hiện**, không phải lỗi test:
+
+1. **`unattached` là mã chết qua phiên thật.** Ô test ghi *"forbidden"*, mã thật trả
+   *"unauthenticated"*, và cả hai đều sai: tài khoản đã đăng nhập mà chưa gắn chỗ phải nhận
+   `unattached` — `EXPERIENCE.md § Chưa gắn node` đòi adapter dẫn về luồng nhận chỗ, mà cùng một
+   mã với khách thì adapter không dẫn nổi. `gateWriter` kiểm `role === 'guest'` trước
+   `personId === null`, trong khi `resolveSessionImpl` cấp `role: 'guest'` cho chính ca này. Sửa.
+2. **Bán kính riêng tư gác cả ở adapter.** Bài test đọc khẳng định của Mồ Côi bằng mắt thành viên
+   và nhận `undefined`: Mồ Côi sống, cách "Mình" bốn bậc, ngoài bán kính 3. Đúng luật — và đáng
+   ghim thành một khẳng định riêng, vì view "Phả quanh mình" (6-10) sẽ dựng đúng trên luật ấy.
 
 Dev: Claude Opus 5 · 25/08/2026. Vá lượt code review: 26/08/2026.
 

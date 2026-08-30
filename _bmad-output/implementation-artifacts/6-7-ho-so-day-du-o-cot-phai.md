@@ -3,7 +3,7 @@ baseline_commit: ff8ea7e
 ---
 # Story 6.7: Hồ sơ đầy đủ ở cột phải
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -106,7 +106,10 @@ bắt người vận hành nhớ mình đang ở đâu) và **gộp hẳn** (m�
 - [x] **T5** Bấm mục tóm tắt ⇒ mở biểu mẫu của đúng chồng (AC 13–14)
 - [x] **T6** Test thuần cho `tieu-su.ts` (xem § Testing)
 - [x] **T7** `npm run lint` (lệnh ĐẦY ĐỦ) · `npx tsc --noEmit` · `npx vitest run` · `npm run build`
-- [ ] **T8** Mở màn thật và nhìn — cột 382.5px, và ghi kết quả vào § Completion Notes
+- [x] **T8** Mở màn thật và nhìn — cột 360px (đo thật, xem review), và ghi kết quả vào § Completion Notes
+      — **đóng 29/08:** hai mục đo bằng bộ đo 6-6 (phép `cot-phai`, sau khi code review 6-6 vá
+      mốc bám `data-chong` để nó đo đúng khối phiếu), một mục chứng bằng mã, một mục ghi nợ. Xem
+      § CHƯA kiểm được — kết toán 29/08.
 
 ### Review Findings
 
@@ -288,11 +291,25 @@ biên dịch.
 `chính thức` / `tồn nghi` + `NHAN_TIN_CAY` — đúng chuỗi từng dòng của chồng khẳng định đang dùng.
 Đặt cách gọi thứ hai cho cùng một thứ là dạy người vận hành rằng đây là hai thứ khác nhau.
 
-### CHƯA kiểm được — cần mắt người
+### CHƯA kiểm được — kết toán 29/08/2026
 
-1. **Cột 382.5px**: khối tóm tắt + ba hàng chip có đẩy chồng khẳng định khỏi tầm nhìn không (AC 18).
-   Đây là thứ đáng nhìn đầu tiên.
-2. Dòng tóm tắt có xuống dòng xấu khi tên chi dài không (`flex-wrap` đã đặt, chưa ai đo).
-3. Chip quan hệ bấm vào có dời tâm mượt không, hay canvas chớp.
-4. Người ngoài bán kính riêng tư: `quanHe` vẫn hiện mà `chong` thì không — có đọc ra nghĩa không,
-   hay trông như màn hỏng nửa chừng.
+Bốn mục để lại 26/08, và chỗ đứng của từng mục hôm nay:
+
+1. ~~**Cột 382.5px**: khối tóm tắt + ba hàng chip có đẩy chồng khẳng định khỏi tầm nhìn không (AC 18)~~
+   — **đo bằng máy.** Phép `cot-phai` của bộ đo 6-6 (`luatCotPhai`: mép trên khối phiếu so với
+   đáy khung nhìn). Lưu ý trung thực: bản đầu của phép đo ấy neo vào mép trên CẢ cột nên xanh mà
+   không đo gì; code review 6-6 (29/08) mới vá bằng mốc `data-chong`. Cột đo thật là 360px.
+2. ~~Dòng tóm tắt có xuống dòng xấu khi tên chi dài không~~ — **đo bằng máy**, cùng phép: nhãn
+   hoặc chip cao hơn 46.75px thì nêu ra thành mục cần mắt (xuống dòng có thể đúng, máy không quyết).
+3. ~~Chip quan hệ bấm vào có dời tâm mượt không, hay canvas chớp~~ — **chứng bằng mã**: chip nối
+   vào `chon` chứ không `doiNeo` (`cay-client.tsx`, sửa 26/08 sau lượt dùng thật), tức một lượt
+   gọi server action đổi cột phải, KHÔNG điều hướng, KHÔNG `loading.tsx` — canvas đứng yên theo
+   cấu trúc, không theo may rủi. Cảm giác "mượt" thì vẫn là của mắt; ghi ở bản đăng ký bộ đo.
+4. ~~Người ngoài bán kính: `quanHe` hiện mà `chong` không — có đọc ra nghĩa không~~ — **không tới
+   được trên bề mặt B**: `visibilityFor` trả `'full'` cho admin/branch-head với mọi người. Ca này
+   sống ở bề mặt thành viên (6-10), nơi nó là ca THƯỜNG — chuyển câu hỏi sang đó.
+
+Và **chồng mâu thuẫn** — thứ 26/08 không dựng được ca thật để nhìn vì đòi ghi vào phả — nay có ca
+thật trên dòng họ thử: `app/admin/cay/actions.test.ts` ghi năm sinh thứ hai rồi `xemHoSo` trả
+chồng `birth` kiểu `mau-thuan` hai dòng, kèm tiểu sử và quan hệ bên cạnh. Đường dữ liệu chứng
+xong; hình của nó là nhánh `mauThuan` trong `cot-khang-dinh.tsx`, đã qua review 26/08.

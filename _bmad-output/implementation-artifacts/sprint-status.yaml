@@ -83,11 +83,14 @@ development_status:
   # 6-6 sau khi có màn để đo.
   epic-6: in-progress
   # Code review 26/08 — ba tầng đối kháng, 19 patch + 2 decision đã vá, 3 mục vào deferred-work.
-  # Dọn 27/08: lý do chặn ghi ở đây đã HẾT hiệu lực — AC 28 (nghiệm thu trên phả thật) ĐẠT 26/08
-  # (§ Nghiệm thu AC 28 của story) và T9 đã tích. Cái còn chặn là bảy ô test cho `ghiThemQuanHe`,
-  # để TRỐNG có chủ ý: server action `'use server'` đòi một phiên thật, repo chưa có tầng test nào
-  # cho adapter. Nhà của chúng nó là story 6-6, còn ở backlog — nên 6-1 KHÔNG tự đóng được.
-  6-1-noi-nguoi-da-co: in-progress
+  # AC 28 (nghiệm thu trên phả thật) ĐẠT 26/08. Bảy ô test cho `ghiThemQuanHe` để TRỐNG tới 29/08
+  # vì server action đòi một phiên thật; 6-6 chốt "chỉ đo, không ghi" và kết toán "cần một dòng
+  # họ THỬ, và một quyết định riêng".
+  # Đóng 29/08: quyết định ấy là `core/gates/dong-ho-thu.ts` — dòng họ thử dựng bằng chính
+  # createAdmin + Better Auth + ops, cookie thật đưa vào `next/headers`. Tầng test adapter đầu
+  # tiên (`app/admin/cay/actions.test.ts`, 13 bài) đóng cả bảy ô và bắt được `unattached` là mã
+  # chết qua phiên thật (đã sửa `gateWriter`).
+  6-1-noi-nguoi-da-co: done
   # Dựng 27/08. Defect gốc: `approveAttachment` nhận `role` từ Đợt 1 mà KHÔNG nơi gọi nào truyền,
   # nên mọi lượt duyệt ra `member` và không màn nào sửa lại được. Nay prop `vaiCuaMinh` là BẮT
   # BUỘC nên nơi gọi không thể quên. Thêm `setAttachmentRole` + `detachAccount` + màn Tài khoản,
@@ -142,9 +145,11 @@ development_status:
   # Thêm 26/08 từ lượt bấm thật đầu tiên trên phả sạch. Cả hai rẻ hơn vẻ ngoài: `xemHoSo` đang
   # vứt `card` + `relations` mà `getPerson` đã tính, và `duyetHangLoat` thì đã chạy được từ 3-3.
   # Code review 26/08 — ba tầng, CẢ BA có trình duyệt. 15 patch đã vá, 4 mục vào deferred-work.
-  # KHÔNG chốt done: § CHƯA kiểm được còn bốn mục cần mắt người, và chồng mâu thuẫn chưa dựng
-  # được ca thật để nhìn (dựng ca ấy đòi ghi vào phả).
-  6-7-ho-so-day-du-o-cot-phai: in-progress
+  # Đóng 29/08: bốn mục "cần mắt" kết toán — hai đo bằng phép `cot-phai` của bộ đo 6-6 (sau khi
+  # review 6-6 vá mốc bám), một chứng bằng mã (chip nối `chon`, không điều hướng), một không tới
+  # được trên bề mặt B (admin luôn 'full') → chuyển sang 6-10. Chồng mâu thuẫn có ca thật trên
+  # dòng họ thử (`actions.test.ts`).
+  6-7-ho-so-day-du-o-cot-phai: done
   # Dựng 27/08. Nội dung thật không phải `group by`: `promoteAssertionOp` chặn giá trị chính
   # thức thứ hai của một loại đơn trị, nên "duyệt trọn người này" trên một người có hai khẳng
   # định `birth` là để MÁY chọn hộ bằng thứ tự lặp. `gomTheoNguoi` tách cụm đụng độ ra khỏi lượt
@@ -177,7 +182,7 @@ action_items:
   - epic: 5
     action: "Nối hai người ĐÃ CÓ trong phả — bộ chọn người + ghi parent-child/union-partner"
     owner: "Đợt 3, story đầu tiên → 6-1-noi-nguoi-da-co"
-    status: in-progress
+    status: done
   - epic: 5
     action: "Người dùng & vai — màn quản lý tài khoản; truyền `role` khi duyệt vào phả"
     owner: "Đợt 3 → 6-2-tai-khoan-va-vai"
