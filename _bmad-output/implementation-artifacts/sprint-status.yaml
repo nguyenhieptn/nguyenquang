@@ -1,6 +1,7 @@
-# Sprint status — Gia phả Nguyễn Quang, Đợt 1 + Đợt 2 + Đợt 3
+# Sprint status — Gia phả Nguyễn Quang, Đợt 1 + Đợt 2 + Đợt 3 + Đợt 4
 # Sinh bởi sprint planning 22/08/2026. Cấu trúc: xem planning-artifacts/epics/epics.md
-# (Đợt 1, epic 1-4), epics-dot-2.md (Đợt 2, epic 5), epics-dot-3.md (Đợt 3, epic 6).
+# (Đợt 1, epic 1-4), epics-dot-2.md (Đợt 2, epic 5), epics-dot-3.md (Đợt 3, epic 6),
+# epics-dot-4.md (Đợt 4, epic 7).
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
 last_updated: 2026-08-29
@@ -192,6 +193,21 @@ development_status:
   6-10-pha-quanh-minh: done
   epic-6-retrospective: done
 
+  # ── Đợt 4 ── cấu trúc ở planning-artifacts/epics/epics-dot-4.md
+  #
+  # Cắt theo động từ thứ ba: DÙNG — dùng thật, bởi người thật. Sau ba đợt hệ ghi/sửa/đo được;
+  # thứ chưa có là người: cửa cho thành viên, sổ nhật ký mà ba màn đang hứa, nút ẩn AD-17 cho
+  # phép từ Đợt 1, và ngày giỗ (SHOULD từ Đợt 2, hoãn hai lần). Mở bằng hàng rào (7-1) vì hai
+  # lỗi lọt năm cổng ở cuối Đợt 3. Thứ tự: 7-1 → 7-2 → 7-3 → 7-4 → 7-5 → 7-6.
+  epic-7: backlog
+  7-1-hang-rao-tu-retro: backlog
+  7-2-tra-no-san: backlog
+  7-3-an-theo-bao-cao: backlog
+  7-4-so-nhat-ky: backlog
+  7-5-ngay-gio-am-lich: backlog
+  7-6-mo-cua: backlog
+  epic-7-retrospective: optional
+
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──
 # Loại: story → vào Đợt 3 (epics-dot-3.md) · sửa → vá có chủ ý · vận hành → không phải mã.
 action_items:
@@ -237,17 +253,17 @@ action_items:
     status: open
   - epic: 6
     action: "Lint: cấm so `role`/`personId` ngoài core/assertion/ops.ts — cổng chỉ có gateWriter/gateApprover"
-    owner: "Đợt 4, đầu"
-    status: open
+    owner: "Đợt 4 → 7-1-hang-rao-tu-retro"
+    status: in-progress
   - epic: 6
     action: "Checklist review: chú thích 'chặn/gác/không bao giờ' phải chỉ tới test cùng tên; ngữ cảnh phiên dựng từ dòng họ thử"
     owner: "nếp làm việc, từ Đợt 4"
     status: open
   - epic: 6
     action: "Kịch bản GHI có mắt trên dòng họ thử (Playwright bấm thật, đọc lại câu xác nhận)"
-    owner: "Đợt 4"
-    status: open
+    owner: "Đợt 4 → 7-1-hang-rao-tu-retro"
+    status: in-progress
   - epic: 6
     action: "Nhật ký nơi chốn có người đọc (core/audit chưa đọc entity='place')"
-    owner: "Đợt 4"
-    status: open
+    owner: "Đợt 4 → 7-4-so-nhat-ky"
+    status: in-progress
