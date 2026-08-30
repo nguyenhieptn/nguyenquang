@@ -34,6 +34,7 @@ import { createAdmin } from '@/core/identity/bootstrap';
 import { approveAttachmentOp, requestAttachmentOp } from '@/core/identity/ops';
 import type { SessionContext } from '@/core/identity/session';
 import { createPersonOp } from '@/core/person/ops';
+import { addPlaceOps } from '@/core/place/ops';
 
 /** Thứ tự xoá theo khoá ngoại — bảng con trước. Cùng danh sách `rls.gate.test.ts § PARTITIONED_TABLES`. */
 const BANG_PHAN_VUNG = [
@@ -157,6 +158,20 @@ export async function dungDongHoThu(o: { tienTo?: string; ghim?: boolean } = {})
     const xa = await tao({ fullName: ten('Lê Văn Xa'), gender: 'male', birth: nam(1930), death: nam(2000), source: nguon });
     const moCoi = await tao({ fullName: ten('Nguyễn Thử Mồ Côi'), gender: 'male', birth: nam(1990), source: nguon });
     return { to, cha, me, minh, em, chu, xa, moCoi } satisfies NguoiThu;
+  });
+
+  // Hai nơi cùng tên khác đơn vị cha — để màn Nơi chốn (6-4) có gì để sửa, gộp, và một nhóm
+  // "trùng tên" để bày. Cùng tên khác đơn vị cha là hai nơi THẬT (FR-65), gộp hay không là việc
+  // của người nhìn.
+  await withClanContext(clanId, async (tx) => {
+    for (const [name, parentUnit] of [
+      [ten('Quang Trung'), 'Định Hoá, Thái Nguyên'],
+      [ten('Quang Trung'), 'Vũng Tàu'],
+      [ten('Làng Giữa'), ''],
+    ] as const) {
+      const r = await addPlaceOps(tx, adminCtx, { name, parentUnit });
+      if (!r.ok) throw new Error(`dong-ho-thu: nơi — ${r.error.message}`);
+    }
   });
 
   // Thành viên: tài khoản thật, xin nhận chỗ "Mình", quản trị duyệt — đúng đường FR-64/AD-8.

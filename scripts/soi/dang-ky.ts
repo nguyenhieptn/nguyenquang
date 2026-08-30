@@ -377,7 +377,23 @@ export const DANG_KY: Man[] = [
     ],
   },
   { ...BAN_B, khoa: 'so-dong-ho', duong: '/admin/so-dong-ho', pheDo: DO_B, bay: 'Sổ dòng họ — tên họ, chữ đệm, đề từ' },
-  { ...BAN_B, khoa: 'noi-chon', duong: '/admin/noi-chon', pheDo: DO_B, bay: 'Danh mục nơi chốn' },
+  {
+    ...BAN_B,
+    khoa: 'noi-chon',
+    duong: '/admin/noi-chon',
+    pheDo: DO_B,
+    bay: 'Danh mục nơi chốn — sửa · gộp vào · tách lại (story 6-4)',
+    buoc: async (p) => {
+      // Mở biểu mẫu SỬA của hàng đầu và bảng GỘP của hàng thứ hai (nếu có) — hai bộ mặt có ô
+      // nhập, đo cả hai. Không bấm Ghi lại, không bấm Gộp.
+      const sua = p.getByRole('button', { name: 'Sửa', exact: true }).first();
+      if (await sua.count()) await sua.click();
+      const gop = p.getByRole('button', { name: 'Gộp vào…' }).nth(1);
+      if (await gop.count()) await gop.click();
+      await p.waitForTimeout(400);
+    },
+    ghiChu: 'Phả thật có danh mục; dòng họ thử dựng sẵn ba nơi. Rỗng thì màn chỉ có câu "còn trống".',
+  },
   {
     ...BAN_B,
     khoa: 'admin-404',

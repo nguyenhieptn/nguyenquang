@@ -7,15 +7,15 @@
  * rẻ hơn nhiều so với dựng chỉ mục trigram cho một bảng cỡ ấy. Nếu một ngày nó lớn lên thì chỗ
  * sửa nằm gọn trong file này.
  */
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, count, eq, inArray } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import type { Tx } from '@/db';
-import { place } from '@/db/schema';
+import { assertion, place } from '@/db/schema';
 import { chuanHoa } from '@/core/so-khop';
 import { writeRevision } from '@/core/revision';
 import { gateApprover } from '@/core/assertion/ops';
 import type { SessionContext, ViewerContext } from '@/core/identity/session';
-import { err, ok, type Result } from '@/core/types';
+import { err, isUuid, ok, type Result } from '@/core/types';
 import { chamDiemNoi, trungKhit, trungTen, type NoiTho } from './cham-diem';
 
 export type NoiChon = {
@@ -124,8 +124,8 @@ export async function addPlaceOps(
    * ghi được vào danh mục nơi. Mà danh mục nơi không giống một khẳng định:
    *
    *   · Nó THUỘC VỀ CẢ DÒNG HỌ, không thuộc về một người — mọi màn nhập đều đọc nó.
-   *   · Nó KHÔNG GỠ ĐƯỢC. `core/place` chưa có đường sửa, đường xoá, hay đường gộp
-   *     (`deferred-work.md`), nên một hàng tạo nhầm ở lại vĩnh viễn.
+   *   · Nó KHÔNG XOÁ ĐƯỢC. Từ story 6-4 (29/08) có đường sửa, gộp và tách lại — nhưng một hàng
+   *     tạo nhầm vẫn chỉ gộp được vào hàng khác, không biến mất (AD-4 áp cho cả danh mục).
    *   · Mỗi phím gõ trong bộ chọn nơi quét TOÀN BẢNG (`taiNoi`).
    *
    * Ba điều ấy cộng lại thì một bề mặt ghi không giới hạn cho vai `member` là chuyện phải chặn ở
@@ -260,4 +260,220 @@ export async function giaiNoi(tx: Tx, ids: string[]): Promise<Map<string, NoiCho
     });
   }
   return ra;
+}
+
+// ── Sửa · gộp · tách (story 6-4, FR-65 "trùng thì gộp được, gộp nhầm thì tách được") ────────
+
+/**
+ * Sửa tên và đơn vị cha của một nơi.
+ *
+ * Cùng hai luật với `addPlaceOps`, vì sửa là một lối vào thứ hai của cùng một danh mục: trùng khít
+ * với nơi khác ⇒ `conflict` kèm id nơi ấy (màn chỉ sang nút Gộp); trống đơn vị cha khi có nơi
+ * trùng tên ⇒ `invalid`. Nơi ĐÃ GỘP thì không sửa — nó là bia mộ, mọi đường đọc đã trỏ sang nơi
+ * thắng, sửa nó là sửa một cái tên không ai còn thấy.
+ */
+export async function updatePlaceOps(
+  tx: Tx,
+  ctx: SessionContext,
+  args: { placeId: string; name: string; parentUnit?: string },
+): Promise<Result<NoiChon>> {
+  const gate = gateApprover(ctx);
+  if (!gate.ok) return gate;
+  if (!isUuid(args.placeId)) return err('not-found', 'Không thấy nơi này trong danh mục.');
+
+  /**
+   * Đọc hàng THÔ, không qua `taiNoi()` — hàm ấy lọc bia mộ, nên một nơi đã gộp sẽ thành
+   * `not-found` thay vì `conflict`, và người vận hành không biết vì sao nó "biến mất".
+   */
+  const [row] = await tx.select().from(place).where(eq(place.id, args.placeId));
+  if (!row) return err('not-found', 'Không thấy nơi này trong danh mục.');
+  if (row.mergedInto) {
+    return err('conflict', 'Nơi này đã gộp vào một nơi khác — tách lại trước nếu muốn sửa.');
+  }
+
+  const name = args.name.trim();
+  if (!name) return err('invalid', 'Nơi phải có tên.');
+  const parentUnit = (args.parentUnit ?? '').trim();
+  if (name === row.name && parentUnit === row.parentUnit) {
+    // Không đổi gì thì không ghi gì — một dòng nhật ký "update" rỗng là nhiễu cho lượt tách sau.
+    return ok({ placeId: row.id, name: row.name, parentUnit: row.parentUnit, nhan: nhanCua(row) });
+  }
+
+  const khac = (await taiNoi(tx)).filter((r) => r.id !== row.id);
+  const tho = (r: (typeof khac)[number]): NoiTho => ({
+    id: r.id,
+    nameFolded: r.nameFolded,
+    parentUnitFolded: r.parentUnitFolded,
+  });
+  const daCo = khac.find((r) => trungKhit(tho(r), name, parentUnit));
+  if (daCo) {
+    return err('conflict', `Đã có nơi ${nhanCua(daCo)} trong danh mục — gộp hai nơi thay vì sửa trùng.`, {
+      placeId: daCo.id,
+      nhan: nhanCua(daCo),
+    });
+  }
+  if (parentUnit === '' && khac.some((r) => trungTen(tho(r), name))) {
+    return err(
+      'invalid',
+      `Đã có nơi tên "${name}" trong danh mục. Ghi thêm đơn vị hành chính cha để phân biệt.`,
+    );
+  }
+
+  const truoc = { name: row.name, parentUnit: row.parentUnit };
+  const sau = { name, parentUnit };
+  try {
+    // Savepoint, cùng lý do `addPlaceOps`: chỉ mục `place_folded_uq` phủ CẢ bia mộ, mà pre-check
+    // ở trên chỉ soi hàng sống. Đụng một bia mộ thì 23505 — và transaction ngoài phải còn sống để
+    // tra xem bia mộ ấy trỏ về đâu.
+    await tx.transaction(async (sp) => {
+      await sp
+        .update(place)
+        .set({ name, nameFolded: chuanHoa(name), parentUnit, parentUnitFolded: chuanHoa(parentUnit) })
+        .where(eq(place.id, row.id));
+    });
+  } catch (e) {
+    if (maTrungKhoa(e)) {
+      const [thang] = await tx
+        .select()
+        .from(place)
+        .where(
+          and(
+            eq(place.clanId, ctx.clanId),
+            eq(place.nameFolded, chuanHoa(name)),
+            eq(place.parentUnitFolded, chuanHoa(parentUnit)),
+          ),
+        );
+      const giai = thang ? (await giaiNoi(tx, [thang.id])).get(thang.id) : undefined;
+      return err(
+        'conflict',
+        `Tên này trùng với một nơi đã gộp${giai ? ` (nay đọc ra ${giai.nhan})` : ''} — tách lại nơi ấy, hoặc gộp.`,
+        giai ? { placeId: giai.placeId, nhan: giai.nhan } : undefined,
+      );
+    }
+    throw e;
+  }
+  await writeRevision(tx, {
+    clanId: ctx.clanId,
+    accountId: ctx.accountId,
+    entity: 'place',
+    entityId: row.id,
+    action: 'update',
+    before: truoc,
+    after: sau,
+  });
+  return ok({ placeId: row.id, name, parentUnit, nhan: nhanCua(sau) });
+}
+
+export type KetQuaGopNoi = {
+  loserId: string;
+  winnerId: string;
+  /** Nhãn nơi thắng — để màn nói "N khẳng định nay đọc ra <nơi thắng>". */
+  nhanThang: string;
+  /** Số khẳng định `place` còn sống đang trỏ vào bên thua — từ nay chúng đọc ra bên thắng. */
+  soKhangDinh: number;
+};
+
+/**
+ * Gộp hai nơi trùng: bên thua thành BIA MỘ trỏ về bên thắng.
+ *
+ * ── Vì sao KHÔNG repoint khẳng định (khác `core/merge` cho người) ──────────────────────────
+ * Với người, AD-3 đòi repoint mọi tham chiếu và ghi trọn danh sách — vì cây, bán kính riêng tư,
+ * hàng chờ đều đọc `person.id` thẳng. Với nơi thì mọi đường đọc đã đi qua `giaiNoi()`
+ * (`read-ops.ts`), và `addAssertionOp` từ chối ghi mới vào bia mộ. Cột `merged_into` chính là
+ * cơ chế repoint-lúc-đọc mà 5-7 dựng sẵn — nên gộp là MỘT cột, tách là xoá cột ấy, và tách luôn
+ * đúng nguyên trạng mà không cần danh sách mối nối nào.
+ */
+export async function mergePlaceOps(
+  tx: Tx,
+  ctx: SessionContext,
+  args: { loserId: string; winnerId: string },
+): Promise<Result<KetQuaGopNoi>> {
+  const gate = gateApprover(ctx);
+  if (!gate.ok) return gate;
+  if (!isUuid(args.loserId) || !isUuid(args.winnerId)) {
+    return err('not-found', 'Không thấy nơi này trong danh mục.');
+  }
+  if (args.loserId === args.winnerId) return err('invalid', 'Không gộp một nơi vào chính nó.');
+
+  const rows = await tx.select().from(place).where(inArray(place.id, [args.loserId, args.winnerId]));
+  const thua = rows.find((r) => r.id === args.loserId);
+  const thang = rows.find((r) => r.id === args.winnerId);
+  if (!thua || !thang) return err('not-found', 'Không thấy nơi này trong danh mục.');
+  if (thua.mergedInto) return err('conflict', `${nhanCua(thua)} đã gộp rồi.`);
+  /**
+   * Bên thắng phải CÒN SỐNG. Gộp vào một bia mộ là tạo chuỗi hai bước — `giaiNoi` vẫn lần được,
+   * nhưng "tách lại" bên nào thì bên kia đứt: A→B→C, tách B khỏi C là A vẫn trỏ về B mà B đã
+   * sống lại — đúng, hay sai? Không có câu trả lời đúng cho mọi ca, nên không cho đặt câu hỏi.
+   * Đây cũng là hàng rào chống vòng: A→B rồi B→A bị chặn vì B đã là bia mộ.
+   */
+  if (thang.mergedInto) {
+    return err('conflict', `${nhanCua(thang)} đã gộp vào nơi khác — chọn nơi còn sống làm nơi thắng.`);
+  }
+
+  const [dem] = await tx
+    .select({ n: count() })
+    .from(assertion)
+    .where(and(eq(assertion.placeId, thua.id), eq(assertion.status, 'live')));
+
+  await tx.update(place).set({ mergedInto: thang.id }).where(eq(place.id, thua.id));
+  await writeRevision(tx, {
+    clanId: ctx.clanId,
+    accountId: ctx.accountId,
+    entity: 'place',
+    entityId: thua.id,
+    action: 'merge',
+    before: { mergedInto: null, nhan: nhanCua(thua) },
+    after: { mergedInto: thang.id, winnerId: thang.id, nhanThang: nhanCua(thang) },
+  });
+  return ok({
+    loserId: thua.id,
+    winnerId: thang.id,
+    nhanThang: nhanCua(thang),
+    soKhangDinh: Number(dem?.n ?? 0),
+  });
+}
+
+/** Tách lại một nơi đã gộp — xoá `merged_into`, nguyên trạng trở về. */
+export async function unmergePlaceOps(
+  tx: Tx,
+  ctx: SessionContext,
+  args: { placeId: string },
+): Promise<Result<NoiChon>> {
+  const gate = gateApprover(ctx);
+  if (!gate.ok) return gate;
+  if (!isUuid(args.placeId)) return err('not-found', 'Không thấy nơi này trong danh mục.');
+  const [row] = await tx.select().from(place).where(eq(place.id, args.placeId));
+  if (!row) return err('not-found', 'Không thấy nơi này trong danh mục.');
+  if (!row.mergedInto) return err('conflict', `${nhanCua(row)} chưa gộp vào đâu — không có gì để tách.`);
+
+  await tx.update(place).set({ mergedInto: null }).where(eq(place.id, row.id));
+  await writeRevision(tx, {
+    clanId: ctx.clanId,
+    accountId: ctx.accountId,
+    entity: 'place',
+    entityId: row.id,
+    action: 'unmerge',
+    before: { mergedInto: row.mergedInto },
+    after: { mergedInto: null },
+  });
+  return ok({ placeId: row.id, name: row.name, parentUnit: row.parentUnit, nhan: nhanCua(row) });
+}
+
+export type NoiDaGop = NoiChon & { thang: NoiChon };
+
+/** Bia mộ kèm nơi thắng (đã giải chuỗi) — khu "Đã gộp" của màn Nơi chốn. */
+export async function listMergedPlacesOps(tx: Tx): Promise<Result<NoiDaGop[]>> {
+  const rows = (await tx.select().from(place)).filter((r) => r.mergedInto !== null);
+  const giai = await giaiNoi(tx, rows.map((r) => r.id));
+  return ok(
+    rows
+      .map((r) => ({
+        placeId: r.id,
+        name: r.name,
+        parentUnit: r.parentUnit,
+        nhan: nhanCua(r),
+        thang: giai.get(r.id) ?? { placeId: r.mergedInto!, name: '?', parentUnit: '', nhan: 'một nơi không còn' },
+      }))
+      .sort((a, b) => a.nhan.localeCompare(b.nhan, 'vi')),
+  );
 }

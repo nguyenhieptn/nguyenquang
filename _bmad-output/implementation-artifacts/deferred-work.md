@@ -79,7 +79,7 @@ gốc để lần sau không phải điều tra lại.
 
 ## Deferred from: 5-7-noi-chon (2026-08-25)
 
-- **Gộp / tách NƠI.** FR-65 đòi (*"Trùng thì gộp được, gộp nhầm thì tách được"*), và cột
+- ~~**Gộp / tách NƠI.**~~ **ĐÃ LÀM — story 6-4 (29/08/2026)**: sửa · gộp · tách, không repoint (giaiNoi đã giải chuỗi ở mọi đường đọc). Nguyên văn: FR-65 đòi (*"Trùng thì gộp được, gộp nhầm thì tách được"*), và cột
   `place.merged_into` đã dựng sẵn để đón — nhưng gộp đúng cách là cả một module. `core/merge` cho
   NGƯỜI dài hơn 400 dòng: đề xuất, quyền AD-22, repoint mọi cạnh, bia mộ AD-3, và đường tách lại.
   Nhét vào 5-7 là làm hỏng cả hai. `giaiNoi()` trong `core/place/ops.ts` đã đọc được chuỗi

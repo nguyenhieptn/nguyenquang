@@ -116,8 +116,14 @@ development_status:
   # chốt: chỉ `father-*` mới bỏ tích. Thêm `father-skipped`/`spouse-skipped` để màn thôi nói
   # "không có ai tên ấy" ngay dưới một dòng mang đúng tên ấy.
   6-3-nap-khung-noi-that: done
-  6-4-sua-va-gop-noi: backlog
-  6-5-man-mau-thuan: backlog
+  # Dựng 29/08. Gộp NƠI không repoint: giaiNoi đã giải chuỗi merged_into ở mọi đường đọc, nên gộp
+  # = đặt cột, tách = xoá cột, luôn đúng nguyên trạng. Không có bước đề xuất (danh mục vốn chỉ
+  # quyền duyệt mới ghi được). Màn Nơi chốn thành màn làm việc: sửa · gộp vào · tách lại.
+  6-4-sua-va-gop-noi: review
+  # Dựng 29/08. 5-3 dựng phép phân loại và cố ý không dựng màn ("cần phép đọc quét cả dòng họ").
+  # Đây là lượt "làm có chủ ý" mà deferred-work hẹn: xepChong nhìn thêm khoá phụ rút từ value —
+  # hai cha cùng giới cùng relation, hai quê quán khác nơi — rồi listConflicts quét cả họ.
+  6-5-man-mau-thuan: in-progress
   # Dựng 27–28/08. Gom bốn script `soi-*.mjs` — chúng chép tay bốn lần cùng bốn việc, đo bốn kiểu
   # khác nhau, và `soi-man.mjs` LUÔN thoát 0 (trông như cổng mà không phải). Nay một runner đi
   # theo bản đăng ký 27 màn, luật là hàm THUẦN có test, và một bài test đọc mã nguồn bắt màn thiếu

@@ -18,13 +18,19 @@ import { err, type Result } from '@/core/types';
 import { resolveSession } from '@/core/identity/session';
 import {
   addPlaceOps,
+  listMergedPlacesOps,
   listPlacesOps,
+  mergePlaceOps,
   searchPlacesOps,
+  unmergePlaceOps,
+  updatePlaceOps,
+  type KetQuaGopNoi,
   type NoiChon,
+  type NoiDaGop,
   type UngVienNoiChon,
 } from './ops';
 
-export type { NoiChon, UngVienNoiChon } from './ops';
+export type { KetQuaGopNoi, NoiChon, NoiDaGop, UngVienNoiChon } from './ops';
 export type { MucChacChanNoi } from './cham-diem';
 
 /**
@@ -71,4 +77,36 @@ export async function addPlace(args: {
   const session = await resolveSession();
   if (!session) return err('unauthenticated', 'Cần đăng nhập trước khi ghi.');
   return withClanContext(session.clanId, (tx) => addPlaceOps(tx, session, args));
+}
+
+// ── Sửa · gộp · tách (story 6-4) — cả ba gác quyền duyệt trong ops ─────────────────────────
+
+export async function updatePlace(args: {
+  placeId: string;
+  name: string;
+  parentUnit?: string;
+}): Promise<Result<NoiChon>> {
+  const session = await resolveSession();
+  if (!session) return err('unauthenticated', 'Cần đăng nhập trước khi ghi.');
+  return withClanContext(session.clanId, (tx) => updatePlaceOps(tx, session, args));
+}
+
+export async function mergePlaces(loserId: string, winnerId: string): Promise<Result<KetQuaGopNoi>> {
+  const session = await resolveSession();
+  if (!session) return err('unauthenticated', 'Cần đăng nhập trước khi ghi.');
+  return withClanContext(session.clanId, (tx) => mergePlaceOps(tx, session, { loserId, winnerId }));
+}
+
+export async function unmergePlace(placeId: string): Promise<Result<NoiChon>> {
+  const session = await resolveSession();
+  if (!session) return err('unauthenticated', 'Cần đăng nhập trước khi ghi.');
+  return withClanContext(session.clanId, (tx) => unmergePlaceOps(tx, session, { placeId }));
+}
+
+/** Bia mộ kèm nơi thắng. Cùng cổng với `listPlaces`. */
+export async function listMergedPlaces(): Promise<Result<NoiDaGop[]>> {
+  const session = await resolveSession();
+  if (!session) return err('unauthenticated', 'Cần đăng nhập.');
+  if (!session.personId) return err('unattached', 'Chưa gắn vào một người trong phả.');
+  return withClanContext(session.clanId, (tx) => listMergedPlacesOps(tx));
 }

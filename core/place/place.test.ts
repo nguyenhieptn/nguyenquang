@@ -12,7 +12,11 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { v7 as uuidv7 } from 'uuid';
 import { ownerPool, withClanContext, type Tx } from '@/db';
 import type { SessionContext } from '@/core/identity/session';
-import { addPlaceOps, listPlacesOps, searchPlacesOps, giaiNoi } from './ops';
+import { addPlaceOps, listMergedPlacesOps, listPlacesOps, mergePlaceOps, searchPlacesOps, unmergePlaceOps, updatePlaceOps, giaiNoi } from './ops';
+import { revision, assertion, notification, person, source } from '@/db/schema';
+import { and, eq } from 'drizzle-orm';
+import { addAssertionOp } from '@/core/assertion/ops';
+import { createPersonOp } from '@/core/person/ops';
 
 const owner = ownerPool();
 const run = <T>(fn: (tx: Tx) => Promise<T>) => withClanContext(clanId, fn);
@@ -252,5 +256,147 @@ describe('chỉ mục duy nhất là hàng rào THẬT', () => {
     // Câu này CHỈ nhánh đua nói — nhánh tiền kiểm nói "đã có trong danh mục".
     expect(ketQua.error.message).toContain('vừa được người khác thêm');
     expect(ketQua.error.detail?.placeId).toBe(idThang);
+  });
+});
+
+describe('story 6-4 — sửa · gộp · tách nơi', () => {
+  const tao = async (name: string, parentUnit: string) => {
+    const r = await run((tx) => addPlaceOps(tx, ctx, { name, parentUnit }));
+    if (!r.ok) throw new Error(r.error.message);
+    return r.value.placeId;
+  };
+
+  it('sửa tên: cột gấp dấu cập nhật theo, nhật ký `update` có before/after (AD-10)', async () => {
+    const id = await tao('S64 Sửa Được', 'Định Hoá');
+    const r = await run((tx) => updatePlaceOps(tx, ctx, { placeId: id, name: 'S64 Đã Sửa', parentUnit: 'Định Hoá, Thái Nguyên' }));
+    expect(r.ok).toBe(true);
+    if (!r.ok) return;
+    expect(r.value.nhan).toBe('S64 Đã Sửa, Định Hoá, Thái Nguyên');
+    await run(async (tx) => {
+      const tim = await searchPlacesOps(tx, ctx, { ten: 's64 da sua', donViCha: '' });
+      expect(tim.ok && tim.value[0]?.placeId).toBe(id);
+      const [rev] = await tx
+        .select()
+        .from(revision)
+        .where(and(eq(revision.entity, 'place'), eq(revision.entityId, id), eq(revision.action, 'update')));
+      expect(rev).toBeDefined();
+      expect((rev!.before as { name: string }).name).toBe('S64 Sửa Được');
+      expect((rev!.after as { name: string }).name).toBe('S64 Đã Sửa');
+    });
+  });
+
+  it('sửa mà không đổi gì ⇒ ok, và KHÔNG thêm một dòng nhật ký rỗng', async () => {
+    const id = await tao('S64 Y Nguyên', 'Vũng Tàu');
+    const truoc = await run((tx) => tx.select().from(revision).where(eq(revision.entityId, id)));
+    const r = await run((tx) => updatePlaceOps(tx, ctx, { placeId: id, name: ' S64 Y Nguyên ', parentUnit: 'Vũng Tàu' }));
+    expect(r.ok).toBe(true);
+    const sau = await run((tx) => tx.select().from(revision).where(eq(revision.entityId, id)));
+    expect(sau.length).toBe(truoc.length);
+  });
+
+  it('sửa thành trùng khít với nơi khác ⇒ conflict kèm id nơi ấy — chỉ sang gộp', async () => {
+    const a = await tao('S64 Trùng A', 'Hà Nội');
+    const b = await tao('S64 Trùng B', 'Hà Nội');
+    const r = await run((tx) => updatePlaceOps(tx, ctx, { placeId: b, name: 's64 trung a', parentUnit: 'ha noi' }));
+    expect(r.ok).toBe(false);
+    if (r.ok) return;
+    expect(r.error.code).toBe('conflict');
+    expect(r.error.detail?.placeId).toBe(a);
+  });
+
+  it('sửa về trống đơn vị cha khi đã có nơi trùng tên ⇒ invalid — cùng luật với tạo', async () => {
+    await tao('S64 Cùng Tên', 'Định Hoá');
+    const b = await tao('S64 Cùng Tên', 'Vũng Tàu');
+    const r = await run((tx) => updatePlaceOps(tx, ctx, { placeId: b, name: 'S64 Cùng Tên', parentUnit: '' }));
+    expect(r.ok).toBe(false);
+    if (!r.ok) expect(r.error.code).toBe('invalid');
+  });
+
+  it('gộp: bên thua thành bia mộ, giaiNoi đọc ra bên thắng, danh mục vắng bên thua, khẳng định mới vào bên thua bị từ chối; tách lại thì nguyên trạng', async () => {
+    const thua = await tao('S64 Quang Trung', 'Dinh Hoa');
+    const thang = await tao('S64 Quang Trung', 'Định Hoá, Thái Nguyên');
+    // Một khẳng định đang trỏ vào bên thua — để đếm.
+    const nguoi = await run(async (tx) => {
+      const r = await createPersonOp(tx, ctx, { fullName: 'S64 Người Có Quê', source: { kind: 'self' } });
+      if (!r.ok) throw new Error(r.error.message);
+      return r.value.personId;
+    });
+    await run(async (tx) => {
+      const r = await addAssertionOp(tx, ctx, { personId: nguoi, spec: { kind: 'place', placeId: thua, role: 'que-quan' }, source: { kind: 'self' } });
+      expect(r.ok).toBe(true);
+    });
+
+    const gop = await run((tx) => mergePlaceOps(tx, ctx, { loserId: thua, winnerId: thang }));
+    expect(gop.ok).toBe(true);
+    if (!gop.ok) return;
+    expect(gop.value.soKhangDinh).toBe(1);
+    expect(gop.value.nhanThang).toBe('S64 Quang Trung, Định Hoá, Thái Nguyên');
+
+    await run(async (tx) => {
+      const giai = await giaiNoi(tx, [thua]);
+      expect(giai.get(thua)?.placeId).toBe(thang);
+      const ds = await listPlacesOps(tx);
+      expect(ds.ok && ds.value.some((n) => n.placeId === thua)).toBe(false);
+      const daGop = await listMergedPlacesOps(tx);
+      expect(daGop.ok && daGop.value.find((n) => n.placeId === thua)?.thang.placeId).toBe(thang);
+      const ghi = await addAssertionOp(tx, ctx, { personId: nguoi, spec: { kind: 'place', placeId: thua, role: 'tru-quan' }, source: { kind: 'self' } });
+      expect(ghi.ok).toBe(false);
+      if (!ghi.ok) expect(ghi.error.code).toBe('conflict');
+      const [rev] = await tx.select().from(revision).where(and(eq(revision.entityId, thua), eq(revision.action, 'merge')));
+      expect((rev!.after as { winnerId: string }).winnerId).toBe(thang);
+    });
+
+    const tach = await run((tx) => unmergePlaceOps(tx, ctx, { placeId: thua }));
+    expect(tach.ok).toBe(true);
+    await run(async (tx) => {
+      const giai = await giaiNoi(tx, [thua]);
+      expect(giai.get(thua)?.placeId).toBe(thua);
+      const ds = await listPlacesOps(tx);
+      expect(ds.ok && ds.value.some((n) => n.placeId === thua)).toBe(true);
+      const [rev] = await tx.select().from(revision).where(and(eq(revision.entityId, thua), eq(revision.action, 'unmerge')));
+      expect(rev).toBeDefined();
+    });
+    // Dọn hàng test tạo trong bảng người/khẳng định của clan này (afterAll chỉ dọn place + revision).
+    await run(async (tx) => {
+      await tx.delete(notification).where(eq(notification.personId, nguoi));
+      await tx.delete(assertion).where(eq(assertion.subjectPersonId, nguoi));
+      await tx.delete(source).where(eq(source.clanId, clanId));
+      await tx.delete(person).where(eq(person.id, nguoi));
+    });
+  });
+
+  it('gộp vào chính nó ⇒ invalid; gộp vào một bia mộ ⇒ conflict (chặn vòng A→B→A); tách nơi còn sống ⇒ conflict; sửa bia mộ ⇒ conflict', async () => {
+    const a = await tao('S64 Vòng A', 'X');
+    const b = await tao('S64 Vòng B', 'X');
+    const tuGop = await run((tx) => mergePlaceOps(tx, ctx, { loserId: a, winnerId: a }));
+    expect(tuGop.ok).toBe(false);
+    if (!tuGop.ok) expect(tuGop.error.code).toBe('invalid');
+    expect((await run((tx) => mergePlaceOps(tx, ctx, { loserId: a, winnerId: b }))).ok).toBe(true);
+    const vong = await run((tx) => mergePlaceOps(tx, ctx, { loserId: b, winnerId: a }));
+    expect(vong.ok).toBe(false);
+    if (!vong.ok) expect(vong.error.code).toBe('conflict');
+    const lai = await run((tx) => mergePlaceOps(tx, ctx, { loserId: a, winnerId: b }));
+    expect(lai.ok).toBe(false);
+    const tachSong = await run((tx) => unmergePlaceOps(tx, ctx, { placeId: b }));
+    expect(tachSong.ok).toBe(false);
+    if (!tachSong.ok) expect(tachSong.error.code).toBe('conflict');
+    const sua = await run((tx) => updatePlaceOps(tx, ctx, { placeId: a, name: 'S64 Vòng A2', parentUnit: 'X' }));
+    expect(sua.ok).toBe(false);
+    if (!sua.ok) expect(sua.error.code).toBe('conflict');
+  });
+
+  it('thành viên thường ⇒ forbidden ở cả ba; chưa gắn node ⇒ unattached', async () => {
+    const a = await tao('S64 Quyền A', 'Y');
+    const b = await tao('S64 Quyền B', 'Y');
+    for (const ctxSai of [ctxThuong, ctxRoi]) {
+      const ma = ctxSai === ctxThuong ? 'forbidden' : 'unattached';
+      const s1 = await run((tx) => updatePlaceOps(tx, ctxSai, { placeId: a, name: 'S64 Quyền A2', parentUnit: 'Y' }));
+      const s2 = await run((tx) => mergePlaceOps(tx, ctxSai, { loserId: a, winnerId: b }));
+      const s3 = await run((tx) => unmergePlaceOps(tx, ctxSai, { placeId: a }));
+      for (const r of [s1, s2, s3]) {
+        expect(r.ok).toBe(false);
+        if (!r.ok) expect(r.error.code).toBe(ma);
+      }
+    }
   });
 });

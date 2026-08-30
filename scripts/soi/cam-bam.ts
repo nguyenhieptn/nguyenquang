@@ -47,6 +47,7 @@ export const NHAN_CAM_BAM: readonly RegExp[] = [
   /Để nguyên như đang ghi/,
   /Tạo tài khoản/, // dang-nhap — ghi vào bảng tài khoản
   /Đăng xuất/, // toi — xoá phiên; không ghi vào phả, nhưng làm hỏng mọi phép đo sau nó
+  /Ghi lại/, // noi-chon (6-4) — sửa tên / đơn vị cha của một nơi
 ];
 
 /**
