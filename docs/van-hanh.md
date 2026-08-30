@@ -147,6 +147,15 @@ GIAPHA_CLAN_ID=<id in ra> BETTER_AUTH_URL=http://$(tailscale ip -4):3200 \
 npm run dong-ho-thu -- --go    # dọn sạch khi xong
 ```
 
+Tắt bản `:3200` **theo cổng, không theo pid** — pid của `nohup npx next start` là tiến trình
+`npm`, không phải `next-server`; kill nó thì server cũ vẫn giữ cổng, chạy `.next` CŨ sau lượt
+build mới và ghim dòng họ thử ĐÃ DỌN (29/08: `ChunkLoadError` hàng loạt trong lượt soi vì đúng
+chuyện này). Script gọi không cờ là DỰNG THÊM một dòng họ thử — không có cờ liệt kê.
+
+```bash
+kill "$(ss -ltnp | grep ':3200 ' | sed -n 's/.*pid=\([0-9]*\).*/\1/p' | head -1)"
+```
+
 Database khi ấy có HAI dòng họ. Bản thật ở `:3000` không ghim gì nên vẫn phục vụ dòng họ đầu
 tiên (phả thật) — và ghi một dòng cảnh báo vào log ở mỗi request, cho tới khi dọn. Đừng để dòng
 họ thử sống qua đêm.
