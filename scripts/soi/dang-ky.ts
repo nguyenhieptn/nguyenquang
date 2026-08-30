@@ -195,6 +195,11 @@ export const DANG_KY: Man[] = [
           (d as HTMLDetailsElement).open = true;
       });
       await p.waitForTimeout(400);
+      // Mở ô lý do của "Ẩn theo báo cáo…" (story 7-3) — nút ấy chỉ MỞ ô, không ghi; nút ghi là
+      // "Ẩn ngay", nằm trong `cam-bam.ts`. Ô này chỉ đo được khi mở.
+      const moAn = p.locator('aside, [role="dialog"]').getByRole('button', { name: 'Ẩn theo báo cáo…' }).first();
+      if (await moAn.count()) await moAn.click();
+      await p.waitForTimeout(300);
     },
     ghiChu: 'Tài khoản đo là quản trị đã gắn chỗ ⇒ bộ mặt "quanh mình". Bộ mặt chưa gắn (chi đầu + mời tìm chỗ) chưa đo — cần tài khoản chưa gắn.',
     no: ['6-7 mục 4 (chuyển từ bề mặt B): người ngoài bán kính — quan hệ hiện mà chồng không, có đọc ra nghĩa không — cần mắt, và cần một thành viên thường (dòng họ thử)'],

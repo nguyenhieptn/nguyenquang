@@ -4,7 +4,7 @@ baseline_commit: a9a990d
 
 # Story 7.3: Ẩn theo báo cáo — cái nút mà AD-17 cho phép từ Đợt 1
 
-Status: review
+Status: done
 
 ## Story
 
@@ -79,8 +79,38 @@ Claude Fable 5 · 29/08/2026.
 - `soi cay gia-pha` (3 lượt) 0 vi phạm mới sau khi thêm nút.
 
 ### File List
+- `components/admin/quan-he-ghi-them.test.ts` (luật Loại — sửa ở commit kế, lượt dựng để đỏ)
 - `lib/ghi-pha.ts` (`anKhangDinh`) · `app/admin/cay/actions.ts` · `app/(pha)/gia-pha/actions.ts`
 - `components/admin/cot-khang-dinh.tsx` (nút ẩn + ô lý do; `onAn` qua ba lớp; nhãn Loại theo loại) · `components/admin/quan-he-ghi-them.ts`
 - `app/admin/cay/cay-client.tsx` · `app/(pha)/gia-pha/_quanh-minh/quanh-minh-client.tsx`
 - `scripts/soi/cam-bam.ts` · `scripts/bam-thu/kich-ban.ts` (K4) · `scripts/bam-thu.ts` (thử lại đăng nhập)
 - `app/admin/cay/actions.test.ts` (+2) · `deferred-work.md` (✅ 5-3, 6-1)
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 5+8 · Edge Case 9 · Acceptance Auditor 5 → 18 sau gộp trùng → **12 patch · 3 defer · 3 dismiss**.
+
+Patch (đã áp, cổng xanh, có test ở `core/assertion/assertion.test.ts § story 7-3`):
+1. **Ba giới hạn của "ẩn theo báo cáo" — AD-17 đọc theo MỤC ĐÍCH** (nội dung làm đau người, không
+   phải cấu trúc cây): người KHÔNG có quyền duyệt không ẩn được quan hệ (cha-con, vợ chồng — một cú
+   bấm cắt một chi khỏi thân cây cho mọi người) và không ẩn được giá trị ĐÃ CHÍNH THỨC (lật điều ban
+   tu phả đã chốt); KHÔNG AI ẩn được cái tên duy nhất còn lại (người vô danh trên cây). Core gác
+   (`hideAssertionOp`), panel bề mặt A không mọc nút ở đúng hai chỗ ấy. *Đây là một tinh chỉnh so
+   với chữ của AD-17 — ghi ở `deferred-work` để chủ dự án chốt; nếu bác thì bỏ hai `if`.*
+2. **Cặp vợ chồng ẩn/khôi phục CÙNG NHAU** (mỗi hàng một revision) — đúng lỗi review 6-1 vá trên
+   đường Loại, lặp lại trên đường ẩn.
+3. Hàng chờ nói **ai báo** (`hiddenByName` từ revision `hide` mới nhất), không chỉ ai khai; tên rỗng
+   ⇒ "Chưa rõ tên"; lý do `break-words`.
+4. Lý do tối đa 500 chữ (lib + `maxLength`); mã lỗi core thành câu tiếng Việt (`conflict` "vừa được
+   ẩn rồi", `not-found`); *Thôi* khoá khi đang gửi.
+5. **K4 tự đủ**: ghi một năm sinh mang dấu lượt rồi ẩn CHÍNH dòng ấy (revision +3), không đụng
+   1980 của dòng họ thử — chạy lại bao nhiêu lần cũng được (chứng: hai lượt liên tiếp ✓).
+6. Test adapter đổi sang ẩn năm SINH và kiểm dòng KHÁC vẫn còn — bản đầu qua vì phiếu trống (ẩn năm
+   mất làm Xa "sống lại" ngoài bán kính), không phân biệt được.
+7. `soi gia-pha` mở ô lý do để đo (nút "Ẩn theo báo cáo…" chỉ mở ô — cố ý KHÔNG vào `cam-bam`; ghi rõ).
+8. Test `quan-he-ghi-them.test.ts` đỏ ở commit story, xanh ở commit kế — ghi vào File List.
+
+Defer (→ `deferred-work.md § 7-3`): thông báo AD-15 khi bị ẩn; xác nhận khi ẩn dòng cuối của mục
+đang có biểu mẫu gõ dở; ẩn năm mất của người tồn nghi làm người ấy "còn sống" với bán kính (đúng
+AD-19, nhưng đáng có câu báo trước). Dismiss: density hàng nút trên chồng mâu thuẫn (đã bày mở theo
+thiết kế 5-3); "unattached thấy nút" (không tới được phiếu); rate limit.

@@ -417,7 +417,37 @@ describe('listJournalOps — sổ nhật ký chung (story 7-4, FR-39)', () => {
     expect(!tv.ok && tv.error.code === 'forbidden').toBe(true);
     const kh = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, guest, {}));
     expect(!kh.ok && kh.error.code === 'unauthenticated').toBe(true);
+    const chuaGan = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, { ...admin, personId: null, role: 'guest' }, {}));
+    expect(!chuaGan.ok && chuaGan.error.code === 'unattached').toBe(true);
+    // Lọc hành động chỉ-trạng-thái (hide): ảnh đầy đủ nằm ở trang khác — vẫn phải ra kind và người.
+    const an = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { hanh: 'hide' }));
+    expect(an.ok && an.value.entries.length > 0 && an.value.entries.every((e) => !e.summary.endsWith('thông tin') && e.nguoi !== undefined)).toBe(true);
     const xau = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { nguoi: 'không-phải-uuid' }));
     expect(xau.ok && xau.value.entries.length === 0).toBe(true);
+  });
+});
+
+describe('listJournalOps — con trỏ đủ micro-giây (code review 7-4)', () => {
+  it('ba hàng ghi trong MỘT transaction (cùng now() tới µs) không rơi khỏi trang sau', async () => {
+    // Ghi ba revision không đặt createdAt: `now()` ổn định trong transaction ⇒ ba mốc bằng nhau ở µs.
+    // Đây là hình mà `writeRevision` sinh ra (người + nguồn + khẳng định một lượt) và `T()` ms-tròn
+    // của các bài trên không dựng được.
+    const ids = [uuidv7(), uuidv7(), uuidv7()];
+    await withClanContext(clanId, (tx) =>
+      tx.insert(revision).values(ids.map((id) => ({ id, clanId, accountId: accB, entity: 'clan' as const, entityId: clanId, action: 'update' as const, before: null, after: null, note: '7-4 µs' }))),
+    );
+    const t1 = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { loai: 'clan', limit: 2 }));
+    expect(t1.ok && t1.value.entries.length === 2 && t1.value.tiep !== null).toBe(true);
+    if (!t1.ok || !t1.value.tiep) return;
+    const t2 = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { loai: 'clan', limit: 2, truoc: t1.value.tiep! }));
+    expect(t2.ok).toBe(true);
+    if (!t2.ok) return;
+    const thay = new Set([...t1.value.entries, ...t2.value.entries].map((e) => e.id));
+    for (const id of ids) expect(thay.has(id), id).toBe(true);
+    // Con trỏ trả về là chuỗi của Postgres (có phần lẻ giây), không phải ISO ms.
+    expect(t1.value.tiep.at).toMatch(/\d{2}:\d{2}:\d{2}\.\d+/);
+    // Con trỏ hỏng ⇒ invalid, không ném.
+    const xau = await withClanContext(clanId, (tx) => ops.listJournalOps(tx, admin, { truoc: { at: '2026-01-01T00:00:00Z', id: 'abc' } }));
+    expect(!xau.ok && xau.error.code === 'invalid').toBe(true);
   });
 });

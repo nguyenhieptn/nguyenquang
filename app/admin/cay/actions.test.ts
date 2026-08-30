@@ -312,18 +312,22 @@ describe('anKhangDinh — ẩn theo báo cáo (AD-17, story 7-3) qua phiên th�
     laThanhVien();
     const truoc = await xemHoSo(d.nguoi.xa);
     if (!truoc.ok) throw new Error(truoc.error.message);
-    const death = truoc.value.chong?.find((c) => c.kind === 'death');
-    const id = death?.rows[0]?.assertionId;
-    if (!id) throw new Error('Xa chưa có năm mất để ẩn');
+    // Ẩn năm SINH, không phải năm mất: lượt chạy đầu ẩn năm mất và Xa "sống lại" với bán kính (cột
+    // chiếu về null), thành viên mất luôn tầm nhìn — bài test khi ấy qua vì KHÔNG còn chồng nào, tức
+    // không phân biệt được "dòng rời phiếu" với "phiếu trống" (code review 7-3). Nay ẩn một dòng và
+    // kiểm dòng KHÁC vẫn còn.
+    const birth = truoc.value.chong?.find((c) => c.kind === 'birth');
+    const id = birth?.rows[0]?.assertionId;
+    if (!id) throw new Error('Xa chưa có năm sinh để ẩn');
 
     const r = await anKhangDinh(id, 'S61 thử ẩn — lời khai làm đau người sống');
     expect(r.ok).toBe(true);
 
-    // Lượt chạy đầu dạy một điều: ẩn năm MẤT thì cột chiếu `deathDate` về null, Xa thành "còn sống"
-    // với bán kính riêng tư, và thành viên cách bốn bậc KHÔNG còn thấy chồng nào (AD-13). Đúng luật,
-    // và là bằng chứng ẩn có chiếu lại (AD-19) — nên "dòng rời phiếu" kiểm là "không còn thấy id".
     const sau = await xemHoSo(d.nguoi.xa);
-    expect(sau.ok && (sau.value.chong ?? []).some((c) => c.rows.some((x) => x.assertionId === id))).toBe(false);
+    if (!sau.ok) throw new Error(sau.error.message);
+    const chong = sau.value.chong ?? [];
+    expect(chong.some((c) => c.rows.some((x) => x.assertionId === id))).toBe(false);
+    expect(chong.some((c) => c.kind === 'death')).toBe(true); // dòng khác vẫn ở lại
 
     laQuanTri();
     const daAn = await listHiddenAssertions();
@@ -332,6 +336,18 @@ describe('anKhangDinh — ẩn theo báo cáo (AD-17, story 7-3) qua phiên th�
     const dong = daAn.value.find((x) => x.assertionId === id);
     expect(dong?.hiddenReason).toBe('S61 thử ẩn — lời khai làm đau người sống');
     expect(dong?.personId).toBe(d.nguoi.xa);
+  });
+
+  it('thành viên KHÔNG ẩn được quan hệ (khung cây) — forbidden; quản trị thì được (code review 7-3)', async () => {
+    laQuanTri();
+    const hoSo = await xemHoSo(d.nguoi.em);
+    if (!hoSo.ok) throw new Error(hoSo.error.message);
+    const canh = hoSo.value.chong?.find((c) => c.kind === 'parent-child')?.rows[0]?.assertionId;
+    if (!canh) throw new Error('Em chưa có cạnh cha-con');
+    laThanhVien();
+    const tv = await anKhangDinh(canh, 'S61 thử ẩn cạnh');
+    expect(tv.ok).toBe(false);
+    if (!tv.ok) expect(tv.error.code).toBe('forbidden');
   });
 
   it('khách ⇒ unauthenticated; lý do trống ⇒ invalid trước khi chạm core', async () => {

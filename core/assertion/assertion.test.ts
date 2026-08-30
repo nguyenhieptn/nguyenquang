@@ -503,3 +503,51 @@ describe('một giá trị chính thức cho mỗi mục đơn trị (#21 — 25
     expect(DON_TRI.birth).toBe(true);
   });
 });
+
+describe('story 7-3 — ba giới hạn của ẩn theo báo cáo, và cặp union đi cùng nhau', () => {
+  it('thành viên KHÔNG ẩn được quan hệ hay giá trị chính thức; quản trị thì được; tên duy nhất không ai ẩn được', async () => {
+    const cha = await makePerson('S73 Cha');
+    const con = await makePerson('S73 Con');
+    const { canh, ten } = await withClanContext(clanId, async (tx) => {
+      const e = await addAssertionOp(tx, member, { personId: con, spec: { kind: 'parent-child', parentId: cha }, source: { kind: 'self' } });
+      if (!e.ok) throw new Error(e.error.message);
+      const [t] = await tx.select({ id: assertion.id }).from(assertion).where(and(eq(assertion.subjectPersonId, con), eq(assertion.kind, 'name')));
+      return { canh: e.value.assertionId, ten: t!.id };
+    });
+    await withClanContext(clanId, async (tx) => {
+      const tv = await hideAssertionOp(tx, member, { assertionId: canh, reason: 'S73 thử' });
+      expect(!tv.ok && tv.error.code === 'forbidden').toBe(true);
+      // Tên duy nhất: kể cả quản trị cũng không ẩn được — người vô danh trên cây là một lỗi sản phẩm.
+      const tenCuoi = await hideAssertionOp(tx, admin, { assertionId: ten, reason: 'S73 thử' });
+      expect(!tenCuoi.ok && tenCuoi.error.code === 'conflict').toBe(true);
+      // Giá trị chính thức: thành viên bị chặn, quản trị được.
+      await promoteAssertionOp(tx, admin, { assertionId: canh });
+      const chinhThuc = await hideAssertionOp(tx, member, { assertionId: canh, reason: 'S73 thử' });
+      expect(!chinhThuc.ok && chinhThuc.error.code === 'forbidden').toBe(true);
+      const qt = await hideAssertionOp(tx, admin, { assertionId: canh, reason: 'S73 quản trị ẩn cạnh' });
+      expect(qt.ok).toBe(true);
+    });
+  });
+
+  it('ẩn một nửa vợ chồng là ẩn cả cặp; khôi phục cũng cả cặp (mỗi hàng một revision)', async () => {
+    const chong = await makePerson('S73 Chồng');
+    const vo = await makePerson('S73 Vợ');
+    const { id, unionId } = await withClanContext(clanId, async (tx) => {
+      const r = await addAssertionOp(tx, member, { personId: chong, spec: { kind: 'union-partner', partnerId: vo }, source: { kind: 'self' } });
+      if (!r.ok) throw new Error(r.error.message);
+      return { id: r.value.assertionId, unionId: r.value.unionId! };
+    });
+    await withClanContext(clanId, async (tx) => {
+      // Quan hệ chỉ quản trị ẩn được (giới hạn 1 ở trên); cặp đi cùng nhau là chuyện của core, không của vai.
+      expect((await hideAssertionOp(tx, admin, { assertionId: id, reason: 'S73 không phải vợ chồng' })).ok).toBe(true);
+      const sau = await tx.select().from(assertion).where(and(eq(assertion.unionId, unionId), eq(assertion.kind, 'union-partner')));
+      expect(sau).toHaveLength(2);
+      expect(sau.every((r) => r.status === 'hidden')).toBe(true);
+      const revs = await tx.select().from(revision).where(and(eq(revision.action, 'hide'), inArray(revision.entityId, sau.map((r) => r.id))));
+      expect(revs).toHaveLength(2);
+      expect((await restoreAssertionOp(tx, admin, { assertionId: id })).ok).toBe(true);
+      const lai = await tx.select().from(assertion).where(and(eq(assertion.unionId, unionId), eq(assertion.kind, 'union-partner')));
+      expect(lai.every((r) => r.status === 'live')).toBe(true);
+    });
+  });
+});

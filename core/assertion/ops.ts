@@ -12,7 +12,7 @@
  * Expected failures return Result err; a failure AFTER writes have started throws so the
  * enclosing transaction rolls back (a Result cannot roll a tx back).
  */
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, count } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import type { Tx } from '@/db';
 import { dbGlobal } from '@/db';
@@ -39,6 +39,7 @@ import type { AssertionSpec, GenealogicalDate, SourceSpec } from './index';
 
 // ── Context gates — sống ở `core/identity/gates.ts` (story 7-1), re-export cho nơi gọi cũ ──
 import { gateApprover, gateWriter, type AttachedContext } from '@/core/identity/gates';
+import { coQuyenDuyet } from '@/core/identity/privacy';
 export { gateWriter, gateApprover, type AttachedContext };
 
 // ── Validation helpers ───────────────────────────────────────────────────────
@@ -644,22 +645,64 @@ export async function hideAssertionOp(
   if (!args.reason.trim()) return err('invalid', 'hiding requires a reason');
 
   const row = await loadAssertion(tx, args.assertionId);
-  if (!row) return err('not-found', 'assertion not found in this clan');
-  if (row.status === 'hidden') return err('conflict', 'assertion is already hidden');
+  if (!row) return err('not-found', 'Không còn thấy khẳng định này trong phả.');
+  if (row.status === 'hidden') return err('conflict', 'Dòng này vừa được ẩn rồi.');
 
-  await tx.update(assertion).set({ status: 'hidden' }).where(eq(assertion.id, row.id));
-  await writeRevision(tx, {
-    clanId: ctx.clanId,
-    accountId: ctx.accountId,
-    entity: 'assertion',
-    entityId: row.id,
-    action: 'hide',
-    before: { status: 'live' },
-    after: { status: 'hidden' },
-    note: args.reason.trim(),
-  });
+  /**
+   * ── Ba giới hạn thêm ở story 7-3 (code review 29/08/2026) — AD-17 đọc theo MỤC ĐÍCH ──────
+   * AD-17 sinh ra cho *"một lời khai làm đau người sống hay ký ức người đã khuất"* — tức NỘI DUNG.
+   * Cái nút mở cho mọi thành viên thì ba đường lạm dụng lộ ra ngay ở lượt review:
+   *   1. Ẩn một cạnh cha-con / vợ chồng là cắt một chi khỏi thân cây cho MỌI người xem
+   *      (`core/tree/ops.ts` chỉ dựng cạnh `live`). Đó là CẤU TRÚC, không phải một lời khai —
+   *      cạnh sai thì ghi cạnh đúng, mâu thuẫn hiện ở `/admin/mau-thuan` cho ban tu phả chọn.
+   *   2. Ẩn một giá trị ĐÃ CHÍNH THỨC là một thành viên lật lại điều ban tu phả đã đối chiếu; cột
+   *      chiếu (AD-19) lập tức lấy dòng tồn nghi còn lại làm sự thật.
+   *   3. Ẩn cái TÊN duy nhất còn sống làm người ấy vô danh trên cây, chip, ô tìm.
+   * Ba giới hạn này KHÔNG áp cho người có quyền duyệt (họ vẫn ẩn được mọi thứ, như Loại).
+   */
+  if (!coQuyenDuyet(ctx)) {
+    if (row.kind === 'parent-child' || row.kind === 'union-partner') {
+      return err('forbidden', 'Quan hệ là khung của cây — không ẩn theo báo cáo được. Ghi quan hệ đúng, ban tu phả sẽ chọn.');
+    }
+    if (row.tier === 'official') {
+      return err('forbidden', 'Giá trị này ban tu phả đã đối chiếu và chốt — báo cho ban tu phả thay vì ẩn.');
+    }
+  }
+  if (row.kind === 'name') {
+    const [{ n }] = await tx
+      .select({ n: count() })
+      .from(assertion)
+      .where(and(eq(assertion.subjectPersonId, row.subjectPersonId), eq(assertion.kind, 'name'), eq(assertion.status, 'live')));
+    if (Number(n) <= 1) return err('conflict', 'Đây là tên duy nhất còn lại của người này — ghi thêm một tên khác trước, rồi mới ẩn tên này.');
+  }
 
-  if (isProjectedKind(row.kind)) await projectPerson(tx, row.subjectPersonId); // hidden never projects
+  /**
+   * `union-partner` đi CẶP (cùng lý do `rejectAssertionOp` giải tán cả union): ẩn một nửa thì hồ
+   * sơ bên kia đọc "vợ/chồng (chưa rõ với ai)" vĩnh viễn — đúng lỗi review 6-1 đã vá một lần trên
+   * đường Loại. Mỗi hàng một revision (AD-10); khôi phục cũng đi cặp.
+   */
+  const cungUnion =
+    row.kind === 'union-partner' && row.unionId
+      ? await tx
+          .select()
+          .from(assertion)
+          .where(and(eq(assertion.unionId, row.unionId), eq(assertion.kind, 'union-partner'), eq(assertion.status, 'live')))
+      : [];
+  const canAn = cungUnion.length > 0 ? [row, ...cungUnion.filter((r) => r.id !== row.id)] : [row];
+  for (const r of canAn) {
+    await tx.update(assertion).set({ status: 'hidden' }).where(eq(assertion.id, r.id));
+    await writeRevision(tx, {
+      clanId: ctx.clanId,
+      accountId: ctx.accountId,
+      entity: 'assertion',
+      entityId: r.id,
+      action: 'hide',
+      before: { status: 'live' },
+      after: { status: 'hidden' },
+      note: r.id === row.id ? args.reason.trim() : `${args.reason.trim()} (đi cùng lượt ẩn union ${row.unionId})`,
+    });
+    if (isProjectedKind(r.kind)) await projectPerson(tx, r.subjectPersonId); // hidden never projects
+  }
 
   return ok(undefined);
 }
@@ -675,8 +718,31 @@ export async function restoreAssertionOp(
   const ctx = gate.value;
 
   const row = await loadAssertion(tx, args.assertionId);
-  if (!row) return err('not-found', 'assertion not found in this clan');
-  if (row.status === 'live') return err('conflict', 'assertion is not hidden');
+  if (!row) return err('not-found', 'Không còn thấy khẳng định này trong phả.');
+  if (row.status === 'live') return err('conflict', 'Dòng này đang hiện, không có gì để khôi phục.');
+
+  // Cặp union đi cùng nhau cả lúc ẩn lẫn lúc khôi phục (story 7-3).
+  const cungUnion =
+    row.kind === 'union-partner' && row.unionId
+      ? await tx
+          .select()
+          .from(assertion)
+          .where(and(eq(assertion.unionId, row.unionId), eq(assertion.kind, 'union-partner'), eq(assertion.status, 'hidden')))
+      : [];
+  for (const r of cungUnion.filter((r) => r.id !== row.id)) {
+    await tx.update(assertion).set({ status: 'live' }).where(eq(assertion.id, r.id));
+    await writeRevision(tx, {
+      clanId: ctx.clanId,
+      accountId: ctx.accountId,
+      entity: 'assertion',
+      entityId: r.id,
+      action: 'restore',
+      before: { status: 'hidden' },
+      after: { status: 'live' },
+      note: `đi cùng lượt khôi phục union ${row.unionId}`,
+    });
+    if (isProjectedKind(r.kind)) await projectPerson(tx, r.subjectPersonId);
+  }
 
   await tx.update(assertion).set({ status: 'live' }).where(eq(assertion.id, row.id));
   await writeRevision(tx, {
@@ -926,6 +992,8 @@ export type HiddenRow = {
   kind: AssertionKind;
   valueText: string;
   hiddenReason: string;
+  /** accountId của người BÁO (revision `hide` mới nhất); '' khi không truy được. */
+  hiddenByAccountId: string;
   createdByAccountId: string;
   createdAt: Date;
 };
@@ -959,9 +1027,11 @@ export async function listHiddenAssertionsOp(
     .orderBy(desc(assertion.createdAt), desc(assertion.id));
 
   const latestHideNote = new Map<string, string>();
+  /** Ai BÁO (accountId của revision `hide` mới nhất) — hàng chờ phải nói người báo, không chỉ người khai (7-3). */
+  const latestHideBy = new Map<string, string>();
   if (rows.length > 0) {
     const hideRevs = await tx
-      .select({ entityId: revision.entityId, note: revision.note })
+      .select({ entityId: revision.entityId, note: revision.note, accountId: revision.accountId })
       .from(revision)
       .where(
         and(
@@ -975,7 +1045,10 @@ export async function listHiddenAssertionsOp(
       )
       .orderBy(desc(revision.createdAt), desc(revision.id));
     for (const rev of hideRevs) {
-      if (!latestHideNote.has(rev.entityId)) latestHideNote.set(rev.entityId, rev.note);
+      if (!latestHideNote.has(rev.entityId)) {
+        latestHideNote.set(rev.entityId, rev.note);
+        latestHideBy.set(rev.entityId, rev.accountId);
+      }
     }
   }
 
@@ -983,10 +1056,11 @@ export async function listHiddenAssertionsOp(
     rows.map((r) => ({
       assertionId: r.assertionId,
       personId: r.personId,
-      personName: r.personName,
+      personName: r.personName.trim() || 'Chưa rõ tên',
       kind: r.kind,
       valueText: describeAssertionValue(r.kind, r.value),
       hiddenReason: latestHideNote.get(r.assertionId) ?? '',
+      hiddenByAccountId: latestHideBy.get(r.assertionId) ?? '',
       createdByAccountId: r.createdByAccountId,
       createdAt: r.createdAt,
     })),

@@ -509,3 +509,28 @@ bắt thêm bảy chỗ chép cổng; `bam-thu` thêm rào mã clan và các đ�
 - **`nap-khung-client` ô bảng thiếu `align-top`** khi các ô trong một dòng xuống dòng khác nhau (số
   dòng và ô tích canh giữa một khối tên cao). `bang-cho-duyet` đã `align-top` từng ô; bảng xem trước
   chưa. Một dòng class mỗi ô — làm khi chạm màn nạp khung lần tới.
+
+## Deferred from: code review of story 7-3-an-theo-bao-cao (2026-08-29)
+
+Ba lớp: 18 phát hiện sau gộp → 12 patch · 3 defer · 3 dismiss. Patch lớn nhất: ba giới hạn cho "ẩn
+theo báo cáo" (quan hệ · giá trị chính thức · tên duy nhất) và cặp vợ chồng ẩn/khôi phục cùng nhau.
+
+- **QUYẾT ĐỊNH CHỜ CHỦ DỰ ÁN — tinh chỉnh AD-17.** AD-17 viết *"một lượt báo cáo là ẩn ngay, không
+  cần duyệt"* không phân biệt loại. Code review chỉ ra ba đường lạm dụng (cắt chi khỏi cây, lật giá
+  trị đã chốt, làm người vô danh); bản dựng gác cả ba cho người không có quyền duyệt, đọc AD-17 theo
+  mục đích (FR-49/FR-55: nội dung làm đau người). Nếu chủ dự án muốn giữ nguyên chữ AD-17 thì bỏ hai
+  `if` ở `hideAssertionOp` và `anDuoc` ở panel; giới hạn "tên duy nhất" nên giữ dù thế nào.
+- **Thông báo cho người liên quan khi một khẳng định về họ bị ẩn** (AD-15/FR-55 "được biết") — đường
+  `promote` đã bắn thông báo, đường `hide` chưa.
+- **Ẩn năm mất của người tồn nghi làm người ấy "còn sống" với bán kính riêng tư** — đúng AD-19 (cột
+  chiếu từ khẳng định sống), và người ẩn có thể mất luôn tầm nhìn vào người ấy. Đáng có một câu báo
+  trước ở biểu mẫu khi dòng là `death`.
+- Xác nhận trước khi ẩn dòng cuối của một mục đang có biểu mẫu ghi thêm gõ dở (mất chữ im lặng).
+
+## Deferred from: code review of story 7-4-so-nhat-ky (2026-08-29)
+
+Ba lớp: 16 phát hiện sau gộp → 13 patch · 1 defer · 2 dismiss. Patch lớn nhất: con trỏ trang mất
+micro-giây (cả nhóm ghi cùng transaction rơi khỏi trang sau) và ảnh đầy đủ theo trang.
+
+- **Xem cây tại một thời điểm** — nửa sau FR-39, `getTreeAt` có ops, chưa màn (đã ở `epics-dot-4 §
+  Sau epic này`; nhắc lại vì sổ nhật ký là chỗ tự nhiên để mở nó: một liên kết "cây lúc ấy" trên mỗi hàng).

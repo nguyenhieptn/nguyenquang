@@ -226,9 +226,10 @@ export default async function Page() {
                 </p>
                 <p className="mt-1 text-[15px] text-muted-foreground">
                   {a.createdByName} khai · {luc(a.createdAt)}
+                  {a.hiddenByName ? <>{' · '}{a.hiddenByName} báo</> : null}
                   {a.hiddenReason && (
                     <>
-                      {' · '}lý do báo: <em>{a.hiddenReason}</em>
+                      {' · '}lý do: <em className="break-words">{a.hiddenReason}</em>
                     </>
                   )}
                 </p>

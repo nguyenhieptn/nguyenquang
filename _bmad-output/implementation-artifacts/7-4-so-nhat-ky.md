@@ -4,7 +4,7 @@ baseline_commit: 9789fd1
 
 # Story 7.4: Sổ nhật ký — lời hứa "vẫn nằm trong nhật ký" có mặt tiền
 
-Status: review
+Status: done
 
 ## Story
 
@@ -90,3 +90,26 @@ Claude Fable 5 · 29/08/2026.
 - `app/admin/nhat-ky/page.tsx` (mới) · `components/admin/man-admin.ts` · `components/admin/khung-admin.tsx` (icon `History`)
 - `scripts/soi/dang-ky.ts` · `app/admin/noi-chon/bang-noi.tsx` · `app/admin/mau-thuan/page.tsx` (hai liên kết vào sổ)
 - `deferred-work.md` (✅ 6-4 nhật ký nơi chốn)
+
+## Code review — 29/08/2026 (ba lớp, `bmad-code-review`)
+
+Blind Hunter 15 · Edge Case 8 · Acceptance Auditor 7 → 16 sau gộp trùng → **13 patch · 1 defer · 2 dismiss**.
+
+Patch:
+1. **Con trỏ mất micro-giây** — `toISOString()` cắt còn ms trong khi `created_at` có µs và `now()`
+   ổn định trong transaction: người + nguồn + khẳng định ghi một lượt chung MỘT mốc, con trỏ ms đứng
+   trước hàng nó đặt tên, cả nhóm rơi khỏi trang sau. Nay con trỏ là `created_at::text` của Postgres
+   và so `(created_at, id) < (…::timestamptz, …::uuid)`. Test thật: ba hàng cùng transaction, trang 2
+   dòng, không mất hàng.
+2. **Ảnh đầy đủ theo TRANG** — hàng `promote`/`hide`/`restore` không mang kind, hàng `create` của nó
+   ở trang khác ⇒ "duyệt … — thông tin", mất người. Nay tra bảng `assertion` rồi ảnh `create`/`remove`.
+3. Con trỏ hỏng (id không uuid, mốc không đọc được) ⇒ `invalid`, cả hai đường; id về chữ thường.
+4. Giờ Hà Nội (`Intl` + `Asia/Ho_Chi_Minh`) — máy đang chạy UTC−7, "khi nào" của FR-39 lệch ngày.
+5. `merge`/`update` (từ chối đề xuất) không còn đọc thành "hợp nhất bản ghi trùng"; `create` là "đề
+   xuất"; lượt gộp thật nói "hợp nhất X vào Y"; "tách lại nơi …" có tên nơi.
+6. Cửa vào bộ lọc theo người: "chỉ người này" cạnh mỗi tên; `dangLoc` tính cả con trỏ; banner đúng
+   người; `<form key>` để select dựng lại sau "Bỏ lọc".
+7. Test: chưa gắn ⇒ `unattached`; lọc `hide` vẫn ra kind + người.
+
+Defer: "xem cây tại thời điểm" (đã ở § Sau epic này). Dismiss: `LOAI[e.entity] ?? e.entity` (record
+đã đủ); ảnh `place` trong test viết tay (cùng hình với `core/place/ops.ts`, đã đối chiếu).

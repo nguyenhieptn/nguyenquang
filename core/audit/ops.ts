@@ -37,9 +37,9 @@
  * family's edges are all tentative), with tombstone redirects. Cross-module ops calls inside
  * one transaction are the sanctioned core layering (build contract).
  */
-import { and, asc, desc, eq, inArray, isNull, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, getTableColumns, inArray, isNull, lte, or, sql } from 'drizzle-orm';
 import type { Tx } from '@/db';
-import { assertion, person, revision, type Tier } from '@/db/schema';
+import { assertion, person, place, revision, type Tier } from '@/db/schema';
 import { err, isUuid, ok, type Result } from '@/core/types';
 import { ANONYMOUS_LABEL, PRIVACY_RADIUS, visibilityFor } from '@/core/identity/privacy';
 import type { ViewerContext } from '@/core/identity/session';
@@ -180,7 +180,18 @@ function summarize(rev: RevisionRow, assertionInfo?: Img | null): string {
     }
   }
   if (rev.entity === 'merge') {
-    return rev.action === 'unmerge' ? 'tách lại bản ghi đã hợp nhất' : 'hợp nhất bản ghi trùng';
+    // Bốn hành động của một đề xuất hợp nhất (code review 7-4: trước đây `update` — từ chối — đọc
+    // thành "hợp nhất bản ghi trùng", tức một việc CHƯA xảy ra bị kể như đã xảy ra).
+    switch (rev.action) {
+      case 'create':
+        return 'đề xuất hợp nhất hai bản ghi trùng';
+      case 'update':
+        return rev.note === 'superseded by merge' ? 'đề xuất hợp nhất bị thay bởi một lượt gộp khác' : 'từ chối đề xuất hợp nhất — không phải một người';
+      case 'unmerge':
+        return 'tách lại bản ghi đã hợp nhất';
+      default:
+        return 'hợp nhất bản ghi trùng';
+    }
   }
   // ── Các thực thể còn lại — thêm ở story 7-4 (sổ nhật ký chung). Trước đó sổ chỉ có một người
   // đọc (trang một người) nên `place`/`clan`/`attachment`… chưa từng cần câu.
@@ -326,6 +337,38 @@ function anhDayDuTheoKhangDinh(rows: readonly RevisionRow[]): Map<string, Img> {
   return infoByAssertion;
 }
 
+/**
+ * Như trên, nhưng cho MỘT TRANG của sổ chung (story 7-4, code review): hàng `promote`/`hide`/`restore`
+ * không mang kind — và hàng `create` của nó có thể nằm ở trang khác. Thiếu thì tra bảng `assertion`
+ * (hàng còn đó khi chưa bị gỡ), còn thiếu nữa thì tra ảnh `create`/`remove` trong `revision`.
+ */
+async function anhDayDuChoTrang(tx: Tx, rows: readonly RevisionRow[]): Promise<Map<string, Img>> {
+  const info = anhDayDuTheoKhangDinh(rows);
+  const thieu = [...new Set(rows.filter((r) => r.entity === 'assertion' && !info.has(r.entityId)).map((r) => r.entityId))];
+  if (thieu.length === 0) return info;
+  const song = await tx
+    .select({ id: assertion.id, kind: assertion.kind, value: assertion.value, subjectPersonId: assertion.subjectPersonId, confidence: assertion.confidence })
+    .from(assertion)
+    .where(inArray(assertion.id, thieu));
+  for (const a of song) info.set(a.id, { kind: a.kind, value: a.value, subjectPersonId: a.subjectPersonId, confidence: a.confidence });
+  const conThieu = thieu.filter((id) => !info.has(id));
+  if (conThieu.length === 0) return info;
+  const anh = await tx
+    .select()
+    .from(revision)
+    .where(and(eq(revision.entity, 'assertion'), inArray(revision.entityId, conThieu), inArray(revision.action, ['create', 'remove'])));
+  for (const r of anh) {
+    if (info.has(r.entityId)) continue;
+    for (const image of [asImg(r.after), asImg(r.before)]) {
+      if (image && str(image.kind) !== null) {
+        info.set(r.entityId, image);
+        break;
+      }
+    }
+  }
+  return info;
+}
+
 // ── getPersonHistory ──────────────────────────────────────────────────────────
 
 /**
@@ -435,15 +478,29 @@ export async function listJournalOps(tx: Tx, ctx: ViewerContext, args: JournalAr
   if (!gate.ok) return gate;
   const limit = Math.min(Math.max(args.limit ?? TRANG_NHAT_KY, 1), TRANG_NHAT_KY);
 
-  let rows: RevisionRow[];
+  /**
+   * Con trỏ: `at` là CHUỖI `created_at::text` của Postgres (đủ micro-giây), không phải
+   * `toISOString()` (cắt còn mili-giây). Code review 7-4: `now()` ổn định trong một transaction, nên
+   * người + nguồn + khẳng định ghi cùng lượt chung một mốc tới µs; con trỏ ms đứng TRƯỚC hàng nó
+   * đặt tên, và cả nhóm ấy rơi khỏi trang sau. Trong bộ nhớ (lọc theo người) thì cả hai vế cùng
+   * cắt về ms, tự nhất quán.
+   */
+  let truoc: { at: string; id: string } | undefined;
+  if (args.truoc) {
+    const id = args.truoc.id.toLowerCase();
+    if (!isUuid(id) || Number.isNaN(new Date(args.truoc.at).getTime())) return err('invalid', 'Con trỏ trang không hợp lệ.');
+    truoc = { at: args.truoc.at, id };
+  }
+
+  let rows: (RevisionRow & { atText?: string })[];
   if (args.nguoi !== undefined) {
     if (!isUuid(args.nguoi)) return ok({ entries: [], tiep: null });
     rows = (await revisionsVePerson(tx, args.nguoi)).filter(
       (r) => (args.loai === undefined || r.entity === args.loai) && (args.hanh === undefined || r.action === args.hanh),
     );
-    if (args.truoc) {
-      const moc = new Date(args.truoc.at).getTime();
-      const { id } = args.truoc;
+    if (truoc) {
+      const moc = new Date(truoc.at).getTime();
+      const { id } = truoc;
       rows = rows.filter((r) => r.createdAt.getTime() < moc || (r.createdAt.getTime() === moc && r.id < id));
     }
     rows = rows.slice(0, limit + 1);
@@ -451,18 +508,11 @@ export async function listJournalOps(tx: Tx, ctx: ViewerContext, args: JournalAr
     const dk = [];
     if (args.loai !== undefined) dk.push(eq(revision.entity, args.loai));
     if (args.hanh !== undefined) dk.push(eq(revision.action, args.hanh));
-    if (args.truoc) {
-      const moc = new Date(args.truoc.at);
-      if (Number.isNaN(moc.getTime())) return err('invalid', 'Con trỏ trang không hợp lệ.');
-      dk.push(
-        or(
-          sql`${revision.createdAt} < ${moc.toISOString()}::timestamptz`,
-          and(sql`${revision.createdAt} = ${moc.toISOString()}::timestamptz`, sql`${revision.id} < ${args.truoc.id}`),
-        )!,
-      );
+    if (truoc) {
+      dk.push(sql`(${revision.createdAt}, ${revision.id}) < (${truoc.at}::timestamptz, ${truoc.id}::uuid)`);
     }
     rows = await tx
-      .select()
+      .select({ ...getTableColumns(revision), atText: sql<string>`${revision.createdAt}::text` })
       .from(revision)
       .where(dk.length > 0 ? and(...dk) : undefined)
       .orderBy(desc(revision.createdAt), desc(revision.id))
@@ -471,30 +521,51 @@ export async function listJournalOps(tx: Tx, ctx: ViewerContext, args: JournalAr
 
   const conNua = rows.length > limit;
   const trang = rows.slice(0, limit);
-  const info = anhDayDuTheoKhangDinh(trang);
-  const nguoiIds = [...new Set(trang.map((r) => chuTheCua(r, info.get(r.entityId))).filter((x): x is string => x !== null && isUuid(x)))];
+  const info = await anhDayDuChoTrang(tx, trang);
+  // Tên người: chủ thể của hàng + bên THUA của một lượt gộp (câu "hợp nhất X vào Y" cần cả hai).
+  const benThua = (r: RevisionRow) => (r.entity === 'merge' ? str(asImg(r.after)?.loserId) : null);
+  const nguoiIds = [
+    ...new Set(
+      trang
+        .flatMap((r) => [chuTheCua(r, info.get(r.entityId)), benThua(r)])
+        .filter((x): x is string => x !== null && isUuid(x)),
+    ),
+  ];
   const tenNguoi = new Map<string, string>();
   if (nguoiIds.length > 0) {
     const ds = await tx.select({ id: person.id, fullName: person.fullName }).from(person).where(inArray(person.id, nguoiIds));
-    for (const n of ds) tenNguoi.set(n.id, n.fullName);
+    for (const n of ds) tenNguoi.set(n.id, n.fullName.trim() || 'Chưa rõ tên');
+  }
+  // Tên nơi cho "tách lại nơi …" — ảnh unmerge chỉ mang `mergedInto`, tên nằm ở bảng `place`.
+  const noiIds = trang.filter((r) => r.entity === 'place' && r.action === 'unmerge').map((r) => r.entityId);
+  const tenNoi = new Map<string, string>();
+  if (noiIds.length > 0) {
+    const ds = await tx.select({ id: place.id, name: place.name, parentUnit: place.parentUnit }).from(place).where(inArray(place.id, noiIds));
+    for (const n of ds) tenNoi.set(n.id, n.parentUnit ? `${n.name}, ${n.parentUnit}` : n.name);
   }
   const names = await lookupAccountNames(trang.map((r) => r.accountId));
   const entries: JournalEntry[] = trang.map((r) => {
     const pid = chuTheCua(r, info.get(r.entityId));
     const ten = pid ? tenNguoi.get(pid) : undefined;
+    let summary = summarize(r, info.get(r.entityId));
+    if (r.entity === 'place' && r.action === 'unmerge' && tenNoi.has(r.entityId)) summary = `tách lại nơi "${tenNoi.get(r.entityId)}" — nguyên trạng trở về`;
+    if (r.entity === 'merge' && r.action === 'merge') {
+      const thua = benThua(r);
+      if (thua && tenNguoi.has(thua) && ten) summary = `hợp nhất "${tenNguoi.get(thua)}" vào "${ten}"`;
+    }
     return {
       id: r.id,
       at: r.createdAt.toISOString(),
       byName: names.get(r.accountId) ?? UNKNOWN_BY,
       entity: r.entity,
       action: r.action,
-      summary: summarize(r, info.get(r.entityId)),
+      summary,
       note: r.note,
-      ...(pid && ten !== undefined ? { nguoi: { personId: pid, fullName: ten.trim() || 'Chưa rõ tên' } } : {}),
+      ...(pid && ten !== undefined ? { nguoi: { personId: pid, fullName: ten } } : {}),
     };
   });
   const cuoi = trang[trang.length - 1];
-  return ok({ entries, tiep: conNua && cuoi ? { at: cuoi.createdAt.toISOString(), id: cuoi.id } : null });
+  return ok({ entries, tiep: conNua && cuoi ? { at: cuoi.atText ?? cuoi.createdAt.toISOString(), id: cuoi.id } : null });
 }
 
 // ── getTreeAt ─────────────────────────────────────────────────────────────────

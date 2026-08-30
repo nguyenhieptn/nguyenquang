@@ -371,6 +371,8 @@ export async function ghiNoi(
  */
 export async function anKhangDinh(assertionId: string, lyDo: string): Promise<Result<void>> {
   if (typeof assertionId !== 'string' || typeof lyDo !== 'string') return err('invalid', 'Tham số không hợp lệ.');
-  if (!lyDo.trim()) return err('invalid', 'Cần nói vì sao ẩn — lý do ở lại trong nhật ký.');
-  return hideAssertion(assertionId, lyDo.trim());
+  const ly = lyDo.trim();
+  if (!ly) return err('invalid', 'Cần nói vì sao ẩn — lý do ở lại trong nhật ký.');
+  if (ly.length > 500) return err('invalid', 'Lý do dài quá 500 chữ — nói gọn điều cần ẩn.');
+  return hideAssertion(assertionId, ly);
 }

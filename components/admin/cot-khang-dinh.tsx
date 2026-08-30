@@ -677,6 +677,7 @@ function MotChong({
         loaiDuoc={beMat === 'B' && (dinh || loaiDuocDuNoiTiep(chong.khoa))}
         onNangTang={onNangTang}
         onAnDong={onAn}
+        anDuoc={beMat === 'B' || (chong.khoa !== 'parent-child' && chong.khoa !== 'union-partner' && !d.chinhThuc)}
       />
     );
   });
@@ -902,6 +903,7 @@ function MotDong({
   onNangTang,
   onLoaiDong,
   onAnDong,
+  anDuoc,
 }: {
   dong: DongKhangDinh;
   /** Để bỏ phần đầu chuỗi khi nó nói lại đúng cái nhãn bên trái — xem `phieu-ly-lich.ts § gonGiaTri`. */
@@ -925,8 +927,14 @@ function MotDong({
   onNangTang: (assertionId: string) => Promise<string | null>;
   /** Đã đóng gói sẵn ghi chú đúng với loại chồng — xem `NHAN_LOAI_CHONG` ở nơi gọi. */
   onLoaiDong: (assertionId: string) => Promise<string | null>;
-  /** AD-17 — ẩn theo báo cáo, có ở MỌI dòng, cả hai bề mặt (story 7-3). */
+  /** AD-17 — ẩn theo báo cáo (story 7-3). */
   onAnDong: (assertionId: string, lyDo: string) => Promise<string | null>;
+  /**
+   * Nút ẩn có mọc không. Bề mặt B: mọi dòng. Bề mặt A: KHÔNG trên quan hệ (khung cây) và KHÔNG
+   * trên dòng chính thức — hai giới hạn core cũng gác (`hideAssertionOp`, code review 7-3); bày
+   * một nút luôn bị từ chối là dạy người ta thôi tin nút.
+   */
+  anDuoc: boolean;
 }) {
   const [loi, setLoi] = useState<string | null>(null);
   const [dangChay, batDau] = useTransition();
@@ -1018,16 +1026,18 @@ function MotDong({
            * được hiện lâu hơn thời gian người ấy tìm ra cái nút. Ghost, không son — đây không phải
            * "chốt", là "gác lại để xem". Lý do bắt buộc và ở lại nhật ký (AD-4).
            */}
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={dangChay}
-            aria-expanded={moAn}
-            onClick={() => setMoAn((v) => !v)}
-            className="h-11 text-[17px]"
-          >
-            Ẩn theo báo cáo…
-          </Button>
+          {anDuoc ? (
+            <Button
+              type="button"
+              variant="ghost"
+              disabled={dangChay}
+              aria-expanded={moAn}
+              onClick={() => setMoAn((v) => !v)}
+              className="h-11 text-[17px]"
+            >
+              Ẩn theo báo cáo…
+            </Button>
+          ) : null}
       </div>
       {moAn ? (
         <div className="mt-2 grid gap-2 border-l-4 border-ban-vien pl-3">
@@ -1037,6 +1047,7 @@ function MotDong({
             </span>
             <textarea
               rows={2}
+              maxLength={500}
               value={lyDoAn}
               onChange={(e) => setLyDoAn(e.target.value)}
               className="w-full rounded-md border border-ban-vien bg-ban-o px-3 py-2 text-[17px]"
@@ -1059,6 +1070,7 @@ function MotDong({
             <Button
               type="button"
               variant="ghost"
+              disabled={dangChay}
               onClick={() => {
                 setMoAn(false);
                 setLyDoAn('');

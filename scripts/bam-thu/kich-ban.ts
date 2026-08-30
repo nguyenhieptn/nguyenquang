@@ -132,30 +132,45 @@ export const KICH_BAN: readonly KichBan[] = [
   },
   {
     khoa: 'k4-an-theo-bao-cao',
-    ten: 'K4 · bề mặt A, thành viên: ẩn theo báo cáo ⇒ dòng rời phiếu ngay, không chờ duyệt',
+    ten: 'K4 · bề mặt A, thành viên: ghi một năm sinh rồi ẩn chính dòng ấy ⇒ dòng rời phiếu, không chờ duyệt',
     vai: 'thanh-vien',
-    // Đo 29/08: ẩn = 1 hàng `hide`, lý do trong `note` (AD-17, story 7-3).
-    revisionMongDoi: 1,
-    chay: async (p, goc) => {
+    // Đo 29/08: ghi thêm = 2 (khẳng định + nguồn), ẩn = 1. TỰ ĐỦ: kịch bản ghi rồi ẩn đúng dòng
+    // vừa ghi, nên chạy lại bao nhiêu lần cũng được — lượt đầu ẩn năm sinh gốc và làm hỏng dòng họ
+    // thử cho lượt sau (code review 7-3).
+    revisionMongDoi: 3,
+    chay: async (p, goc, dauLuot) => {
       await p.goto(`${goc}/gia-pha`, { waitUntil: 'networkidle' });
-      // Người của chính mình — "Mình" có năm sinh 1980 trong dòng họ thử.
       await p.locator('.react-flow__node', { hasText: 'Thử Mình' }).first().click();
       await p.waitForTimeout(1200);
-      // Chồng MỘT dòng bày giá trị ở hàng đầu, còn nút nằm trong `<details>` bên dưới — neo vào KHỐI
-      // "Sinh" rồi mở tam giác, không tìm chữ "1980" trong `<li>` (nó không ở đó).
-      const chuTruoc = await doiRoiDoc(p, 'aside', 300);
-      if (!chuTruoc.includes('1980')) throw new Error('phiếu không bày năm sinh 1980 để ẩn');
-      // `aside section` LỒNG NHAU (khối ngoài bọc mọi chồng) — lọc `has: h3` khớp cả khối ngoài, và
-      // `.first()` chọn đúng khối ngoài ⇒ lượt chạy đầu ẨN NHẦM DÒNG TÊN. Đi từ chính `<h3>` lên cha.
-      const khoi = p.locator('aside h3', { hasText: /^Sinh$/ }).first().locator('xpath=..');
-      await khoi.locator('details').first().evaluate((d) => ((d as HTMLDetailsElement).open = true)).catch(() => {});
-      const dong = khoi.locator('li').first();
+      // Năm sinh THỬ mang dấu lượt (19xx từ ba số cuối của dấu), để dòng cần ẩn là dòng của lượt này.
+      const nam = `1${dauLuot.slice(-3)}`;
+      // Có năm sinh thì bấm thẳng giá trị; không có (một lượt cũ đã ẩn) thì "Ghi thêm thông tin" rồi chọn loại.
+      const nutSinh = p.locator('aside button[aria-label^="Ghi thêm năm sinh"]').first();
+      if (await nutSinh.count()) {
+        await nutSinh.click();
+      } else {
+        await p.locator('aside').getByRole('button', { name: 'Ghi thêm thông tin' }).first().click();
+        const chonLoai = p.locator('aside select[id$="-loai"]').first();
+        await chonLoai.waitFor({ timeout: 5000 });
+        await chonLoai.selectOption('birth');
+      }
+      const oGiaTri = p.locator('aside input[id$="-gia-tri"]').first();
+      await oGiaTri.waitFor({ timeout: 5000 });
+      await oGiaTri.fill(nam);
+      await p.locator('aside input[id$="-nguon"]').first().fill('kịch bản ghi 7-3');
+      await p.locator('aside').getByRole('button', { name: 'Ghi vào phả' }).click();
+      const chuTruoc = await doiRoiDoc(p, 'aside', 2000);
+      phaiCo(chuTruoc, nam);
+      // Chồng Sinh nay là mâu thuẫn (hai năm) nên các dòng bày mở — tìm đúng dòng mang năm thử.
+      const dong = p.locator('aside li').filter({ hasText: nam }).first();
+      if (!(await dong.count())) throw new Error(`phiếu không bày dòng năm sinh ${nam} vừa ghi`);
       await dong.getByRole('button', { name: 'Ẩn theo báo cáo…' }).click();
-      await dong.locator('textarea').fill('kịch bản ghi 7-3 — thử ẩn');
+      await dong.locator('textarea').fill('kịch bản ghi 7-3 — thử ẩn dòng vừa ghi');
       await dong.getByRole('button', { name: 'Ẩn ngay' }).click();
       const chu = await doiRoiDoc(p, 'aside', 2000);
-      if (chu.includes('1980')) throw new Error(`phiếu vẫn bày 1980 sau khi ẩn — đang nói: "${chu.slice(0, 200)}…"`);
-      return 'phiếu không còn dòng 1980 — ẩn ngay, không chờ duyệt';
+      if (chu.includes(nam)) throw new Error(`phiếu vẫn bày ${nam} sau khi ẩn — đang nói: "${chu.slice(0, 200)}…"`);
+      phaiCo(chu, '1980'); // năm sinh gốc còn nguyên — kịch bản không đụng dữ liệu của lượt sau
+      return `ghi ${nam} rồi ẩn — phiếu về lại 1980, không chờ duyệt`;
     },
   },
 ];

@@ -43,10 +43,19 @@ const HANH: Record<RevisionAction, string> = {
 const laLoai = (v: unknown): v is JournalEntity => typeof v === 'string' && v in LOAI;
 const laHanh = (v: unknown): v is RevisionAction => typeof v === 'string' && v in HANH;
 
+/** Giờ Việt Nam, không phụ thuộc múi giờ của máy chủ (code review 7-4: máy đang chạy UTC−7). */
+const DINH_DANG_LUC = new Intl.DateTimeFormat('vi-VN', {
+  timeZone: 'Asia/Ho_Chi_Minh',
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+});
 function luc(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return `${d.toLocaleDateString('vi-VN')} ${d.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`;
+  return DINH_DANG_LUC.format(d);
 }
 
 export default async function NhatKyPage({
@@ -81,7 +90,7 @@ export default async function NhatKyPage({
     return <p className="max-w-[70ch] text-[17px] text-muted-foreground">{so.error.message}</p>;
   }
 
-  const dangLoc = loai !== undefined || hanh !== undefined || nguoi !== undefined;
+  const dangLoc = loai !== undefined || hanh !== undefined || nguoi !== undefined || truoc !== undefined;
   const duongTiep = (t: { at: string; id: string }) => {
     const q = new URLSearchParams();
     if (loai) q.set('loai', loai);
@@ -100,7 +109,8 @@ export default async function NhatKyPage({
       </p>
 
       {/* Bộ lọc là biểu mẫu GET: đổi địa chỉ, không ghi gì. */}
-      <form method="get" className="mt-5 flex flex-wrap items-end gap-3">
+      {/* `key` theo bộ lọc: select không điều khiển phải dựng lại sau một lượt điều hướng bằng Link ("Bỏ lọc"). */}
+      <form key={`${loai ?? ''}|${hanh ?? ''}|${nguoi ?? ''}`} method="get" className="mt-5 flex flex-wrap items-end gap-3">
         <label className="grid gap-1">
           <span className="text-[15px] font-semibold text-muted-foreground">Loại việc</span>
           <select name="loai" defaultValue={loai ?? ''} className={O}>
@@ -134,9 +144,13 @@ export default async function NhatKyPage({
         ) : null}
       </form>
 
-      {nguoi && so.value.entries[0]?.nguoi ? (
+      {nguoi ? (
         <p className="mt-3 max-w-[70ch] text-[17px]">
-          Đang xem riêng <strong className="font-pha">{so.value.entries[0].nguoi.fullName}</strong>.
+          Đang xem riêng{' '}
+          <strong className="font-pha">
+            {so.value.entries.find((e) => e.nguoi?.personId === nguoi)?.nguoi?.fullName ?? 'một người trong phả'}
+          </strong>
+          .
         </p>
       ) : null}
 
@@ -169,6 +183,15 @@ export default async function NhatKyPage({
                       >
                         {e.nguoi.fullName}
                       </Link>
+                      {nguoi !== e.nguoi.personId ? (
+                        /* Cửa vào bộ lọc theo người — không có cửa thì bộ lọc ấy là mã chết (review 7-4). */
+                        <Link
+                          href={`/admin/nhat-ky?nguoi=${encodeURIComponent(e.nguoi.personId)}`}
+                          className="ml-2 inline-flex min-h-11 items-center text-[15px] text-muted-foreground underline underline-offset-4"
+                        >
+                          chỉ người này
+                        </Link>
+                      ) : null}
                     </>
                   ) : null}
                 </p>

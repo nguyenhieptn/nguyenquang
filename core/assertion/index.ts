@@ -170,6 +170,8 @@ export type HiddenAssertion = {
   valueText: string;
   /** Note of the latest 'hide' revision; '' when not recoverable. */
   hiddenReason: string;
+  /** Tên người BÁO — hàng chờ nói ai báo, không chỉ ai khai (story 7-3). '' khi không truy được. */
+  hiddenByName: string;
   createdByName: string;
   createdAt: string;
 };
@@ -179,7 +181,7 @@ export async function listHiddenAssertions(): Promise<Result<HiddenAssertion[]>>
   const rows = await withClanContext(viewer.clanId, (tx) => listHiddenAssertionsOp(tx, viewer));
   if (!rows.ok) return rows;
   // Auth user names live outside the clan partition (AD-8) — second read through dbGlobal.
-  const names = await lookupAccountNames(rows.value.map((r) => r.createdByAccountId));
+  const names = await lookupAccountNames(rows.value.flatMap((r) => [r.createdByAccountId, r.hiddenByAccountId]));
   return ok(
     rows.value.map((r) => ({
       assertionId: r.assertionId,
@@ -188,6 +190,7 @@ export async function listHiddenAssertions(): Promise<Result<HiddenAssertion[]>>
       kind: r.kind,
       valueText: r.valueText,
       hiddenReason: r.hiddenReason,
+      hiddenByName: r.hiddenByAccountId ? (names.get(r.hiddenByAccountId) ?? r.hiddenByAccountId) : '',
       createdByName: names.get(r.createdByAccountId) ?? r.createdByAccountId,
       createdAt: r.createdAt.toISOString(),
     })),
