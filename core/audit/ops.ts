@@ -211,14 +211,14 @@ function summarize(rev: RevisionRow, assertionInfo?: Img | null): string {
     return truoc && sau && truoc !== sau ? `sửa sổ dòng họ — tên họ "${truoc}" → "${sau}"` : 'sửa sổ dòng họ (tên họ, chữ đệm, đề từ)';
   }
   if (rev.entity === 'attachment') {
-    // Việc của gắn kết nói bằng chính ghi chú của nó ("duyệt gắn node", "đổi vai", …).
+    // Ghi chú của gắn kết ("duyệt gắn node", "đổi vai", …) bày ở DÒNG GHI CHÚ, không lặp vào câu.
     switch (rev.action) {
       case 'create':
         return 'xin gắn vào một người trong phả';
       case 'remove':
-        return rev.note ? `gỡ gắn kết — ${rev.note}` : 'gỡ gắn kết';
+        return 'gỡ gắn kết tài khoản';
       default:
-        return rev.note ? `gắn kết: ${rev.note}` : 'cập nhật gắn kết';
+        return 'cập nhật gắn kết tài khoản';
     }
   }
   if (rev.entity === 'source') return 'ghi một nguồn cho lời khai';
