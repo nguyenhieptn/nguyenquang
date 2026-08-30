@@ -190,7 +190,7 @@ development_status:
   # đang gõ dở trong khi chú thích hứa "mở lại vẫn còn"; và mốc ngoài canvas làm biểu mẫu nói
   # "chưa biết nối vào ai" trong khi vẫn ghi con của mốc (cùng lỗ ở admin, vá luôn).
   6-10-pha-quanh-minh: done
-  epic-6-retrospective: optional
+  epic-6-retrospective: done
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──
 # Loại: story → vào Đợt 3 (epics-dot-3.md) · sửa → vá có chủ ý · vận hành → không phải mã.
@@ -228,5 +228,26 @@ action_items:
     status: open
   - epic: 5
     action: "Chèn một lượt soi sau mỗi 2-3 story, không dồn bảy story một phiên"
-    owner: "nếp làm việc, từ Đợt 3"
+    owner: "nếp làm việc, từ Đợt 3 → thành cổng `npm run soi` (story 6-6), chạy ở mỗi story"
+    status: done
+  # Retro Epic 6 (29/08/2026) — đề xuất chờ Hiệp chốt; xem epic-6-retro-2026-08-29.md § Việc chốt.
+  - epic: 6
+    action: "Hiệp bấm thử trên phả thật: sửa/gộp/tách nơi · nối người · ghi từ Phả quanh mình · chọn mâu thuẫn · trao vai · Enter/Shift+Enter"
+    owner: "Hiệp"
+    status: open
+  - epic: 6
+    action: "Lint: cấm so `role`/`personId` ngoài core/assertion/ops.ts — cổng chỉ có gateWriter/gateApprover"
+    owner: "Đợt 4, đầu"
+    status: open
+  - epic: 6
+    action: "Checklist review: chú thích 'chặn/gác/không bao giờ' phải chỉ tới test cùng tên; ngữ cảnh phiên dựng từ dòng họ thử"
+    owner: "nếp làm việc, từ Đợt 4"
+    status: open
+  - epic: 6
+    action: "Kịch bản GHI có mắt trên dòng họ thử (Playwright bấm thật, đọc lại câu xác nhận)"
+    owner: "Đợt 4"
+    status: open
+  - epic: 6
+    action: "Nhật ký nơi chốn có người đọc (core/audit chưa đọc entity='place')"
+    owner: "Đợt 4"
     status: open
