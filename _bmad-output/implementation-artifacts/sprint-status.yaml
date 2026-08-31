@@ -4,7 +4,7 @@
 # epics-dot-4.md (Đợt 4, epic 7).
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
-last_updated: 2026-08-29
+last_updated: 2026-08-30
 project: Gia phả dòng họ Nguyễn Quang
 project_key: giapha
 tracking_system: sprint-status.yaml
@@ -253,20 +253,20 @@ action_items:
     status: open
   - epic: 6
     action: "Lint: cấm so `role`/`personId` ngoài core/assertion/ops.ts — cổng chỉ có gateWriter/gateApprover"
-    owner: "Đợt 4 → 7-1-hang-rao-tu-retro"
-    status: in-progress
+    owner: "Đợt 4 → 7-1-hang-rao-tu-retro (done 29/08)"
+    status: done
   - epic: 6
     action: "Checklist review: chú thích 'chặn/gác/không bao giờ' phải chỉ tới test cùng tên; ngữ cảnh phiên dựng từ dòng họ thử"
     owner: "nếp làm việc, từ Đợt 4"
     status: open
   - epic: 6
     action: "Kịch bản GHI có mắt trên dòng họ thử (Playwright bấm thật, đọc lại câu xác nhận)"
-    owner: "Đợt 4 → 7-1-hang-rao-tu-retro"
-    status: in-progress
+    owner: "Đợt 4 → 7-1-hang-rao-tu-retro (done 29/08; nay là cổng thứ sáu `npm run bam-thu`, 5 kịch bản)"
+    status: done
   - epic: 6
     action: "Nhật ký nơi chốn có người đọc (core/audit chưa đọc entity='place')"
-    owner: "Đợt 4 → 7-4-so-nhat-ky"
-    status: in-progress
+    owner: "Đợt 4 → 7-4-so-nhat-ky (done 29/08; /admin/nhat-ky)"
+    status: done
   # Story 7-6 (29/08/2026): mã và tài liệu sẵn, việc còn lại cần tài khoản Google của dòng họ + tên miền.
   - epic: 7
     action: "Bật đăng nhập Google: cần tên miền + HTTPS trước (Google không nhận http trên IP), rồi ba biến trong .env và một lần deploy.sh"
