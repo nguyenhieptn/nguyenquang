@@ -1,10 +1,10 @@
-# Sprint status — Gia phả Nguyễn Quang, Đợt 1 + Đợt 2 + Đợt 3 + Đợt 4
+# Sprint status — Gia phả Nguyễn Quang, Đợt 1 + Đợt 2 + Đợt 3 + Đợt 4 + Đợt 5
 # Sinh bởi sprint planning 22/08/2026. Cấu trúc: xem planning-artifacts/epics/epics.md
 # (Đợt 1, epic 1-4), epics-dot-2.md (Đợt 2, epic 5), epics-dot-3.md (Đợt 3, epic 6),
-# epics-dot-4.md (Đợt 4, epic 7).
+# epics-dot-4.md (Đợt 4, epic 7), epics-dot-5.md (Đợt 5, epic 8).
 # Sidebar UI Workshop đọc SỐNG file này (app/uiworkshop/_registry/sprint.ts).
 generated: 2026-08-22
-last_updated: 2026-08-30
+last_updated: 2026-09-04
 project: Gia phả dòng họ Nguyễn Quang
 project_key: giapha
 tracking_system: sprint-status.yaml
@@ -207,6 +207,15 @@ development_status:
   7-5-ngay-gio-am-lich: done
   7-6-mo-cua: done
   epic-7-retrospective: done
+
+  # ── Đợt 5 ── cấu trúc ở planning-artifacts/epics/epics-dot-5.md
+  #
+  # Cắt theo động từ thứ tư: MỜI. Chốt 04/09/2026 từ câu hỏi của chủ dự án sau review kiến trúc
+  # cùng ngày: "gửi link hay QR, người kia chỉ đăng nhập Google là kích hoạt được node đó không?"
+  # Cùng ngày chốt: đa dòng họ / khớp / gộp GÁC tới khi có dữ liệu (review § 6), chỉ dựng sẵn nền
+  # (review § 5); triển khai đầu tiên vẫn một dòng họ Nguyễn Quang.
+  epic-8: backlog
+  8-1-moi-bang-lien-ket: ready-for-dev
 
 # ── Việc chốt từ retro Epic 5 (25/08/2026) ──
 # Loại: story → vào Đợt 3 (epics-dot-3.md) · sửa → vá có chủ ý · vận hành → không phải mã.

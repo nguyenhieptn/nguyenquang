@@ -557,3 +557,28 @@ thì không ghi lên" chuyển xuống core (`thayDuocNguoi`) — bản đầu c
   thật bật (sau tên miền + TLS), thêm nhánh: *"Tài khoản này vào bằng Google — dùng nút Google."*
 - **Đăng nhập Google đứng sau nợ tên miền + TLS** — Google không nhận redirect `http://` trên IP.
   Mã và tài liệu sẵn; việc còn lại là của chủ dự án (action item ở `sprint-status`).
+
+## Ghi nhận từ review kiến trúc 04/09/2026: mỗi người dùng tự tạo cây nhà mình (CHƯA triển khai)
+
+Nguồn: `planning-artifacts/architecture/…/reviews/review-da-dong-ho-ca-nhan-2026-09-04.md`. Chủ dự
+án chốt ngày 04/09: hướng duy nhất đang giữ là **một người dùng vào hệ thống thì tạo được cây gia
+phả nhà mình**, nhiều dòng họ sống chung một hệ thống. **Gác toàn bộ bàn luận về khớp và gộp giữa
+các dòng họ**: cần dữ liệu thật trước rồi mới quyết. **Không story nào sinh ra từ đây.** Triển khai
+đầu tiên vẫn là một dòng họ, Nguyễn Quang, tài khoản `nguyenquanghiep@gmail.com`.
+
+Thứ có hiệu lực ngay là § 4.3 và § 5 của review. Tóm lại để không phải mở file:
+
+- **Thu đúng dữ liệu** (§ 4.3): luồng thêm người phải hỏi năm sinh (ước chừng cũng được), tên cha
+  qua cạnh cha con, quê qua `place`, năm mất. Xử lý sau, bằng luật hay AI, không bù được thứ chưa
+  từng hỏi.
+- **Giữ** (§ 5.1): mọi bảng mới có `clan_id` và vào `PARTITIONED_TABLES`; UUIDv7; không khoá ngoại
+  xuyên dòng họ; ảnh revision đầy đủ; nguồn trên mọi khẳng định; tên qua `nameFolded`; không hằng
+  Nguyễn Quang trong `core/`/`db/`.
+- **Thêm khi chạm tới, rẻ, không đổi hành vi** (§ 5.2): `clan.slug` (unique, null được), khoá
+  `origin` trong `ClanSettings` + `KHOA_SETTINGS`; sidecar media ghi `clanId`; chỉ mục
+  `(clan_id, kind)` trên `assertion` (đã nợ từ 7-5).
+- **Không làm thêm chỗ giả định một dòng họ** (§ 5.3): không người đọc `soleClanId` thứ ba ngoài
+  `auth.ts` và `bootstrap.ts`; không cache theo dòng họ ở tầng module; không `ownerPool()` trong
+  app để đọc chéo; link mới nên qua một chỗ dựng đường dẫn để chèn slug sau.
+- **Đã gác, không dựng** (§ 6): chỉ mục khớp ngoài phân vùng, `individual`, hàm gộp mảnh, bảng đề
+  xuất xuyên dòng họ. Ghi chú còn giữ ở review để khỏi nghĩ lại từ đầu; không ai làm theo.
